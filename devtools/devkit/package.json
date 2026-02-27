@@ -1,0 +1,54 @@
+{
+  "name": "conflux-devkit",
+  "version": "0.1.0",
+  "description": "Conflux local development environment — start and manage a local node via npx",
+  "type": "module",
+  "bin": {
+    "conflux-devkit": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "files": [
+    "dist/**/*",
+    "ui/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/copy-ui.mjs && tsup",
+    "dev:server": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run --pass-with-no-tests",
+    "test:coverage": "vitest --run --coverage",
+    "clean": "rm -rf dist ui/out",
+    "lint": "biome lint src/",
+    "lint:fix": "biome lint --write src/",
+    "check": "biome check src/",
+    "check:fix": "biome check --write src/"
+  },
+  "dependencies": {
+    "@cfxdevkit/compiler": "workspace:*",
+    "@cfxdevkit/core": "workspace:*",
+    "@cfxdevkit/devnode": "workspace:*",
+    "@cfxdevkit/services": "workspace:*",
+    "@cfxdevkit/wallet": "workspace:*",
+    "compression": "^1.7.5",
+    "viem": "^2.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "open": "^10.1.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/compression": "^1.7.5",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.10.6",
+    "conflux-devkit-ui": "workspace:*",
+    "tsup": "^8.5.1",
+    "typescript": "^5.7.3",
+    "vitest": "^4.0.18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

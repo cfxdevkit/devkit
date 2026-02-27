@@ -1,0 +1,30 @@
+{
+  "name": "@cfxdevkit/contracts",
+  "version": "0.1.0",
+  "description": "Generated ABI, bytecode, and deployed addresses for Conflux DevKit contracts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist/**/*"],
+  "scripts": {
+    "build": "tsup",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.7.3"
+  },
+  "peerDependencies": {
+    "viem": ">=2.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
