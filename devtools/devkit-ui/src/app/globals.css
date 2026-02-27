@@ -23,12 +23,7 @@ body {
   height: 100%;
   background: var(--cfx-bg);
   color: var(--cfx-text);
-  font-family:
-    'Inter',
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -70,6 +65,10 @@ body {
 
 .btn-success {
   @apply btn bg-green-600 text-white hover:bg-green-500;
+}
+
+.btn-warning {
+  @apply btn bg-amber-600 text-white hover:bg-amber-500 active:bg-amber-700;
 }
 
 .input {
@@ -119,10 +118,6 @@ body {
 code,
 pre {
   font-family:
-    'JetBrains Mono',
-    'Fira Code',
-    ui-monospace,
-    'Cascadia Code',
-    monospace;
+    "JetBrains Mono", "Fira Code", ui-monospace, "Cascadia Code", monospace;
   font-size: 0.85em;
 }

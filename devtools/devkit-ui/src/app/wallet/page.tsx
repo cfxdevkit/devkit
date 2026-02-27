@@ -1,184 +1,10 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { CheckCircle, Lock, Plus, Trash2, Unlock } from 'lucide-react';
 import { useState } from 'react';
-import {
-  Lock,
-  Unlock,
-  Plus,
-  Trash2,
-  CheckCircle,
-  Copy,
-  CheckCheck,
-  RefreshCw,
-} from 'lucide-react';
+import { SetupWizard } from '@/components/SetupWizard';
 import { keystoreApi, type WalletEntry } from '@/lib/api';
-
-function CopyBtn({ text }: { text: string }) {
-  const [c, setC] = useState(false);
-  return (
-    <button
-      type="button"
-      title="Copy"
-      className="rounded p-1 text-slate-500 hover:text-slate-300"
-      onClick={async () => {
-        await navigator.clipboard.writeText(text);
-        setC(true);
-        setTimeout(() => setC(false), 1500);
-      }}
-    >
-      {c ? (
-        <CheckCheck className="h-3.5 w-3.5 text-green-400" />
-      ) : (
-        <Copy className="h-3.5 w-3.5" />
-      )}
-    </button>
-  );
-}
-
-/* ── Setup wizard ── */
-function SetupWizard({ onDone }: { onDone: () => void }) {
-  const qc = useQueryClient();
-  const [step, setStep] = useState<'generate' | 'confirm'>('generate');
-  const [generated, setGenerated] = useState('');
-  const [mnemonic, setMnemonic] = useState('');
-  const [label, setLabel] = useState('Default');
-  const [password, setPassword] = useState('');
-  const [confirmPw, setConfirmPw] = useState('');
-  const [error, setError] = useState('');
-
-  const generateMutation = useMutation({
-    mutationFn: keystoreApi.generate,
-    onSuccess: (d) => {
-      setGenerated(d.mnemonic);
-      setMnemonic(d.mnemonic);
-      setStep('confirm');
-    },
-  });
-
-  const setupMutation = useMutation({
-    mutationFn: () => {
-      if (password && password !== confirmPw) {
-        throw new Error('Passwords do not match');
-      }
-      return keystoreApi.setup({
-        mnemonic,
-        label: label || 'Default',
-        password: password || undefined,
-      });
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['keystore'] });
-      onDone();
-    },
-    onError: (e) => setError(e.message),
-  });
-
-  return (
-    <div className="card max-w-lg space-y-5">
-      <h2 className="text-base font-semibold text-white">
-        First-time Setup
-      </h2>
-      <p className="text-sm text-slate-400">
-        Create or import a mnemonic to manage your dev accounts.
-      </p>
-
-      {step === 'generate' ? (
-        <>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              className="btn-primary"
-              disabled={generateMutation.isPending}
-              onClick={() => generateMutation.mutate()}
-            >
-              <RefreshCw className="h-4 w-4" />
-              Generate Mnemonic
-            </button>
-            <span className="self-center text-sm text-slate-500">or</span>
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => setStep('confirm')}
-            >
-              Import Existing
-            </button>
-          </div>
-        </>
-      ) : (
-        <>
-          {generated && (
-            <div className="rounded-md bg-[#0e1117] p-3">
-              <div className="mb-1 flex items-center justify-between">
-                <span className="text-xs text-slate-500">Generated mnemonic — save this safely!</span>
-                <CopyBtn text={generated} />
-              </div>
-              <p className="font-mono text-sm text-green-300 leading-relaxed">{generated}</p>
-            </div>
-          )}
-          <div>
-            <label className="label">Mnemonic (12 or 24 words)</label>
-            <textarea
-              className="input h-20 font-mono"
-              value={mnemonic}
-              onChange={(e) => setMnemonic(e.target.value)}
-              placeholder="word1 word2 word3 …"
-            />
-          </div>
-          <div>
-            <label className="label">Label</label>
-            <input
-              className="input"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Password (optional)</label>
-              <input
-                className="input"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Leave blank for no encryption"
-              />
-            </div>
-            <div>
-              <label className="label">Confirm Password</label>
-              <input
-                className="input"
-                type="password"
-                value={confirmPw}
-                onChange={(e) => setConfirmPw(e.target.value)}
-              />
-            </div>
-          </div>
-          {error && (
-            <p className="text-sm text-red-400">{error}</p>
-          )}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => setStep('generate')}
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              className="btn-primary"
-              disabled={!mnemonic.trim() || setupMutation.isPending}
-              onClick={() => setupMutation.mutate()}
-            >
-              {setupMutation.isPending ? 'Setting up…' : 'Complete Setup'}
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
 
 /* ── main page ── */
 export default function WalletPage() {
@@ -245,7 +71,9 @@ export default function WalletPage() {
         <div>
           <h1 className="text-xl font-semibold text-white">Wallet</h1>
         </div>
-        <SetupWizard onDone={() => qc.invalidateQueries({ queryKey: ['keystore'] })} />
+        <SetupWizard
+          onDone={() => qc.invalidateQueries({ queryKey: ['keystore'] })}
+        />
       </div>
     );
   }
@@ -260,28 +88,25 @@ export default function WalletPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          {status?.encryptionEnabled && (
-            <>
-              {status?.locked ? (
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => setShowUnlock(true)}
-                >
-                  <Unlock className="h-4 w-4" /> Unlock
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  disabled={lockMutation.isPending}
-                  onClick={() => lockMutation.mutate()}
-                >
-                  <Lock className="h-4 w-4" /> Lock
-                </button>
-              )}
-            </>
-          )}
+          {status?.encryptionEnabled &&
+            (status?.locked ? (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setShowUnlock(true)}
+              >
+                <Unlock className="h-4 w-4" /> Unlock
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn-secondary"
+                disabled={lockMutation.isPending}
+                onClick={() => lockMutation.mutate()}
+              >
+                <Lock className="h-4 w-4" /> Lock
+              </button>
+            ))}
           <button
             type="button"
             className="btn-primary"
@@ -305,9 +130,7 @@ export default function WalletPage() {
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && unlockMutation.mutate()}
           />
-          {unlockError && (
-            <p className="text-sm text-red-400">{unlockError}</p>
-          )}
+          {unlockError && <p className="text-sm text-red-400">{unlockError}</p>}
           <div className="flex gap-2">
             <button
               type="button"
@@ -391,7 +214,9 @@ export default function WalletPage() {
                   <CheckCircle className="h-4 w-4 shrink-0 text-blue-400" />
                 )}
                 <div>
-                  <div className="text-sm font-medium text-white">{w.label}</div>
+                  <div className="text-sm font-medium text-white">
+                    {w.label}
+                  </div>
                   <div className="text-xs text-slate-500">{w.id}</div>
                 </div>
               </div>

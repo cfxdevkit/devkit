@@ -1,7 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import { AppShell } from '@/components/AppShell';
 import { Providers } from './providers';
-import { Sidebar } from '@/components/Sidebar';
 
 export const metadata: Metadata = {
   title: 'Conflux DevKit',
@@ -17,10 +17,7 @@ export default function RootLayout({
     <html lang="en" className="h-full">
       <body className="flex h-full overflow-hidden">
         <Providers>
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto bg-[#0e1117] p-6">
-            {children}
-          </main>
+          <AppShell>{children}</AppShell>
         </Providers>
       </body>
     </html>

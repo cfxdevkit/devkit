@@ -1,14 +1,6 @@
 'use client';
 
-import {
-  Activity,
-  Box,
-  FileCode2,
-  Hammer,
-  Network,
-  Users,
-  Wallet,
-} from 'lucide-react';
+import { Activity, Box, FileCode2, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -16,10 +8,7 @@ import { getSocket, type NodeStatusEvent } from '@/lib/socket';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Dashboard', icon: Activity },
-  { href: '/accounts', label: 'Accounts', icon: Users },
   { href: '/contracts', label: 'Contracts', icon: FileCode2 },
-  { href: '/mining', label: 'Mining', icon: Hammer },
-  { href: '/network', label: 'Network', icon: Network },
   { href: '/wallet', label: 'Wallet', icon: Wallet },
 ];
 

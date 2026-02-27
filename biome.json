@@ -17,7 +17,8 @@
       "!**/*.min.js",
       "!pnpm-lock.yaml",
       "!**/generated.ts",
-      "!conflux-contracts/**"
+      "!conflux-contracts/**",
+      "!**/globals.css"
     ]
   },
   "formatter": {
@@ -66,5 +67,30 @@
         "noBannedTypes": "warn"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.css"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noUnknownAtRules": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "devtools/devkit-ui/**/*.tsx",
+        "devtools/devkit-ui/**/*.ts"
+      ],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noLabelWithoutControl": "off"
+          }
+        }
+      }
+    }
+  ]
 }

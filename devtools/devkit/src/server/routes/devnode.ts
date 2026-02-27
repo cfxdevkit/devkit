@@ -30,20 +30,57 @@ export function createDevnodeRoutes(nodeManager: NodeManager): Router {
   });
 
   router.post('/start', async (_req, res) => {
-    await nodeManager.start();
-    const manager = nodeManager.requireManager();
-    res.json({ ok: true, status: manager.getNodeStatus() });
+    try {
+      await nodeManager.start();
+      const manager = nodeManager.requireManager();
+      res.json({ ok: true, status: manager.getNodeStatus() });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ error: msg });
+    }
   });
 
   router.post('/stop', async (_req, res) => {
-    await nodeManager.stop();
-    res.json({ ok: true, server: 'stopped' });
+    try {
+      await nodeManager.stop();
+      res.json({ ok: true, server: 'stopped' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ error: msg });
+    }
   });
 
   router.post('/restart', async (_req, res) => {
-    await nodeManager.restart();
-    const manager = nodeManager.requireManager();
-    res.json({ ok: true, status: manager.getNodeStatus() });
+    try {
+      await nodeManager.restart();
+      const manager = nodeManager.requireManager();
+      res.json({ ok: true, status: manager.getNodeStatus() });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ error: msg });
+    }
+  });
+
+  router.post('/restart-wipe', async (_req, res) => {
+    try {
+      await nodeManager.restartWipe();
+      const manager = nodeManager.requireManager();
+      res.json({ ok: true, status: manager.getNodeStatus() });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ error: msg });
+    }
+  });
+
+  /** Wipe data dir (stop first if running), without restarting. */
+  router.post('/wipe', async (_req, res) => {
+    try {
+      await nodeManager.wipeData();
+      res.json({ ok: true, server: 'stopped' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ error: msg });
+    }
   });
 
   return router;

@@ -19,22 +19,39 @@ export function createNetworkRoutes(nodeManager: NodeManager): Router {
   router.put('/config', async (req, res) => {
     if (nodeManager.isRunning()) {
       res.status(409).json({
-        error: 'Node is running. Stop it before changing the network configuration.',
+        error:
+          'Node is running. Stop it before changing the network configuration.',
       });
       return;
     }
 
-    const { coreRpcPort, evmRpcPort, wsPort, chainId, evmChainId, log } =
-      req.body as {
-        coreRpcPort?: number;
-        evmRpcPort?: number;
-        wsPort?: number;
-        chainId?: number;
-        evmChainId?: number;
-        log?: boolean;
-      };
+    const {
+      coreRpcPort,
+      evmRpcPort,
+      wsPort,
+      evmWsPort,
+      chainId,
+      evmChainId,
+      log,
+    } = req.body as {
+      coreRpcPort?: number;
+      evmRpcPort?: number;
+      wsPort?: number;
+      evmWsPort?: number;
+      chainId?: number;
+      evmChainId?: number;
+      log?: boolean;
+    };
 
-    nodeManager.updateConfig({ coreRpcPort, evmRpcPort, wsPort, chainId, evmChainId, log });
+    nodeManager.updateConfig({
+      coreRpcPort,
+      evmRpcPort,
+      wsPort,
+      evmWsPort,
+      chainId,
+      evmChainId,
+      log,
+    });
     res.json({ ok: true, config: nodeManager.getConfig() });
   });
 
@@ -45,6 +62,8 @@ export function createNetworkRoutes(nodeManager: NodeManager): Router {
       res.json({
         core: `http://localhost:${cfg.coreRpcPort}`,
         evm: `http://localhost:${cfg.evmRpcPort}`,
+        coreWs: `ws://localhost:${cfg.wsPort}`,
+        evmWs: `ws://localhost:${cfg.evmWsPort}`,
         ws: `ws://localhost:${cfg.wsPort}`,
         running: false,
       });

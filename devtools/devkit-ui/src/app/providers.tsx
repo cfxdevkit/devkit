@@ -13,7 +13,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             refetchInterval: 4000,
           },
         },
-      }),
+      })
   );
 
   return (

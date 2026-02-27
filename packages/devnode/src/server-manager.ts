@@ -20,6 +20,8 @@
 import type { ChildProcess } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { promises as fs } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { defaultNetworkSelector } from '@cfxdevkit/core/config';
 import {
   generateMnemonic as coreGenerateMnemonic,
@@ -44,6 +46,7 @@ import {
 const DEFAULT_CORE_RPC_PORT = 12537;
 const DEFAULT_EVM_RPC_PORT = 8545;
 const DEFAULT_WS_PORT = 12536;
+const DEFAULT_EVM_WS_PORT = 8546;
 
 /**
  * Server Manager for xcfx/node lifecycle management
@@ -60,6 +63,8 @@ export class ServerManager {
   private miningStatus: MiningStatus;
   private miningTimer: NodeJS.Timeout | null = null;
   private testClient: TestClient | null = null;
+  /** True while packMine() is running — auto-miner skips its tick to avoid concurrent mining RPCs. */
+  private _packMining = false;
 
   constructor(config: ServerConfig) {
     this.config = {
@@ -67,6 +72,7 @@ export class ServerManager {
       coreRpcPort: config.coreRpcPort || DEFAULT_CORE_RPC_PORT,
       evmRpcPort: config.evmRpcPort || DEFAULT_EVM_RPC_PORT,
       wsPort: config.wsPort || DEFAULT_WS_PORT,
+      evmWsPort: config.evmWsPort || DEFAULT_EVM_WS_PORT,
       chainId: config.chainId || 2029, // Local Core chain ID
       evmChainId: config.evmChainId || 2030, // Local eSpace chain ID
       accounts: config.accounts || 10,
@@ -125,7 +131,8 @@ export class ServerManager {
       // Mining account is also already generated in constructor
 
       // Ensure data directory exists with proper permissions
-      const dataDir = this.config.dataDir || '/workspace/.conflux-dev';
+      const dataDir =
+        this.config.dataDir || join(homedir(), '.conflux-devkit', 'data');
       try {
         await fs.mkdir(dataDir, { recursive: true, mode: 0o755 });
       } catch (error) {
@@ -134,11 +141,12 @@ export class ServerManager {
       }
 
       // Create server instance with configuration
-      this.server = await createServer({
+      const serverConfig = {
         // Correct property names according to @xcfx/node API
         jsonrpcHttpPort: this.config.coreRpcPort,
         jsonrpcHttpEthPort: this.config.evmRpcPort,
         jsonrpcWsPort: this.config.wsPort,
+        jsonrpcWsEthPort: this.config.evmWsPort,
         chainId: this.config.chainId,
         evmChainId: this.config.evmChainId,
         // Specify data directory to avoid permission issues
@@ -154,13 +162,23 @@ export class ServerManager {
             this.requireMiningAccount().privateKey, // Add mining account EVM key
         ],
         // Mining configuration - use config value or default to mining account address
+        // 'auto' is a sentinel value meaning "use the derived mining account address"
         miningAuthor:
-          this.config.miningAuthor || this.miningAccount?.coreAddress,
-        // Following xcfx-node test pattern: no auto block generation
-        // All mining is done via testClient.mine() for full control
+          this.config.miningAuthor && this.config.miningAuthor !== 'auto'
+            ? this.config.miningAuthor
+            : this.miningAccount?.coreAddress,
+        // Following the reference test (xcfx-node/evmManualBlockGeneration.test.ts):
+        // devPackTxImmediately: false — eSpace txs are ONLY packed by mine({ numTxs }),
+        // never by mine({ blocks }).  This flag only affects Core space.
         devPackTxImmediately: false,
         log: this.config.logging || false,
-      });
+        // Genesis block initialization can take time; pass a generous timeout so
+        // the native binary doesn't abort the startup handshake prematurely.
+        timeout: 60000,
+        retryInterval: 300,
+      };
+
+      this.server = await createServer(serverConfig);
 
       // Start the server - this is required!
       await this.server.start();
@@ -178,9 +196,11 @@ export class ServerManager {
       // Set up cleanup handlers
       this.setupCleanupHandlers();
 
-      // Auto-start mining with 500ms interval and transaction packing
-      // This ensures pending transactions are automatically included in blocks
-      await this.startMining(500);
+      // Auto-start mining at 2s intervals using mine({ blocks:1 }).
+      // With devPackTxImmediately:true the node packs pending txs into every
+      // generated block, so we never need test_generateOneBlock (which can
+      // block for >10 s on slow machines and saturate the RPC connection).
+      await this.startMining(2000);
     } catch (error) {
       this.status = 'error';
       throw new NodeError(
@@ -305,11 +325,20 @@ export class ServerManager {
   /**
    * Get RPC URLs
    */
-  getRpcUrls(): { core: string; evm: string; ws: string } {
+  getRpcUrls(): {
+    core: string;
+    evm: string;
+    coreWs: string;
+    evmWs: string;
+    ws: string;
+  } {
+    const coreWs = `ws://localhost:${this.config.wsPort}`;
     return {
       core: `http://localhost:${this.config.coreRpcPort}`,
       evm: `http://localhost:${this.config.evmRpcPort}`,
-      ws: `ws://localhost:${this.config.wsPort}`,
+      coreWs,
+      evmWs: `ws://localhost:${this.config.evmWsPort}`,
+      ws: coreWs, // backward-compat alias for Core WS
     };
   }
 
@@ -548,11 +577,13 @@ export class ServerManager {
     if (!this.testClient) {
       const { createTestClient, http } = await import('cive');
       this.testClient = createTestClient({
-        transport: http(`http://localhost:${this.config.coreRpcPort}`),
+        transport: http(`http://localhost:${this.config.coreRpcPort}`, {
+          timeout: 60_000,
+        }),
       });
     }
 
-    const miningInterval = interval || 500; // Default 500ms for faster auto-mining
+    const miningInterval = interval || 2000; // Default 2s — empty blocks are fast
 
     this.miningStatus = {
       ...this.miningStatus,
@@ -564,10 +595,10 @@ export class ServerManager {
     // Start the mining loop
     this.miningTimer = setInterval(async () => {
       try {
-        if (this.testClient) {
-          // Mine blocks with transaction packing (numTxs: 1)
-          // This ensures pending transactions are included in blocks
-          await this.testClient.mine({ numTxs: 1 });
+        if (this.testClient && !this._packMining) {
+          // mine({ blocks: 1 }) = empty block that also packs pending txs
+          // when devPackTxImmediately: true (fast, never calls test_generateOneBlock)
+          await this.testClient.mine({ blocks: 1 });
           this.miningStatus = {
             ...this.miningStatus,
             blocksMined: (this.miningStatus.blocksMined || 0) + 1,
@@ -648,13 +679,14 @@ export class ServerManager {
     if (!this.testClient) {
       const { createTestClient, http } = await import('cive');
       this.testClient = createTestClient({
-        transport: http(`http://localhost:${this.config.coreRpcPort}`),
+        transport: http(`http://localhost:${this.config.coreRpcPort}`, {
+          timeout: 60_000,
+        }),
       });
     }
 
     try {
-      // Following xcfx-node test pattern: use testClient.mine({ blocks })
-      // This mines empty blocks that advance the chain height
+      // mine({ blocks }) with devPackTxImmediately:true also packs pending txs
       await this.testClient.mine({ blocks });
       this.miningStatus = {
         ...this.miningStatus,
@@ -668,6 +700,53 @@ export class ServerManager {
         'core',
         { blocks, originalError: error }
       );
+    }
+  }
+
+  /**
+   * Pack and mine: calls test_generateOneBlock (mine({ numTxs:1 })) which
+   * forces pending eSpace/Core transactions into a block.  Each call
+   * internally generates deferredStateEpochCount (default 5) blocks.
+   *
+   * This is the ONLY way to include eSpace (EVM) transactions — mine({ blocks })
+   * skips the txpool for eSpace.  Uses a long timeout because
+   * test_generateOneBlock can take several seconds on slow machines.
+   */
+  async packMine(): Promise<void> {
+    if (!this.isRunning()) {
+      throw new NodeError(
+        'Server must be running to mine blocks',
+        'SERVER_NOT_RUNNING'
+      );
+    }
+
+    // Use a separate client with a generous timeout for this slow operation
+    const { createTestClient, http } = await import('cive');
+    const packClient = createTestClient({
+      transport: http(`http://localhost:${this.config.coreRpcPort}`, {
+        timeout: 120_000,
+      }),
+    });
+
+    // Block the auto-miner interval so it does not fire a concurrent mining RPC
+    // that would crash xcfx while test_generateOneBlock is running.
+    this._packMining = true;
+    try {
+      await packClient.mine({ numTxs: 1 });
+      this.miningStatus = {
+        ...this.miningStatus,
+        blocksMined: (this.miningStatus.blocksMined || 0) + 5, // generates 5 blocks internally
+      };
+      console.log('Pack-mined: 5 blocks generated, pending txs included');
+    } catch (error) {
+      throw new NodeError(
+        `Failed to pack-mine: ${error instanceof Error ? error.message : String(error)}`,
+        'MINING_ERROR',
+        'core',
+        { originalError: error }
+      );
+    } finally {
+      this._packMining = false;
     }
   }
 
@@ -786,7 +865,13 @@ export class ServerManager {
   }
 
   /**
-   * Fund an eSpace account using the faucet account
+   * Fund an eSpace account from the Core-Space faucet/mining account.
+   *
+   * Funds ALWAYS originate from the Core-Space faucet wallet (which accumulates
+   * mining rewards).  For eSpace (0x…) targets the transfer is routed through the
+   * Conflux internal cross-chain bridge contract (0x0888…0006 / transferEVM),
+   * which locks CFX on Core and mints it on eSpace — no separate eSpace balance is
+   * needed on the faucet account.
    */
   async fundEvmAccount(targetAddress: string, amount: string): Promise<string> {
     if (!this.isRunning()) {
@@ -799,35 +884,60 @@ export class ServerManager {
     const faucetAccount = this.getFaucetAccount();
 
     try {
-      // Create EVM wallet client for the faucet account
-      const { createWalletClient, http, parseEther } = await import('viem');
-      const { privateKeyToAccount } = await import('viem/accounts');
+      const { createWalletClient, http, parseCFX } = await import('cive');
+      const { privateKeyToAccount } = await import('cive/accounts');
+      const { hexAddressToBase32, encodeFunctionData, defineChain } =
+        await import('cive/utils');
+
+      const chainId = this.config.chainId || 2029;
+      const chain = defineChain({
+        id: chainId,
+        name: 'Conflux Core Local',
+        nativeCurrency: { decimals: 18, name: 'Conflux', symbol: 'CFX' },
+        rpcUrls: {
+          default: { http: [`http://localhost:${this.config.coreRpcPort}`] },
+        },
+      });
 
       const account = privateKeyToAccount(
-        faucetAccount.privateKey as `0x${string}`
+        faucetAccount.privateKey as `0x${string}`,
+        { networkId: chainId }
       );
 
       const walletClient = createWalletClient({
         account,
-        chain: {
-          id: this.config.evmChainId || 71,
-          name: 'Conflux eSpace Local',
-          nativeCurrency: { name: 'Conflux', symbol: 'CFX', decimals: 18 },
-          rpcUrls: {
-            default: { http: [`http://localhost:${this.config.evmRpcPort}`] },
-          },
-        },
-        transport: http(`http://localhost:${this.config.evmRpcPort}`),
+        chain,
+        transport: http(`http://localhost:${this.config.coreRpcPort}`),
+      });
+
+      // Internal cross-chain bridge contract on Core Space
+      const bridgeAddress = hexAddressToBase32({
+        hexAddress: '0x0888000000000000000000000000000000000006',
+        networkId: chainId,
       });
 
       const hash = await walletClient.sendTransaction({
         account,
-        to: targetAddress as `0x${string}`,
-        value: parseEther(amount),
+        chain,
+        to: bridgeAddress,
+        value: parseCFX(amount),
+        data: encodeFunctionData({
+          abi: [
+            {
+              type: 'function',
+              name: 'transferEVM',
+              inputs: [{ name: 'to', type: 'bytes20' }],
+              outputs: [{ name: 'output', type: 'bytes' }],
+              stateMutability: 'payable',
+            },
+          ],
+          functionName: 'transferEVM',
+          args: [targetAddress as `0x${string}`],
+        }),
       });
 
       console.log(
-        `Funded eSpace account ${targetAddress} with ${amount} CFX. TX: ${hash}`
+        `Funded eSpace account ${targetAddress} with ${amount} CFX via Core→eSpace bridge. TX: ${hash}`
       );
       return hash;
     } catch (error) {
@@ -838,7 +948,7 @@ export class ServerManager {
         {
           targetAddress,
           amount,
-          faucetAccount: faucetAccount.evmAddress,
+          faucetCoreAddress: faucetAccount.coreAddress,
           originalError: error,
         }
       );

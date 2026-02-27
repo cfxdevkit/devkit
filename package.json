@@ -13,7 +13,10 @@
     "lint:fix": "biome check --write packages",
     "lint:unsafe": "biome check --write --unsafe packages",
     "format": "biome format --write packages",
-    "check": "biome check --reporter=summary packages"
+    "check": "biome check --reporter=summary packages",
+    "devkit:build": "pnpm --filter conflux-devkit build",
+    "devkit:start": "node devtools/devkit/dist/cli.js",
+    "devkit:dev": "pnpm --filter conflux-devkit dev:server"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",

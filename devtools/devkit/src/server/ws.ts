@@ -17,7 +17,12 @@ export function setupWebSocket(io: IOServer, nodeManager: NodeManager): void {
     const manager = nodeManager.getManager();
 
     if (!manager) {
-      io.emit('node:status', { server: 'stopped', mining: null, rpcUrls: null, accounts: 0 });
+      io.emit('node:status', {
+        server: 'stopped',
+        mining: null,
+        rpcUrls: null,
+        accounts: 0,
+      });
       if (wasRunning) {
         io.emit('node:stopped', {});
         wasRunning = false;

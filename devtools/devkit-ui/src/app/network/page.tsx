@@ -1,9 +1,9 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
-import { Save, Copy, CheckCheck } from 'lucide-react';
-import { networkApi, nodeApi, type NetworkConfig, type RpcUrls } from '@/lib/api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { CheckCheck, Copy, Save } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { networkApi, nodeApi } from '@/lib/api';
 
 function CopyBtn({ text }: { text: string }) {
   const [c, setC] = useState(false);
@@ -31,6 +31,7 @@ type ConfigDraft = {
   coreRpcPort: string;
   evmRpcPort: string;
   wsPort: string;
+  evmWsPort: string;
   chainId: string;
   evmChainId: string;
 };
@@ -62,6 +63,7 @@ export default function NetworkPage() {
         coreRpcPort: String(config.coreRpcPort),
         evmRpcPort: String(config.evmRpcPort),
         wsPort: String(config.wsPort),
+        evmWsPort: String(config.evmWsPort),
         chainId: String(config.chainId),
         evmChainId: String(config.evmChainId),
       });
@@ -74,6 +76,7 @@ export default function NetworkPage() {
         coreRpcPort: Number(d.coreRpcPort),
         evmRpcPort: Number(d.evmRpcPort),
         wsPort: Number(d.wsPort),
+        evmWsPort: Number(d.evmWsPort),
         chainId: Number(d.chainId),
         evmChainId: Number(d.evmChainId),
       }),
@@ -87,10 +90,7 @@ export default function NetworkPage() {
 
   const isRunning = nodeStatus?.server === 'running';
 
-  const field = (
-    label: string,
-    key: keyof ConfigDraft,
-  ) => (
+  const field = (label: string, key: keyof ConfigDraft) => (
     <div key={key}>
       <label className="label">{label}</label>
       <input
@@ -126,7 +126,8 @@ export default function NetworkPage() {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {field('Core RPC Port', 'coreRpcPort')}
             {field('EVM RPC Port', 'evmRpcPort')}
-            {field('WS Port', 'wsPort')}
+            {field('Core WS Port', 'wsPort')}
+            {field('EVM WS Port', 'evmWsPort')}
             {field('Core Chain ID', 'chainId')}
             {field('EVM Chain ID', 'evmChainId')}
           </div>
@@ -156,15 +157,21 @@ export default function NetworkPage() {
       {/* RPC URLs */}
       {rpcUrls && (
         <div className="card space-y-3">
-          <h2 className="text-sm font-medium text-slate-300">Active RPC URLs</h2>
+          <h2 className="text-sm font-medium text-slate-300">
+            Active RPC URLs
+          </h2>
           {(
             [
               ['Core RPC', rpcUrls.core],
               ['EVM RPC', rpcUrls.evm],
-              ['WebSocket', rpcUrls.ws],
+              ['Core WebSocket', rpcUrls.coreWs],
+              ['EVM WebSocket', rpcUrls.evmWs],
             ] as [string, string][]
           ).map(([label, url]) => (
-            <div key={label} className="flex items-center justify-between gap-4">
+            <div
+              key={label}
+              className="flex items-center justify-between gap-4"
+            >
               <span className="w-28 text-xs text-slate-500">{label}</span>
               <div className="flex flex-1 items-center overflow-hidden">
                 <code className="flex-1 truncate rounded bg-[#0e1117] px-2 py-1 text-xs text-blue-300">

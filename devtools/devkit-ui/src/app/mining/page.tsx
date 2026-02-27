@@ -1,8 +1,8 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Hammer, Play, Square, Zap } from 'lucide-react';
+import { useState } from 'react';
 import { miningApi } from '@/lib/api';
 
 export default function MiningPage() {
@@ -37,9 +37,7 @@ export default function MiningPage() {
   });
 
   const isBusy =
-    mineMutation.isPending ||
-    startMutation.isPending ||
-    stopMutation.isPending;
+    mineMutation.isPending || startMutation.isPending || stopMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -54,20 +52,20 @@ export default function MiningPage() {
       <div className="card flex items-center gap-4">
         <div>
           <div className="label">Auto-mining</div>
-          <span className={status?.enabled ? 'badge-green' : 'badge-gray'}>
-            {status?.enabled ? 'On' : 'Off'}
+          <span className={status?.isRunning ? 'badge-green' : 'badge-gray'}>
+            {status?.isRunning ? 'On' : 'Off'}
           </span>
         </div>
-        {status?.enabled && status.blockTime !== undefined && (
+        {status?.isRunning && status.interval !== undefined && (
           <div>
             <div className="label">Block time</div>
-            <span className="text-sm text-slate-300">{status.blockTime} ms</span>
+            <span className="text-sm text-slate-300">{status.interval} ms</span>
           </div>
         )}
         <div>
-          <div className="label">Latest Epoch</div>
+          <div className="label">Blocks mined</div>
           <span className="text-sm text-slate-300">
-            {status?.latestEpoch ?? '—'}
+            {status?.blocksMined ?? '—'}
           </span>
         </div>
       </div>
@@ -123,11 +121,11 @@ export default function MiningPage() {
               type="number"
               min="100"
               value={interval}
-              disabled={status?.enabled}
+              disabled={status?.isRunning}
               onChange={(e) => setInterval(e.target.value)}
             />
           </div>
-          {!status?.enabled ? (
+          {!status?.isRunning ? (
             <button
               type="button"
               className="btn-success"

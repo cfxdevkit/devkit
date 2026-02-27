@@ -1,13 +1,17 @@
 /**
  * Typed fetch helpers for all devkit API endpoints.
+ *
+ * In development, set NEXT_PUBLIC_API_URL=http://localhost:7748 so the UI
+ * (running on a different port via `next dev`) can reach the Express backend.
+ * In production the UI is served by Express itself so the empty default works.
  */
 
-const BASE = '/api';
+const BASE = `${process.env.NEXT_PUBLIC_API_URL ?? ''}/api`;
 
 async function request<T>(
   method: string,
   path: string,
-  body?: unknown,
+  body?: unknown
 ): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method,
@@ -24,15 +28,22 @@ async function request<T>(
 const get = <T>(path: string) => request<T>('GET', path);
 const post = <T>(path: string, body?: unknown) =>
   request<T>('POST', path, body);
-const put = <T>(path: string, body?: unknown) => request<T>('PUT', path, body);
 const del = <T>(path: string) => request<T>('DELETE', path);
+const put = <T>(path: string, body?: unknown) => request<T>('PUT', path, body);
 
 /* ─── node ────────────────────────────────────────────────────────── */
 export interface NodeStatus {
   server: 'running' | 'stopped' | 'starting' | 'stopping';
   epochNumber?: number;
-  miningStatus?: string;
-  rpcUrls?: { core: string; evm: string; ws: string };
+  mining?: { isRunning: boolean; interval?: number; blocksMined?: number };
+  accounts?: number;
+  rpcUrls?: {
+    core: string;
+    evm: string;
+    coreWs: string;
+    evmWs: string;
+    ws: string;
+  };
 }
 
 export const nodeApi = {
@@ -40,6 +51,8 @@ export const nodeApi = {
   start: () => post<NodeStatus>('/node/start'),
   stop: () => post<{ success: boolean }>('/node/stop'),
   restart: () => post<NodeStatus>('/node/restart'),
+  restartWipe: () => post<NodeStatus>('/node/restart-wipe'),
+  wipe: () => post<{ ok: boolean; server: string }>('/node/wipe'),
 };
 
 /* ─── accounts ────────────────────────────────────────────────────── */
@@ -73,6 +86,7 @@ export const accountsApi = {
 /* ─── contracts ────────────────────────────────────────────────────── */
 export interface ContractTemplate {
   name: string;
+  description?: string;
   source: string;
 }
 
@@ -86,11 +100,34 @@ export interface DeployResult {
   address: string;
   txHash: string;
   chain: string;
+  id: string;
+}
+
+export interface StoredContract {
+  id: string;
+  name: string;
+  address: string;
+  chain: 'evm' | 'core';
+  chainId: number;
+  txHash: string;
+  deployer: string;
+  deployedAt: string;
+  abi: unknown[];
+  constructorArgs: unknown[];
+}
+
+export interface CallResult {
+  success: boolean;
+  result?: unknown; // read call return value
+  txHash?: string; // write call tx hash
+  blockNumber?: string; // block/epoch mined in
+  status?: string; // 'success' | 'reverted'
 }
 
 export const contractsApi = {
   templates: () => get<ContractTemplate[]>('/contracts/templates'),
-  template: (name: string) => get<ContractTemplate>(`/contracts/templates/${name}`),
+  template: (name: string) =>
+    get<ContractTemplate>(`/contracts/templates/${name}`),
   compile: (source: string, contractName: string) =>
     post<CompileResult>('/contracts/compile', { source, contractName }),
   deploy: (opts: {
@@ -99,20 +136,40 @@ export const contractsApi = {
     args?: unknown[];
     chain?: 'core' | 'evm';
     accountIndex?: number;
+    contractName?: string;
   }) => post<DeployResult>('/contracts/deploy', opts),
+  deployed: (chain?: 'evm' | 'core') =>
+    get<StoredContract[]>(
+      `/contracts/deployed${chain ? `?chain=${chain}` : ''}`
+    ),
+  deleteDeployed: (id: string) =>
+    del<{ ok: boolean }>(`/contracts/deployed/${id}`),
+  call: (
+    id: string,
+    functionName: string,
+    args: unknown[],
+    accountIndex?: number
+  ) =>
+    post<CallResult>(`/contracts/${id}/call`, {
+      functionName,
+      args,
+      accountIndex,
+    }),
 };
 
 /* ─── mining ────────────────────────────────────────────────────────── */
 export interface MiningStatus {
-  enabled: boolean;
-  blockTime?: number;
-  latestEpoch: number;
+  isRunning: boolean;
+  interval?: number; // auto-mine block interval in ms
+  blocksMined?: number;
 }
 
 export const miningApi = {
   status: () => get<MiningStatus>('/mining/status'),
-  mine: (blocks?: number) => post<{ mined: number }>('/mining/mine', { blocks }),
-  start: (intervalMs?: number) => post<{ success: boolean }>('/mining/start', { intervalMs }),
+  mine: (blocks?: number) =>
+    post<{ mined: number }>('/mining/mine', { blocks }),
+  start: (intervalMs?: number) =>
+    post<{ success: boolean }>('/mining/start', { intervalMs }),
   stop: () => post<{ success: boolean }>('/mining/stop'),
 };
 
@@ -120,7 +177,8 @@ export const miningApi = {
 export interface NetworkConfig {
   coreRpcPort: number;
   evmRpcPort: number;
-  wsPort: number;
+  wsPort: number; // Core Space WebSocket port
+  evmWsPort: number; // eSpace WebSocket port
   chainId: number;
   evmChainId: number;
 }
@@ -128,7 +186,9 @@ export interface NetworkConfig {
 export interface RpcUrls {
   core: string;
   evm: string;
-  ws: string;
+  coreWs: string; // Core Space WebSocket
+  evmWs: string; // eSpace WebSocket
+  ws: string; // alias for coreWs (backward compat)
 }
 
 export const networkApi = {
@@ -158,12 +218,27 @@ export const keystoreApi = {
   generate: () => post<{ mnemonic: string }>('/keystore/generate'),
   setup: (opts: { mnemonic: string; label?: string; password?: string }) =>
     post<{ success: boolean }>('/keystore/setup', opts),
-  unlock: (password: string) => post<{ success: boolean }>('/keystore/unlock', { password }),
+  unlock: (password: string) =>
+    post<{ success: boolean }>('/keystore/unlock', { password }),
   lock: () => post<{ success: boolean }>('/keystore/lock'),
   wallets: () => get<WalletEntry[]>('/keystore/wallets'),
   addWallet: (mnemonic: string, label?: string) =>
     post<WalletEntry>('/keystore/wallets', { mnemonic, label }),
   activateWallet: (id: string) =>
     post<{ success: boolean }>(`/keystore/wallets/${id}/activate`),
-  deleteWallet: (id: string) => del<{ success: boolean }>(`/keystore/wallets/${id}`),
+  deleteWallet: (id: string) =>
+    del<{ success: boolean }>(`/keystore/wallets/${id}`),
+};
+
+export interface ServerSettings {
+  host: string;
+  port: number;
+  isPublic: boolean;
+  authEnabled: boolean;
+  corsOrigins: string | string[];
+  rateLimit: { windowMs: number; maxRequests: number };
+}
+
+export const settingsApi = {
+  get: () => get<ServerSettings>('/settings'),
 };

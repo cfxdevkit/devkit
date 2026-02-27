@@ -1,10 +1,10 @@
-import { Router } from 'express';
-import { getKeystoreService } from '@cfxdevkit/services';
 import {
   deriveAccount,
   generateMnemonic,
   validateMnemonic,
 } from '@cfxdevkit/core/wallet';
+import { getKeystoreService } from '@cfxdevkit/services';
+import { Router } from 'express';
 
 /** Default node config used when creating/importing wallets in dev mode */
 const DEFAULT_NODE_CONFIG = {
@@ -34,9 +34,9 @@ export function createKeystoreRoutes(): Router {
     const ks = getKeystoreService();
     const ready = await ks.isSetupCompleted();
     res.json({
-      setupCompleted: ready,
-      locked: ready ? ks.isLocked() : null,
-      encrypted: ready ? ks.isEncryptionEnabled() : null,
+      initialized: ready,
+      locked: ready ? ks.isLocked() : false,
+      encryptionEnabled: ready ? ks.isEncryptionEnabled() : false,
     });
   });
 
@@ -46,7 +46,11 @@ export function createKeystoreRoutes(): Router {
   });
 
   router.post('/setup', async (req, res) => {
-    const { mnemonic, label = 'Default', password } = req.body as {
+    const {
+      mnemonic,
+      label = 'Default',
+      password,
+    } = req.body as {
       mnemonic?: string;
       label?: string;
       password?: string;
@@ -68,9 +72,7 @@ export function createKeystoreRoutes(): Router {
       mnemonic,
       mnemonicLabel: label,
       nodeConfig: DEFAULT_NODE_CONFIG,
-      ...(password
-        ? { encryption: { enabled: true, password } }
-        : {}),
+      ...(password ? { encryption: { enabled: true, password } } : {}),
     });
     res.json({ ok: true });
   });
@@ -95,7 +97,7 @@ export function createKeystoreRoutes(): Router {
   router.get('/wallets', async (_req, res) => {
     const ks = getKeystoreService();
     const wallets = await ks.listMnemonics();
-    res.json({ wallets });
+    res.json(wallets);
   });
 
   router.post('/wallets', async (req, res) => {

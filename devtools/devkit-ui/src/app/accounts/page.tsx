@@ -1,9 +1,9 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { CheckCheck, Copy, Droplets, Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
-import { Copy, CheckCheck, Droplets, Eye, EyeOff } from 'lucide-react';
-import { accountsApi, type AccountInfo } from '@/lib/api';
+import { type AccountInfo, accountsApi } from '@/lib/api';
 
 function CopyBtn({ text }: { text: string }) {
   const [c, setC] = useState(false);
@@ -27,11 +27,7 @@ function CopyBtn({ text }: { text: string }) {
   );
 }
 
-function FundModal({
-  onClose,
-}: {
-  onClose: () => void;
-}) {
+function FundModal({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
   const [address, setAddress] = useState('');
   const [amount, setAmount] = useState('');
@@ -82,9 +78,7 @@ function FundModal({
             </select>
           </div>
         </div>
-        {result && (
-          <p className="text-sm text-slate-300">{result}</p>
-        )}
+        {result && <p className="text-sm text-slate-300">{result}</p>}
         <div className="flex justify-end gap-2">
           <button type="button" className="btn-secondary" onClick={onClose}>
             Close
@@ -167,7 +161,9 @@ export default function AccountsPage() {
                 </code>
                 <CopyBtn text={faucet.coreAddress} />
               </div>
-              <div className="text-sm text-slate-300">{faucet.coreBalance} CFX</div>
+              <div className="text-sm text-slate-300">
+                {faucet.coreBalance} CFX
+              </div>
             </div>
             <div>
               <div className="text-xs text-slate-500">EVM</div>
@@ -177,7 +173,9 @@ export default function AccountsPage() {
                 </code>
                 <CopyBtn text={faucet.evmAddress} />
               </div>
-              <div className="text-sm text-slate-300">{faucet.evmBalance} CFX</div>
+              <div className="text-sm text-slate-300">
+                {faucet.evmBalance} CFX
+              </div>
             </div>
           </div>
         </div>

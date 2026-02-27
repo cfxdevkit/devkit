@@ -37,9 +37,21 @@ export {
 export type { TestContractName } from './templates/index.js';
 // Templates
 export {
+  COUNTER_SOURCE,
+  ERC721_SOURCE,
+  ESCROW_SOURCE,
+  getCounterContract,
+  getERC721Contract,
+  getEscrowContract,
+  getMultiSigContract,
+  getRegistryContract,
   getSimpleStorageContract,
   getTestTokenContract,
+  getVotingContract,
+  MULTISIG_SOURCE,
+  REGISTRY_SOURCE,
   SIMPLE_STORAGE_SOURCE,
   TEST_CONTRACTS,
   TEST_TOKEN_SOURCE,
+  VOTING_SOURCE,
 } from './templates/index.js';

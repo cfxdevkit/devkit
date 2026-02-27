@@ -25,7 +25,8 @@ export interface NodeConfig {
   evmChainId?: number;
   coreRpcPort?: number;
   evmRpcPort?: number;
-  wsPort?: number;
+  wsPort?: number; // Core Space WebSocket port
+  evmWsPort?: number; // eSpace WebSocket port (default: 8546)
   dataDir?: string;
   mnemonic?: string;
   logging?: boolean;

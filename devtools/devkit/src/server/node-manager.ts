@@ -1,18 +1,28 @@
-import { getKeystoreService } from '@cfxdevkit/services';
-import { ServerManager } from '@cfxdevkit/devnode';
-import type { ServerConfig } from '@cfxdevkit/devnode';
+import { rm } from 'node:fs/promises';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { logger } from '@cfxdevkit/core/utils';
+import type { ServerConfig } from '@cfxdevkit/devnode';
+import { ServerManager } from '@cfxdevkit/devnode';
+import { getKeystoreService } from '@cfxdevkit/services';
+import { contractStorage } from './contract-storage.js';
 
 /** Default local-devnet configuration */
-const DEFAULT_CONFIG: ServerConfig = {
-  chainId: 1,       // Core Space — local devnet
-  evmChainId: 71,   // eSpace  — local devnet
+const DEFAULT_CONFIG: Omit<ServerConfig, 'dataDir'> = {
+  chainId: 2029, // Core Space — local devnet
+  evmChainId: 2030, // eSpace  — local devnet
   coreRpcPort: 12537,
   evmRpcPort: 8545,
   wsPort: 12535,
+  evmWsPort: 8546,
   log: false,
   accounts: 10,
 };
+
+/** Returns the data directory path for a given wallet ID. */
+function walletDataDir(walletId: string): string {
+  return join(homedir(), '.conflux-devkit', 'wallets', walletId, 'data');
+}
 
 /**
  * NodeManager wraps a single ServerManager instance.
@@ -21,7 +31,7 @@ const DEFAULT_CONFIG: ServerConfig = {
  */
 export class NodeManager {
   private manager: ServerManager | null = null;
-  private config: ServerConfig = { ...DEFAULT_CONFIG };
+  private config: Omit<ServerConfig, 'dataDir'> = { ...DEFAULT_CONFIG };
 
   /** Called once at server start to load persisted state from the keystore. */
   async initialize(): Promise<void> {
@@ -56,11 +66,11 @@ export class NodeManager {
     return this.manager?.isRunning() ?? false;
   }
 
-  getConfig(): ServerConfig {
+  getConfig(): Omit<ServerConfig, 'dataDir'> {
     return { ...this.config };
   }
 
-  updateConfig(partial: Partial<ServerConfig>): void {
+  updateConfig(partial: Partial<Omit<ServerConfig, 'dataDir'>>): void {
     this.config = { ...this.config, ...partial };
   }
 
@@ -76,8 +86,12 @@ export class NodeManager {
 
     const active = await keystore.getActiveMnemonic();
     const mnemonic = await keystore.getDecryptedMnemonic(active.id);
+    const dataDir = walletDataDir(active.id);
 
-    const server = new ServerManager({ ...this.config, mnemonic });
+    // Point contract storage at this wallet's directory before starting
+    contractStorage.setDataDir(dataDir);
+
+    const server = new ServerManager({ ...this.config, dataDir, mnemonic });
     await server.start();
     this.manager = server;
   }
@@ -92,5 +106,23 @@ export class NodeManager {
   async restart(): Promise<void> {
     await this.stop();
     await this.start();
+  }
+
+  /** Stop, wipe the active wallet's data directory (including contracts.json), then start fresh. */
+  async restartWipe(): Promise<void> {
+    await this.wipeData();
+    await this.start();
+  }
+
+  /** Stop the node if running, then wipe the active wallet's data directory.  Does NOT restart. */
+  async wipeData(): Promise<void> {
+    const keystore = getKeystoreService();
+    const active = await keystore.getActiveMnemonic();
+    const dataDir = walletDataDir(active.id);
+    await this.stop();
+    // Clear in-memory contract storage before wiping
+    await contractStorage.wipeFile();
+    await rm(dataDir, { recursive: true, force: true });
+    logger.info(`Wiped data directory: ${dataDir}`);
   }
 }
