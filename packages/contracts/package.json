@@ -27,8 +27,7 @@
     "viem": ">=2.0.0"
   },
   "publishConfig": {
-    "access": "public",
-    "directory": "packages/contracts"
+    "access": "public"
   },
   "repository": {
     "type": "git",
