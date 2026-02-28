@@ -36,8 +36,14 @@ function FundModal({ onClose }: { onClose: () => void }) {
 
   const fundMutation = useMutation({
     mutationFn: () => accountsApi.fund(address, amount || undefined, chain),
-    onSuccess: (d) => {
-      setResult(`✓ tx: ${d.txHash}`);
+    onSuccess: (e: any) => {
+      if (e?.confirmed) {
+        setResult(`✓ tx: ${e.txHash} (confirmed)`);
+      } else if (e?.txHash) {
+        setResult(`✓ tx: ${e.txHash} (pending)` + (e?.message ? ` - ${e.message}` : ''));
+      } else {
+        setResult('Submitted');
+      }
       qc.invalidateQueries({ queryKey: ['accounts'] });
     },
     onError: (e) => setResult(`✗ ${e.message}`),

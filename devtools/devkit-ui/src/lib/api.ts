@@ -76,12 +76,19 @@ export interface FaucetInfo {
 export const accountsApi = {
   list: () => get<AccountInfo[]>('/accounts'),
   faucet: () => get<FaucetInfo>('/accounts/faucet'),
-  fund: (address: string, amount?: string, chain?: 'core' | 'evm') =>
-    post<{ success: boolean; txHash: string }>('/accounts/fund', {
-      address,
-      amount,
-      chain,
-    }),
+  fund: async (address: string, amount?: string, chain?: 'core' | 'evm') => {
+    const res = await fetch(`/api/accounts/fund`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ address, amount, chain }),
+    });
+    return (await res.json()) as {
+      ok: boolean;
+      txHash?: string;
+      confirmed?: boolean;
+      message?: string;
+    };
+  },
 };
 
 /* ─── contracts ────────────────────────────────────────────────────── */
