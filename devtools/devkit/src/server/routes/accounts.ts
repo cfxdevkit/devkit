@@ -123,13 +123,74 @@ export function createAccountRoutes(nodeManager: NodeManager): Router {
 
     try {
       const manager = nodeManager.requireManager();
+
+      // Parse amount (default 100 CFX) and capture pre-fund balances to verify changes
+      const amountStr = amount ?? '100';
+      const amountNum = Number(amountStr);
+      const faucetBefore = await manager.getFaucetBalances();
+      const targetBefore =
+        detectedChain === 'core'
+          ? await manager.getCoreBalance(address)
+          : await manager.getEvmBalance(address);
+
       let txHash: string;
       if (detectedChain === 'core') {
-        txHash = await manager.fundCoreAccount(address, amount ?? '100');
+        txHash = await manager.fundCoreAccount(address, amountStr);
       } else {
-        txHash = await manager.fundEvmAccount(address, amount ?? '100');
+        txHash = await manager.fundEvmAccount(address, amountStr);
       }
-      res.json({ ok: true, txHash });
+
+      // Immediately pack the pending funding tx into a block — same pattern as
+      // contract deployment.  Without this, the auto-miner's next tick would
+      // eventually pick it up, but the user would wait up to the mining interval
+      // before the balance change is visible.
+      await manager.packMine();
+
+      // Poll for confirmation / balance change (timeout after 30s)
+      const timeoutMs = 30_000;
+      const intervalMs = 500; // fast: tx was just packed by packMine()
+      const start = Date.now();
+      let confirmed = false;
+      let message = 'pending';
+
+      while (Date.now() - start < timeoutMs) {
+        try {
+          if (detectedChain === 'core') {
+            const targetAfter = await manager.getCoreBalance(address);
+            if (Number(targetAfter || 0) >= Number(targetBefore || 0) + amountNum - 1e-9) {
+              confirmed = true;
+              message = 'confirmed';
+              break;
+            }
+            // also check faucet decreased
+            const faucetAfter = await manager.getFaucetBalances();
+            if (Number(faucetAfter.core || 0) <= Number(faucetBefore.core || 0) - amountNum - 1e-9) {
+              confirmed = true;
+              message = 'confirmed (faucet debited)';
+              break;
+            }
+          } else {
+            // EVM funding uses the Core->eSpace bridge: check faucet core decrease or target eSpace increase
+            const faucetAfter = await manager.getFaucetBalances();
+            if (Number(faucetAfter.core || 0) <= Number(faucetBefore.core || 0) - amountNum - 1e-9) {
+              confirmed = true;
+              message = 'confirmed (bridge tx mined)';
+              break;
+            }
+            const targetAfter = await manager.getEvmBalance(address);
+            if (Number(targetAfter || 0) >= Number(targetBefore || 0) + amountNum - 1e-9) {
+              confirmed = true;
+              message = 'confirmed (eSpace balance updated)';
+              break;
+            }
+          }
+        } catch {
+          // ignore transient errors and continue polling
+        }
+        await new Promise((r) => setTimeout(r, intervalMs));
+      }
+
+      res.json({ ok: true, txHash, confirmed, message });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       res.status(500).json({ error: msg });

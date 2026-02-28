@@ -196,10 +196,11 @@ export class ServerManager {
       // Set up cleanup handlers
       this.setupCleanupHandlers();
 
-      // Auto-start mining at 2s intervals using mine({ blocks:1 }).
-      // With devPackTxImmediately:true the node packs pending txs into every
-      // generated block, so we never need test_generateOneBlock (which can
-      // block for >10 s on slow machines and saturate the RPC connection).
+      // Auto-start mining at 2s intervals using mine({ numTxs:1 }).
+      // With devPackTxImmediately:false (our config) mine({ blocks }) creates
+      // empty blocks only; mine({ numTxs }) is the only call that packs pending
+      // Core-Space and eSpace transactions, so we use it here so that user
+      // wallet transactions are confirmed within one mining interval.
       await this.startMining(2000);
     } catch (error) {
       this.status = 'error';
@@ -596,12 +597,15 @@ export class ServerManager {
     this.miningTimer = setInterval(async () => {
       try {
         if (this.testClient && !this._packMining) {
-          // mine({ blocks: 1 }) = empty block that also packs pending txs
-          // when devPackTxImmediately: true (fast, never calls test_generateOneBlock)
-          await this.testClient.mine({ blocks: 1 });
+          // mine({ numTxs: 1 }) = test_generateOneBlock: packs ALL pending
+          // Core-Space and eSpace transactions into a new block and generates
+          // deferredStateEpochCount (default 5) blocks for deferred execution.
+          // With devPackTxImmediately:false this is the ONLY mining call that
+          // includes pending txs; mine({ blocks }) produces empty blocks only.
+          await this.testClient.mine({ numTxs: 1 });
           this.miningStatus = {
             ...this.miningStatus,
-            blocksMined: (this.miningStatus.blocksMined || 0) + 1,
+            blocksMined: (this.miningStatus.blocksMined || 0) + 5,
           };
         }
       } catch (error) {
@@ -686,7 +690,10 @@ export class ServerManager {
     }
 
     try {
-      // mine({ blocks }) with devPackTxImmediately:true also packs pending txs
+      // mine({ blocks }) advances the chain by N empty blocks (no tx packing).
+      // Useful after packMine()/test_generateOneBlock to satisfy the deferred
+      // execution epoch requirement.  With devPackTxImmediately:false it never
+      // includes pending transactions on its own.
       await this.testClient.mine({ blocks });
       this.miningStatus = {
         ...this.miningStatus,
