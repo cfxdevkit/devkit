@@ -1,7 +1,7 @@
 {
   "name": "@cfxdevkit/monorepo",
   "private": true,
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Conflux DevKit — reusable TypeScript SDK for building on Conflux eSpace and Core Space",
   "packageManager": "pnpm@10.11.0",
   "scripts": {

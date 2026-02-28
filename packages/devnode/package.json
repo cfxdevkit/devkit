@@ -1,6 +1,6 @@
 {
   "name": "@cfxdevkit/devnode",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Optional @xcfx/node plugin for Conflux DevKit - Local development features (dev-only)",
   "type": "module",
   "main": "dist/index.js",
