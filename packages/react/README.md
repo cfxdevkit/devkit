@@ -10,7 +10,7 @@ Features:
 ## Getting started
 
 ```tsx
-import { DevKitProvider, useBalance } from '@conflux-devkit/ui-headless';
+import { DevKitProvider, useBalance } from '@cfxdevkit/react';
 
 const App = () => (
   <DevKitProvider apiUrl="http://localhost:3001" network="testnet">
@@ -22,9 +22,9 @@ const App = () => (
 ## Development
 
 ```bash
-pnpm --filter @conflux-devkit/ui-headless install
-pnpm --filter @conflux-devkit/ui-headless build
-pnpm --filter @conflux-devkit/ui-headless test
+pnpm --filter @cfxdevkit/react install
+pnpm --filter @cfxdevkit/react build
+pnpm --filter @cfxdevkit/react test
 ```
 
 ## Testing and linting

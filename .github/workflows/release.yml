@@ -107,29 +107,28 @@ jobs:
           name: build-artifacts
 
       # ── 1. Publish all @cfxdevkit/* library packages ───────────────────────
-      # pnpm handles topological publish order (respects workspace:* deps).
-      # --no-git-checks skips the "working tree must be clean" check that
-      # fails on tag checkouts.
+      # IMPORTANT: Use `npm publish` (not `pnpm publish`) so the npm CLI can
+      # automatically exchange the GitHub OIDC token for a short-lived npm
+      # credential. `pnpm publish` does NOT trigger the OIDC token exchange,
+      # which causes "Access token expired" + E404 even when trusted publishing
+      # is correctly configured on npmjs.com.
+      #
       # Provenance attestation is generated automatically by npm when publishing
       # via OIDC trusted publishing — no --provenance flag needed.
       - name: Publish @cfxdevkit/* packages
         run: |
-          pnpm publish \
-            --filter './packages/*' \
-            --recursive \
-            --access public \
-            --no-git-checks \
-            --report-summary
+          for pkg_dir in packages/*/; do
+            pkg_name=$(node -p "require('./${pkg_dir}package.json').name")
+            echo "\n--- Publishing ${pkg_name} ---"
+            npm publish "${pkg_dir}" --access public
+          done
 
       # ── 2. Publish the conflux-devkit CLI ──────────────────────────────────
-      # Published separately (after the scoped packages) because its package.json
-      # lists workspace:* deps that pnpm rewrites to real versions at publish time.
-      # The CLI bundles all @cfxdevkit/* code via tsup noExternal so npm users
-      # get a standalone binary — @cfxdevkit/* are in devDependencies, not deps.
-      - name: Publish conflux-devkit CLI
+      # `pnpm pack` normalises workspace:* dependency versions in package.json
+      # to real semver before creating the tarball so the published package.json
+      # is clean. We then hand the tarball to `npm publish` so the OIDC token
+      # exchange still happens via the npm CLI.
+      - name: Pack + Publish conflux-devkit CLI
         run: |
-          pnpm publish \
-            --filter conflux-devkit \
-            --access public \
-            --no-git-checks \
-            --report-summary
+          pnpm pack -C devtools/devkit --pack-destination .
+          npm publish ./conflux-devkit-*.tgz --access public

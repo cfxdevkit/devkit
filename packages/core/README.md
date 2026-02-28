@@ -13,9 +13,9 @@ Provides chain clients, contract utilities, wallet derivation, swap services, an
 ## Installation
 
 ```bash
-pnpm add @cfxdevkit/sdk
+pnpm add @cfxdevkit/core
 # or
-npm install @cfxdevkit/sdk
+npm install @cfxdevkit/core
 ```
 
 Peer dependencies (install if using React hooks):
@@ -30,15 +30,15 @@ pnpm add react react-dom
 
 | Subpath | Contents |
 |---------|----------|
-| `@cfxdevkit/sdk` | Full barrel – everything |
-| `@cfxdevkit/sdk/clients` | `ClientManager`, `CoreClient`, `EspaceClient` |
-| `@cfxdevkit/sdk/config` | Chain definitions for Core + eSpace |
-| `@cfxdevkit/sdk/types` | Shared TypeScript types |
-| `@cfxdevkit/sdk/utils` | Logger |
-| `@cfxdevkit/sdk/wallet` | HD derivation, session keys, batching, embedded wallets |
-| `@cfxdevkit/sdk/contracts` | `ContractDeployer`, `ContractReader`, `ContractWriter`, ERC ABIs |
-| `@cfxdevkit/sdk/services` | `SwapService` (Swappi DEX), `KeystoreService`, `EncryptionService` |
-| `@cfxdevkit/sdk/automation` | `SafetyGuard`, `RetryQueue`, `PriceChecker`, `AUTOMATION_MANAGER_ABI`, types |
+| `@cfxdevkit/core` | Full barrel – everything |
+| `@cfxdevkit/core/clients` | `ClientManager`, `CoreClient`, `EspaceClient` |
+| `@cfxdevkit/core/config` | Chain definitions for Core + eSpace |
+| `@cfxdevkit/core/types` | Shared TypeScript types |
+| `@cfxdevkit/core/utils` | Logger |
+| `@cfxdevkit/core/wallet` | HD derivation, session keys, batching, embedded wallets |
+| `@cfxdevkit/core/contracts` | `ContractDeployer`, `ContractReader`, `ContractWriter`, ERC ABIs |
+| `@cfxdevkit/core/services` | `SwapService` (Swappi DEX), `KeystoreService`, `EncryptionService` |
+| `@cfxdevkit/core/automation` | `SafetyGuard`, `RetryQueue`, `PriceChecker`, `AUTOMATION_MANAGER_ABI`, types |
 
 ---
 
@@ -47,7 +47,7 @@ pnpm add react react-dom
 ### Connect to Conflux eSpace
 
 ```typescript
-import { ClientManager, EVM_MAINNET } from '@cfxdevkit/sdk';
+import { ClientManager, EVM_MAINNET } from '@cfxdevkit/core';
 
 const manager = new ClientManager({
   evm: { chain: EVM_MAINNET },
@@ -61,7 +61,7 @@ console.log('Current block:', block);
 ### Connect to Conflux Core Space
 
 ```typescript
-import { ClientManager, CORE_MAINNET } from '@cfxdevkit/sdk';
+import { ClientManager, CORE_MAINNET } from '@cfxdevkit/core';
 
 const manager = new ClientManager({
   core: { chain: CORE_MAINNET },
@@ -75,7 +75,7 @@ console.log('Current epoch:', epochNumber);
 ### HD Wallet Derivation
 
 ```typescript
-import { generateMnemonic, deriveAccounts } from '@cfxdevkit/sdk/wallet';
+import { generateMnemonic, deriveAccounts } from '@cfxdevkit/core/wallet';
 
 // Generate new wallet
 const mnemonic = generateMnemonic();
@@ -92,9 +92,9 @@ for (const account of accounts) {
 ### Read an ERC-20 token
 
 ```typescript
-import { ClientManager, EVM_MAINNET } from '@cfxdevkit/sdk/clients';
-import { ContractReader } from '@cfxdevkit/sdk/contracts';
-import { ERC20_ABI } from '@cfxdevkit/sdk/contracts';
+import { ClientManager, EVM_MAINNET } from '@cfxdevkit/core';
+import { ContractReader } from '@cfxdevkit/core/contracts';
+import { ERC20_ABI } from '@cfxdevkit/core/contracts';
 
 const manager = new ClientManager({ evm: { chain: EVM_MAINNET } });
 await manager.connect();
@@ -113,8 +113,8 @@ console.log('Balance:', balance);
 ### Query a DEX swap quote (Swappi)
 
 ```typescript
-import { ClientManager, EVM_MAINNET } from '@cfxdevkit/sdk/clients';
-import { SwapService } from '@cfxdevkit/sdk/services';
+import { ClientManager, EVM_MAINNET } from '@cfxdevkit/core';
+import { SwapService } from '@cfxdevkit/services';
 
 const manager = new ClientManager({ evm: { chain: EVM_MAINNET } });
 await manager.connect();
@@ -132,7 +132,7 @@ console.log('Expected out:', quote.amountOut);
 ### Encrypted Keystore
 
 ```typescript
-import { KeystoreService } from '@cfxdevkit/sdk/services';
+import { KeystoreService } from '@cfxdevkit/services';
 
 const keystore = new KeystoreService('/path/to/.keystore.json');
 await keystore.setup({ password: 'my-password' });
@@ -150,7 +150,7 @@ const accounts = await keystore.deriveAccountsFromMnemonic(
 ```typescript
 import {
   SafetyGuard, RetryQueue, PriceChecker, AUTOMATION_MANAGER_ABI,
-} from '@cfxdevkit/sdk/automation';
+} from '@cfxdevkit/core/automation';
 
 // Injectable logger — pass pino/winston/console or omit for silence
 const guard = new SafetyGuard({ maxSwapUsd: 5_000 }, myLogger);
@@ -172,7 +172,7 @@ const { conditionMet, swapUsd } = await checker.checkLimitOrder(job);
 ## Architecture
 
 ```
-@cfxdevkit/sdk
+@cfxdevkit/core
 │
 ├── clients/         ← cive (Core) + viem (eSpace) thin wrappers + ClientManager
 ├── config/          ← Chain definitions: local / testnet / mainnet for both spaces

@@ -9,8 +9,8 @@ This package provides:
 - `useAuthContext()` — access the current authenticated user anywhere in the tree
 - `useNetworkSwitch()` — helper to switch between Conflux networks
 
-Previously named `@conflux-cas/wallet-ui`. Renamed to `@cfxdevkit/wallet-connect`
-because it is not CAS-specific and is used by both the CAS frontend and the
+Previously named `wallet-ui`. Renamed to `@cfxdevkit/wallet-connect`
+because it is not CAS-specific and is used by multiple frontends, including the
 DevKit dashboard.
 
 ---

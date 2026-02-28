@@ -6,7 +6,7 @@
  * funded.
  *
  * Usage:
- *   pnpm --filter @conflux-cas/contracts check-wallet
+ *   pnpm --filter @cfxdevkit/contracts-dev check-wallet
  *
  * No --network flag needed — the script creates its own providers.
  */

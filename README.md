@@ -12,12 +12,15 @@ clients through to production-ready React components.
 packages/            Framework packages — all publishable to npm as @cfxdevkit/*
   core/              @cfxdevkit/core           — RPC clients, contracts, HD wallet
   services/          @cfxdevkit/services       — encryption, keystore, Swappi DEX
-  wallet/            @cfxdevkit/wallet         — re-export of wallet API from core
+  wallet/            @cfxdevkit/wallet         — focused wallet re-exports (session keys, batching)
   compiler/          @cfxdevkit/compiler       — runtime solc-js + contract templates
   devnode/           @cfxdevkit/devnode        — local @xcfx/node lifecycle (dev only)
+  contracts/         @cfxdevkit/contracts      — generated ABI, bytecode, addresses
+  protocol/          @cfxdevkit/protocol       — raw on-chain artifacts (ABIs + bytecode)
+  executor/          @cfxdevkit/executor      — on-chain execution/keeper runtime primitives
+  defi-react/        @cfxdevkit/defi-react     — React helpers for DeFi (pool tokens, pairs)
   react/             @cfxdevkit/react          — headless React components + hooks
   wallet-connect/    @cfxdevkit/wallet-connect — wagmi v2 + ConnectKit + SIWE
-  contracts/         @cfxdevkit/contracts      — generated ABI, bytecode, addresses
 
 devtools/            Private developer tooling — never published as framework packages
   contracts/         @cfxdevkit/contracts-dev  — Hardhat project: Solidity sources,
@@ -44,15 +47,18 @@ docs/                API reference and architecture docs
 | Package | What it gives you |
 |---|---|
 | `@cfxdevkit/services` | AES-256 encryption, encrypted HD keystore (file-based), Swappi DEX swap |
-| `@cfxdevkit/wallet` | Focused re-export of `core`'s wallet API |
+| `@cfxdevkit/wallet` | Focused re-export of `core`'s wallet API (session keys, batching, embedded wallet) |
 | `@cfxdevkit/compiler` | Runtime Solidity compiler (solc-js), pre-built contract templates |
 | `@cfxdevkit/devnode` | Local `@xcfx/node` lifecycle: start/stop/mine/faucet — **dev and test only** |
 | `@cfxdevkit/contracts` | Generated ABI, bytecode, and deployed addresses for production contracts |
+| `@cfxdevkit/protocol` | Low-level on-chain artifacts (ABIs + bytecode) for tooling and scripts |
+| `@cfxdevkit/executor` | Keeper / execution primitives for on-chain strategy execution (Limit/DCA/TWAP) |
 
 ### Layer 2 — React UI
 
 | Package | What it gives you |
 |---|---|
+| `@cfxdevkit/defi-react` | DeFi-specific React hooks: pool token resolution, balance enrichment, helpers |
 | `@cfxdevkit/wallet-connect` | wagmi v2 + ConnectKit + SIWE: `<WalletConnect>`, `AuthProvider`, chain constants |
 | `@cfxdevkit/react` | Headless render-prop components: `<ConnectButton>`, `<AccountCard>`, `<ContractReader>`, `<ContractWriter>`, `<SwapWidget>` |
 
@@ -136,6 +142,10 @@ pnpm add @cfxdevkit/core                 # foundation — always needed
 pnpm add @cfxdevkit/services             # encryption, keystore, swap
 pnpm add @cfxdevkit/wallet               # wallet without full RPC layer
 pnpm add @cfxdevkit/compiler             # runtime Solidity compilation
+pnpm add @cfxdevkit/contracts            # generated ABIs + addresses
+pnpm add @cfxdevkit/protocol             # low-level on-chain artifacts (bytecode + ABIs)
+pnpm add @cfxdevkit/executor             # on-chain execution primitives (keepers)
+pnpm add @cfxdevkit/defi-react           # DeFi React hooks + helpers
 pnpm add @cfxdevkit/devnode -D           # local dev node (dev/test only)
 pnpm add @cfxdevkit/wallet-connect wagmi viem connectkit @tanstack/react-query
 pnpm add @cfxdevkit/react

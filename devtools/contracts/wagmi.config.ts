@@ -6,7 +6,7 @@ import type { Plugin } from '@wagmi/cli';
 
 // ─── Deployment registry ─────────────────────────────────────────────────────
 // deployments.json is the single source of truth for deployed contract
-// addresses. Updated by conflux-cas/scripts/deploy.ts after each deploy.
+// addresses. Updated by devtools/contracts/scripts/deploy.ts after each deploy.
 // Committing this file tracks the canonical on-chain state per network.
 interface DeploymentRegistry {
   [chainId: string]: { [contractName: string]: string };
@@ -47,7 +47,7 @@ const wagmiDeployments = toWagmiDeployments(deploymentRegistry, CONTRACT_NAMES);
 
 /**
  * Custom plugin — appends `as const` bytecode exports for each contract so
- * that `@cfxdevkit/sdk-automation` can expose them for programmatic deploys
+ * that `@cfxdevkit/core/automation` can expose them for programmatic deploys
  * without pulling in Hardhat as a dependency.
  */
 function hardhatBytecodePlugin(contractNames: string[]): Plugin {
@@ -57,7 +57,7 @@ function hardhatBytecodePlugin(contractNames: string[]): Plugin {
       const lines: string[] = [
         '',
         '// ─── Deployment bytecode ─────────────────────────────────────────────────────',
-        '// Used by conflux-cas/scripts/deploy.ts via viem deployContract.',
+        '// Used by devtools/contracts/scripts/deploy.ts via viem deployContract.',
         '// Regenerate with: pnpm contracts:codegen',
       ];
       for (const name of contractNames) {
@@ -87,7 +87,7 @@ function hardhatBytecodePlugin(contractNames: string[]): Plugin {
  * Pipeline:
  *   pnpm contracts:codegen   (from monorepo root)
  *   = hardhat compile → wagmi generate
- *   → conflux-sdk/src/automation/generated.ts
+ *   → packages/contracts/src/generated.ts
  *
  * After a new deployment, update deployments.json then re-run codegen to
  * bake the new addresses into the SDK.

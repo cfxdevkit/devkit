@@ -12,8 +12,9 @@
 UI Components  ─── @cfxdevkit/react          @cfxdevkit/wallet-connect
 Wallet logic   ─── @cfxdevkit/wallet         @cfxdevkit/core/wallet
 Services       ─── @cfxdevkit/services
-RPC / Contracts─── @cfxdevkit/core
-Domain tools   ─── @cfxdevkit/compiler       @cfxdevkit/contracts
+RPC / Contracts─── @cfxdevkit/core            @cfxdevkit/contracts
+Domain tools   ─── @cfxdevkit/compiler       @cfxdevkit/protocol
+Execution      ─── @cfxdevkit/executor      @cfxdevkit/defi-react
 Dev tools      ─── @cfxdevkit/devnode        conflux-devkit (npx)
 ```
 

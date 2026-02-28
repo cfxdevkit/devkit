@@ -1,7 +1,7 @@
 {
   "name": "@cfxdevkit/contracts-dev",
   "version": "0.1.0",
-  "description": "Solidity smart contracts for conflux-cas automation — Hardhat project with @wagmi/cli codegen for SDK",
+  "description": "Solidity smart contracts for Conflux DevKit automation — Hardhat project with @wagmi/cli codegen for SDK",
   "private": true,
   "scripts": {
     "compile": "hardhat compile",

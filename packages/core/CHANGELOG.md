@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `@cfxdevkit/sdk` will be documented here.
+All notable changes to `@cfxdevkit/core` will be documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 

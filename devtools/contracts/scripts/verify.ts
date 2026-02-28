@@ -5,9 +5,9 @@
  * Reads deployed addresses from env vars (set after running deploy.ts).
  *
  * Usage (testnet):
- *   pnpm --filter @conflux-cas/contracts verify
+ *   pnpm --filter @cfxdevkit/contracts-dev verify
  * Usage (mainnet):
- *   pnpm --filter @conflux-cas/contracts verify:mainnet
+ *   pnpm --filter @cfxdevkit/contracts-dev verify:mainnet
  *
  * Required env vars:
  *   AUTOMATION_MANAGER_ADDRESS

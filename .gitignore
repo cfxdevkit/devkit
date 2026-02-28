@@ -50,7 +50,7 @@ Thumbs.db
 ._ignore/
 
 # ── Certificates (local dev TLS) ─────────────────────────────────────────────
-conflux-cas/frontend/certificates/
+# (project-specific TLS certs or frontend artifacts)
 
 # ── Dev-only artifacts (not part of submission) ───────────────────────────────
-conflux-cas/docs/DEVIATIONS.md
+# (project-specific deviation notes)
