@@ -120,13 +120,13 @@ jobs:
           restore-keys: turbo-
 
       - name: Run tests with coverage
-        run: pnpm test
+        run: pnpm run test:coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: packages/*/coverage/lcov.info,devtools/*/coverage/lcov.info
+          search_dir: .
           fail_ci_if_error: true
 
       - name: Upload coverage artifacts
