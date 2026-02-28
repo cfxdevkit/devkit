@@ -44,6 +44,13 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DRY_RUN = process.argv.includes('--dry-run');
+// --revoke-and-recreate <pkg>  — delete all existing trust entries for ONE
+//   package and add a fresh one.  Use this when a pre-existing trust entry
+//   may have hidden constraints (e.g. an `environment` field) that cause the
+//   OIDC exchange to fail in CI.
+//   Example: node scripts/setup-npm-trust.mjs --revoke-and-recreate @cfxdevkit/compiler
+const REVOKE_IDX = process.argv.indexOf('--revoke-and-recreate');
+const REVOKE_PKG = REVOKE_IDX !== -1 ? process.argv[REVOKE_IDX + 1] : null;
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const GITHUB_REPO   = 'cfxdevkit/devkit';   // owner/repo
@@ -107,6 +114,47 @@ function packageExists(name) {
   } catch {
     return false;
   }
+}
+
+// ── --revoke-and-recreate: delete old entry then add fresh one ────────────────
+
+if (REVOKE_PKG) {
+  console.log(`\n=== Revoke & recreate trust for ${REVOKE_PKG} ===\n`);
+
+  // Get existing trust IDs from text output (one block per entry, "id: <uuid>")
+  let trustText = '';
+  try {
+    trustText = execSync(`npm trust list "${REVOKE_PKG}"`, { stdio: 'pipe', encoding: 'utf8' });
+  } catch { /* no entries */ }
+
+  const ids = [...trustText.matchAll(/^id:\s*(.+)$/gm)].map(m => m[1].trim());
+
+  if (ids.length === 0) {
+    console.log(`  No existing trust entries found for ${REVOKE_PKG} — nothing to revoke.`);
+  } else {
+    for (const id of ids) {
+      console.log(`  −  Revoking entry ${id}…`);
+      console.log(`\n     npm will open a 2FA URL — open it in your browser to confirm.\n`);
+      const code = runInteractive(`npm trust revoke "${REVOKE_PKG}" "${id}" --yes`);
+      if (code !== 0) {
+        console.error(`  ✗  Revoke failed (exit ${code}). Aborting.`);
+        process.exit(1);
+      }
+      console.log(`     revoked ✓`);
+    }
+  }
+
+  console.log(`\n  +  Adding fresh trust for ${REVOKE_PKG}…`);
+  console.log(`\n     npm will open a 2FA URL — open it in your browser to confirm.\n`);
+  const addCode = runInteractive(
+    `npm trust github "${REVOKE_PKG}" --repository ${GITHUB_REPO} --file ${WORKFLOW_FILE} --yes`,
+  );
+  if (addCode !== 0) {
+    console.error(`  ✗  Trust add failed (exit ${addCode}).`);
+    process.exit(1);
+  }
+  console.log(`  ✓  Trust recreated for ${REVOKE_PKG}\n`);
+  process.exit(0);
 }
 
 // ── Step 1: Initial publish for packages that don't exist yet ─────────────────
