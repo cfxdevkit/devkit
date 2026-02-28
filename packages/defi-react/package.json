@@ -1,6 +1,6 @@
 {
   "name": "@cfxdevkit/defi-react",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Conflux DevKit – DeFi React hooks for Swappi pool tokens and on-chain balances",
   "type": "module",
   "main": "dist/index.js",
