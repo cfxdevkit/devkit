@@ -62,7 +62,16 @@ jobs:
           retention-days: 1
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # Publish to npm
+  # Publish to npm via OIDC Trusted Publishing
+  #
+  # No NPM_TOKEN secret required. npm CLI automatically exchanges the GitHub
+  # OIDC token for a short-lived npm credential during publish.
+  #
+  # Prerequisites (one-time setup):
+  #   Each package must have a Trusted Publisher configured on npmjs.com
+  #   pointing at this repository + "release.yml" workflow filename.
+  #   Use `npm trust add` for bulk configuration (npm CLI ≥11.10.0).
+  #   See: https://docs.npmjs.com/trusted-publishers
   # ─────────────────────────────────────────────────────────────────────────────
   publish:
     name: Publish to npm
@@ -70,7 +79,7 @@ jobs:
     needs: ci
     permissions:
       contents: read
-      id-token: write # required for npm provenance attestations
+      id-token: write # required for OIDC token exchange with npm
 
     steps:
       - uses: actions/checkout@v4
@@ -79,11 +88,12 @@ jobs:
         with:
           version: "10.11.0"
 
-      # registry-url causes setup-node to write an .npmrc that resolves
-      # NODE_AUTH_TOKEN at publish time — pnpm respects this file.
+      # registry-url tells setup-node (and therefore pnpm) which npm registry
+      # to target. Do NOT pass a token here — OIDC handles auth automatically.
+      # Trusted publishing requires npm CLI ≥11.5.1 and Node ≥22.14.0.
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "22.14"
           registry-url: "https://registry.npmjs.org"
           cache: "pnpm"
 
@@ -99,8 +109,9 @@ jobs:
       # ── 1. Publish all @cfxdevkit/* library packages ───────────────────────
       # pnpm handles topological publish order (respects workspace:* deps).
       # --no-git-checks skips the "working tree must be clean" check that
-      # would fail because the runner checked out only the tag, not a branch.
-      # --provenance attaches a signed SLSA provenance attestation to each pkg.
+      # fails on tag checkouts.
+      # Provenance attestation is generated automatically by npm when publishing
+      # via OIDC trusted publishing — no --provenance flag needed.
       - name: Publish @cfxdevkit/* packages
         run: |
           pnpm publish \
@@ -108,23 +119,17 @@ jobs:
             --recursive \
             --access public \
             --no-git-checks \
-            --provenance \
             --report-summary
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # ── 2. Publish the conflux-devkit CLI ──────────────────────────────────
       # Published separately (after the scoped packages) because its package.json
       # lists workspace:* deps that pnpm rewrites to real versions at publish time.
-      # The CLI bundles all @cfxdevkit/* code via tsup noExternal, so npm users
-      # get a standalone binary — they are listed under bundledDependencies.
+      # The CLI bundles all @cfxdevkit/* code via tsup noExternal so npm users
+      # get a standalone binary — @cfxdevkit/* are in devDependencies, not deps.
       - name: Publish conflux-devkit CLI
         run: |
           pnpm publish \
             --filter conflux-devkit \
             --access public \
             --no-git-checks \
-            --provenance \
             --report-summary
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
