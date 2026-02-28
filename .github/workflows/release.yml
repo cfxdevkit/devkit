@@ -150,5 +150,9 @@ jobs:
       # exchange still happens via the npm CLI.
       - name: Pack + Publish conflux-devkit CLI
         run: |
-          pnpm pack -C devtools/devkit --pack-destination .
-          npm publish ./conflux-devkit-*.tgz --access public
+          # --pack-destination must be absolute so the tarball lands in the
+          # repo root regardless of where pnpm resolves the -C working dir.
+          pnpm pack -C devtools/devkit --pack-destination "$PWD"
+          tarball=$(ls "$PWD"/conflux-devkit-*.tgz | tail -1)
+          echo "Publishing tarball: $tarball"
+          npm publish "$tarball" --access public
