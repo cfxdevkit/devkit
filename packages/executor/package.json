@@ -70,7 +70,7 @@
     "url": "git+https://github.com/cfxdevkit/devkit.git",
     "directory": "packages/executor"
   },
-  "homepage": "https://github.com/cfxdevkit/conflux-devkit#readme",
+  "homepage": "https://github.com/cfxdevkit/devkit#readme",
   "bugs": {
     "url": "https://github.com/cfxdevkit/devkit/issues"
   }
