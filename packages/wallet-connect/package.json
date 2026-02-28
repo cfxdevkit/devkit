@@ -1,6 +1,6 @@
 {
   "name": "@cfxdevkit/wallet-connect",
-  "version": "0.1.0",
+  "version": "1.0.1",
   "description": "Wagmi + SIWE wallet connection layer for Conflux applications — framework-agnostic, usable in any project",
   "type": "module",
   "main": "dist/index.js",

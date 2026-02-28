@@ -1,6 +1,6 @@
 {
   "name": "@cfxdevkit/react",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Headless React components for Conflux applications - customizable with Tailwind CSS",
   "type": "module",
   "main": "dist/index.js",

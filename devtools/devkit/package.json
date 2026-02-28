@@ -1,6 +1,6 @@
 {
   "name": "conflux-devkit",
-  "version": "0.1.0",
+  "version": "1.0.1",
   "description": "Conflux local development environment — start and manage a local node via npx",
   "bin": {
     "conflux-devkit": "./dist/cli.js"
