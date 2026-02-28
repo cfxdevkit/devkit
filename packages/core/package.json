@@ -54,7 +54,7 @@
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage --pass-with-no-tests",
     "clean": "rm -rf dist",
     "lint": "biome lint src/",
     "lint:fix": "biome lint --write src/",

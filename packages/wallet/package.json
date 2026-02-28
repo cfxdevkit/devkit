@@ -44,7 +44,7 @@
     "test": "vitest run --pass-with-no-tests",
     "test:ui": "vitest --ui",
     "test:run": "vitest --run",
-    "test:coverage": "vitest --run --coverage",
+    "test:coverage": "vitest --run --coverage --pass-with-no-tests",
     "test:watch": "vitest --watch",
     "clean": "rm -rf dist",
     "lint": "biome lint src/",

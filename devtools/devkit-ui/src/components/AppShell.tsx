@@ -58,7 +58,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   /* ── First-time setup ───────────────────────────────────────────────── */
   if (!status?.initialized) {
     return (
-      <div className="flex h-full flex-col items-center justify-center bg-[#0e1117] p-8">
+      <div className="flex h-full w-full flex-col items-center justify-center bg-[#0e1117] p-8">
         {/* Header */}
         <div className="mb-8 flex flex-col items-center gap-2 text-center">
           <div className="flex items-center gap-2">
