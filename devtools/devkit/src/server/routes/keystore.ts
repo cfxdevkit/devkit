@@ -96,8 +96,16 @@ export function createKeystoreRoutes(): Router {
 
   router.get('/wallets', async (_req, res) => {
     const ks = getKeystoreService();
-    const wallets = await ks.listMnemonics();
-    res.json(wallets);
+    try {
+      if (!(await ks.isSetupCompleted())) {
+        res.json([]);
+        return;
+      }
+      const wallets = await ks.listMnemonics();
+      res.json(wallets);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   router.post('/wallets', async (req, res) => {
@@ -141,6 +149,21 @@ export function createKeystoreRoutes(): Router {
     const ks = getKeystoreService();
     await ks.deleteMnemonic(req.params.id, deleteData);
     res.json({ ok: true });
+  });
+
+  router.patch('/wallets/:id', async (req, res) => {
+    const { label } = req.body as { label?: string };
+    if (!label) {
+      res.status(400).json({ error: 'label is required' });
+      return;
+    }
+    const ks = getKeystoreService();
+    try {
+      await ks.updateMnemonicLabel(req.params.id, label);
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   return router;

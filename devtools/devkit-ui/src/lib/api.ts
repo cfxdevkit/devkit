@@ -30,6 +30,7 @@ const post = <T>(path: string, body?: unknown) =>
   request<T>('POST', path, body);
 const del = <T>(path: string) => request<T>('DELETE', path);
 const put = <T>(path: string, body?: unknown) => request<T>('PUT', path, body);
+const patch = <T>(path: string, body?: unknown) => request<T>('PATCH', path, body);
 
 /* ─── node ────────────────────────────────────────────────────────── */
 export interface NodeStatus {
@@ -226,6 +227,8 @@ export const keystoreApi = {
     post<WalletEntry>('/keystore/wallets', { mnemonic, label }),
   activateWallet: (id: string) =>
     post<{ success: boolean }>(`/keystore/wallets/${id}/activate`),
+  renameWallet: (id: string, label: string) =>
+    patch<{ success: boolean }>(`/keystore/wallets/${id}`, { label }),
   deleteWallet: (id: string) =>
     del<{ success: boolean }>(`/keystore/wallets/${id}`),
 };

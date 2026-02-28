@@ -16,6 +16,9 @@ export default function WalletPage() {
   const [newLabel, setNewLabel] = useState('');
   const [addError, setAddError] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+  const [showRename, setShowRename] = useState<string | null>(null);
+  const [renameLabel, setRenameLabel] = useState('');
+  const [renameError, setRenameError] = useState('');
 
   const { data: status } = useQuery({
     queryKey: ['keystore', 'status'],
@@ -63,6 +66,16 @@ export default function WalletPage() {
       setShowAdd(false);
     },
     onError: (e) => setAddError(e.message),
+  });
+
+  const renameMutation = useMutation({
+    mutationFn: (id: string) => keystoreApi.renameWallet(id, renameLabel),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['keystore'] });
+      setShowRename(null);
+      setRenameLabel('');
+    },
+    onError: (e) => setRenameError(e.message),
   });
 
   if (!status?.initialized) {
@@ -203,49 +216,97 @@ export default function WalletPage() {
         /* Wallet list */
         <div className="space-y-2">
           {(wallets as WalletEntry[]).map((w) => (
-            <div
-              key={w.id}
-              className={`card flex items-center justify-between ${
-                w.isActive ? 'border-blue-600/50 bg-blue-900/10' : ''
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                {w.isActive && (
-                  <CheckCircle className="h-4 w-4 shrink-0 text-blue-400" />
-                )}
-                <div>
-                  <div className="text-sm font-medium text-white">
-                    {w.label}
+            <div key={w.id}>
+              <div
+                className={`card flex items-center justify-between ${w.isActive ? 'border-cfx-500/50 bg-cfx-900/10' : ''
+                  }`}
+              >
+                <div className="flex items-center gap-3">
+                  {w.isActive && (
+                    <CheckCircle className="h-4 w-4 shrink-0 text-cfx-400" />
+                  )}
+                  <div>
+                    <div className="text-sm font-medium text-white">
+                      {w.label}
+                    </div>
+                    <div className="text-xs text-slate-500">{w.id}</div>
                   </div>
-                  <div className="text-xs text-slate-500">{w.id}</div>
                 </div>
-              </div>
-              <div className="flex gap-2">
-                {!w.isActive && (
+                <div className="flex gap-2">
                   <button
                     type="button"
                     className="btn-secondary"
-                    disabled={activateMutation.isPending}
-                    onClick={() => activateMutation.mutate(w.id)}
-                  >
-                    Activate
-                  </button>
-                )}
-                {!w.isActive && (
-                  <button
-                    type="button"
-                    className="btn-danger"
-                    disabled={deleteMutation.isPending}
                     onClick={() => {
-                      if (confirm(`Delete wallet "${w.label}"?`)) {
-                        deleteMutation.mutate(w.id);
+                      if (showRename === w.id) {
+                        setShowRename(null);
+                      } else {
+                        setShowRename(w.id);
+                        setRenameLabel(w.label);
+                        setRenameError('');
                       }
                     }}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    Rename
                   </button>
-                )}
+                  {!w.isActive && (
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      disabled={activateMutation.isPending}
+                      onClick={() => activateMutation.mutate(w.id)}
+                    >
+                      Activate
+                    </button>
+                  )}
+                  {!w.isActive && (
+                    <button
+                      type="button"
+                      className="btn-danger"
+                      disabled={deleteMutation.isPending}
+                      onClick={() => {
+                        if (confirm(`Delete wallet "${w.label}"?`)) {
+                          deleteMutation.mutate(w.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {/* Inline rename card */}
+              {showRename === w.id && (
+                <div className="card mt-2 mb-4 ml-6 space-y-3 border-slate-700 bg-slate-900/50 shadow-inner">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Rename Wallet</h3>
+                  <input
+                    className="input w-full max-w-sm"
+                    value={renameLabel}
+                    onChange={(e) => setRenameLabel(e.target.value)}
+                    placeholder="New wallet label"
+                    autoFocus
+                    onKeyDown={(e) => e.key === 'Enter' && renameLabel.trim() && renameMutation.mutate(w.id)}
+                  />
+                  {renameError && <p className="text-sm text-red-400">{renameError}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => setShowRename(null)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-primary bg-cfx-600 hover:bg-cfx-500"
+                      disabled={!renameLabel.trim() || renameLabel === w.label || renameMutation.isPending}
+                      onClick={() => renameMutation.mutate(w.id)}
+                    >
+                      {renameMutation.isPending ? 'Saving…' : 'Save'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

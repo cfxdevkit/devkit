@@ -391,6 +391,29 @@ export class KeystoreService {
   }
 
   /**
+   * Update mnemonic label
+   */
+  async updateMnemonicLabel(id: string, label: string): Promise<void> {
+    this.ensureKeystoreLoaded();
+
+    const index = this.requireKeystore().mnemonics.findIndex(
+      (m) => m.id === id
+    );
+    if (index === -1) {
+      throw new Error(`Mnemonic not found: ${id}`);
+    }
+
+    if (!label.trim()) {
+      throw new Error(`Label cannot be empty`);
+    }
+
+    this.requireKeystore().mnemonics[index].label = label;
+    await this.saveKeystore();
+
+    logger.info(`Updated label for mnemonic ${id} to: ${label}`);
+  }
+
+  /**
    * Switch active mnemonic
    */
   async switchActiveMnemonic(id: string): Promise<void> {

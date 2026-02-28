@@ -27,7 +27,7 @@ const UI_CANDIDATES = [
 
 // ── Simple in-memory rate limiter (no extra deps) ───────────────────────────
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT_MAX_PER_WINDOW = 200; // requests per IP per window
+const RATE_LIMIT_MAX_PER_WINDOW = 2000; // requests per IP per window
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
 function rateLimitMiddleware(
@@ -55,7 +55,7 @@ function rateLimitMiddleware(
   if (entry.count > RATE_LIMIT_MAX_PER_WINDOW) {
     res
       .status(429)
-      .json({ error: 'Rate limit exceeded. Max 200 requests/min per IP.' });
+      .json({ error: 'Rate limit exceeded. Max 2000 requests/min per IP.' });
     return;
   }
 
@@ -135,8 +135,8 @@ export function createApp(config: AppConfig): AppInstance {
   if (isPublic && !apiKey) {
     console.warn(
       '\n⚠  WARNING: conflux-devkit is bound to a public interface without an API key.\n' +
-        '   Anyone who can reach this host can control the node and access private keys.\n' +
-        '   Pass --api-key <secret> to require Bearer token authentication.\n'
+      '   Anyone who can reach this host can control the node and access private keys.\n' +
+      '   Pass --api-key <secret> to require Bearer token authentication.\n'
     );
   }
 

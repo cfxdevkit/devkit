@@ -14,6 +14,12 @@ import {
   Upload,
 } from 'lucide-react';
 import { useState } from 'react';
+import Editor from '@monaco-editor/react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   type AccountInfo,
   accountsApi,
@@ -234,11 +240,10 @@ function FunctionCallForm({
 
       {result && (
         <pre
-          className={`text-xs font-mono break-all whitespace-pre-wrap p-2 rounded ${
-            result.ok
+          className={`text-xs font-mono break-all whitespace-pre-wrap p-2 rounded ${result.ok
               ? 'bg-[#0d1117] text-green-300'
               : 'bg-red-950/50 text-red-400'
-          }`}
+            }`}
         >
           {result.ok ? JSON.stringify(result.value, null, 2) : result.error}
         </pre>
@@ -455,6 +460,18 @@ export default function ContractsPage() {
       setTab('custom');
       setCompiled(null);
       setDeployResult('');
+
+      // Flash a little success state (optional, just good UX feel)
+      const btn = document.getElementById(`btn-use-${name}`);
+      if (btn) {
+        const oldText = btn.innerText;
+        btn.innerText = 'Loaded!';
+        btn.classList.add('text-cfx-400');
+        setTimeout(() => {
+          btn.innerText = oldText;
+          btn.classList.remove('text-cfx-400');
+        }, 1500);
+      }
     } catch (e: unknown) {
       setLoadError(e instanceof Error ? e.message : 'Failed to load template');
     }
@@ -490,11 +507,10 @@ export default function ContractsPage() {
           <button
             key={t}
             type="button"
-            className={`rounded-md px-4 py-1.5 text-sm capitalize transition-colors ${
-              tab === t
+            className={`rounded-md px-4 py-1.5 text-sm capitalize transition-colors ${tab === t
                 ? 'bg-blue-600 text-white'
                 : 'text-slate-400 hover:text-slate-200'
-            }`}
+              }`}
             onClick={() => setTab(t)}
           >
             {t === 'deployed'
@@ -538,13 +554,15 @@ export default function ContractsPage() {
                         </p>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      className="btn-secondary shrink-0 text-xs"
+                    <Button
+                      id={`btn-use-${tpl.name}`}
+                      variant="secondary"
+                      size="sm"
+                      className="shrink-0 text-xs transition-all"
                       onClick={() => loadTemplate(tpl.name)}
                     >
-                      Use
-                    </button>
+                      Use template
+                    </Button>
                   </div>
 
                   {/* Tags */}
@@ -582,16 +600,30 @@ export default function ContractsPage() {
       {tab === 'custom' && (
         <div className="space-y-4">
           {/* Editor */}
-          <div>
-            <label className="label">Solidity Source</label>
-            <textarea
-              className="input h-56 resize-y font-mono"
-              value={source}
-              onChange={(e) => {
-                setSource(e.target.value);
-                setCompiled(null);
-              }}
-            />
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold text-slate-200">Solidity Source</Label>
+            <div className="h-[500px] rounded-lg border border-slate-800 overflow-hidden shadow-sm">
+              <Editor
+                height="100%"
+                defaultLanguage="solidity"
+                theme="vs-dark"
+                value={source}
+                onChange={(val) => {
+                  setSource(val || '');
+                  setCompiled(null);
+                }}
+                options={{
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  fontSize: 14,
+                  tabSize: 4,
+                  padding: { top: 16, bottom: 16 },
+                  smoothScrolling: true,
+                  cursorBlinking: 'smooth',
+                  fontFamily: "'JetBrains Mono', 'Fira Code', 'Monaco', monospace",
+                }}
+              />
+            </div>
           </div>
           <div className="flex items-end gap-3">
             <div className="w-48">
@@ -748,11 +780,10 @@ export default function ContractsPage() {
                   </div>
                   {deployResult && (
                     <p
-                      className={`break-all text-sm ${
-                        deployResult.startsWith('✓')
+                      className={`break-all text-sm ${deployResult.startsWith('✓')
                           ? 'text-green-400'
                           : 'text-red-400'
-                      }`}
+                        }`}
                     >
                       {deployResult}
                     </p>
@@ -793,11 +824,10 @@ export default function ContractsPage() {
                             <FileCode2 className="h-4 w-4 text-blue-400" />
                             {c.name}
                             <span
-                              className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${
-                                c.chain === 'evm'
+                              className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${c.chain === 'evm'
                                   ? 'bg-purple-900/50 text-purple-300'
                                   : 'bg-cyan-900/50 text-cyan-300'
-                              }`}
+                                }`}
                             >
                               {c.chain === 'evm' ? 'eSpace' : 'Core'}
                             </span>

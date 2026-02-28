@@ -31,7 +31,17 @@ import {
 } from '@/lib/api';
 import { getSocket, type NodeStatusEvent } from '@/lib/socket';
 
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
 /* ─── helpers ────────────────────────────────────────────────────── */
+
+function truncateHex(hex?: string) {
+  if (!hex || hex.length < 14) return hex || '';
+  return `${hex.slice(0, 6)}...${hex.slice(-4)}`;
+}
 
 function CopyButton({ text, small }: { text: string; small?: boolean }) {
   const [copied, setCopied] = useState(false);
@@ -199,49 +209,50 @@ function FundModal({ onClose }: { onClose: () => void }) {
       : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="card w-full max-w-md space-y-4">
-        <h2 className="font-medium text-white">Fund Address</h2>
-        <div>
-          <label className="label">
-            Address
-            {detectedChain && (
-              <span className="ml-2 text-xs text-slate-400">
-                — detected: {detectedChain}
-              </span>
-            )}
-          </label>
-          <input
-            className="input"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="0x… or cfx:…"
-          />
-        </div>
-        <div>
-          <label className="label">Amount (optional)</label>
-          <input
-            className="input"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="1000"
-          />
-        </div>
-        {result && <p className="text-sm text-slate-300">{result}</p>}
-        <div className="flex justify-end gap-2">
-          <button type="button" className="btn-secondary" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+      <Card className="w-full max-w-md shadow-2xl border-cfx-500/20">
+        <CardHeader>
+          <CardTitle>Fund Address</CardTitle>
+          <CardDescription>Send CFX from faucet to address.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>
+              Address
+              {detectedChain && (
+                <span className="ml-2 text-xs text-cfx-400">
+                  — detected: {detectedChain}
+                </span>
+              )}
+            </Label>
+            <Input
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="0x… or cfx:…"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Amount (optional)</Label>
+            <Input
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="1000"
+            />
+          </div>
+          {result && <p className="text-sm text-cfx-300">{result}</p>}
+        </CardContent>
+        <CardFooter className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={onClose}>
             Close
-          </button>
-          <button
-            type="button"
-            className="btn-primary"
+          </Button>
+          <Button
             disabled={!address || fundMutation.isPending}
             onClick={() => fundMutation.mutate()}
           >
             {fundMutation.isPending ? 'Sending…' : 'Fund'}
-          </button>
-        </div>
-      </div>
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
@@ -480,507 +491,505 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Status + Controls ─────────────────────────────────────── */}
-      <div className="card space-y-4">
-        {/* Status row */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className={dotClass} />
-            <div>
-              <div className="text-sm font-medium text-white">
-                {statusLabel}
+      <Card className="border-slate-800 bg-slate-900/40">
+        <CardContent className="p-5 space-y-4">
+          {/* Status row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className={`relative flex h-3.5 w-3.5 ${dotClass === 'status-dot-green' ? 'bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.6)]' : dotClass === 'status-dot-yellow' ? 'bg-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.6)]' : 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.6)]'} rounded-full`} />
+              <div>
+                <div className="text-base font-semibold text-white tracking-wide">
+                  {statusLabel}
+                </div>
+                {isRunning && current?.epochNumber !== undefined && (
+                  <div className="text-xs font-medium text-cfx-400 mt-0.5">
+                    Epoch #{current.epochNumber}
+                  </div>
+                )}
               </div>
-              {isRunning && current?.epochNumber !== undefined && (
-                <div className="text-xs text-slate-400">
-                  Epoch #{current.epochNumber}
+            </div>
+            <div className="flex gap-2.5">
+              {!isRunning ? (
+                <>
+                  <Button
+                    className="bg-green-600 hover:bg-green-500 text-white shadow shadow-green-900/20"
+                    disabled={isBusy}
+                    onClick={() => startMutation.mutate()}
+                  >
+                    <Play className="mr-2 h-4 w-4" /> Start Node
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    disabled={isBusy}
+                    title="Delete all chain data for this wallet (cannot be undone)"
+                    onClick={() => {
+                      if (
+                        confirm(
+                          'Wipe all chain data for this wallet? This cannot be undone.'
+                        )
+                      ) {
+                        wipeMutation.mutate();
+                      }
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Wipe Data
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="secondary"
+                    disabled={isBusy}
+                    onClick={() => restartMutation.mutate()}
+                  >
+                    <RotateCcw className="mr-2 h-4 w-4" /> Restart
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    disabled={isBusy}
+                    title="Wipe this wallet's data directory and restart from block 0"
+                    onClick={() => {
+                      if (
+                        confirm(
+                          'Wipe all chain data for this wallet and restart from block 0?'
+                        )
+                      ) {
+                        restartWipeMutation.mutate();
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    disabled={isBusy}
+                    onClick={() => stopMutation.mutate()}
+                  >
+                    <Square className="mr-2 h-4 w-4" /> Stop
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* RPC Endpoints — collapsible, hidden by default, accessible when running */}
+          {isRunning && rpcUrls && (
+            <div className="border-t border-[#2a3147] pt-3">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between text-xs font-medium uppercase tracking-wider text-slate-500 hover:text-slate-300 transition-colors"
+                onClick={() => setShowRpc((v) => !v)}
+              >
+                <span>RPC Endpoints</span>
+                {showRpc ? (
+                  <ChevronUp className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                )}
+              </button>
+              {showRpc && (
+                <div className="mt-3 space-y-2">
+                  {(
+                    [
+                      ['Core RPC', rpcUrls.core],
+                      ['EVM / ETH RPC', rpcUrls.evm],
+                      ['Core WebSocket', rpcUrls.coreWs ?? rpcUrls.ws],
+                      ['EVM WebSocket', rpcUrls.evmWs ?? ''],
+                    ] as [string, string][]
+                  )
+                    .filter(([, url]) => url)
+                    .map(([label, url]) => (
+                      <div
+                        key={label}
+                        className="flex items-center justify-between"
+                      >
+                        <span className="w-32 text-xs text-slate-500">
+                          {label}
+                        </span>
+                        <div className="flex flex-1 items-center overflow-hidden">
+                          <code className="flex-1 truncate rounded bg-[#0e1117] px-2 py-1 text-xs text-blue-300">
+                            {url}
+                          </code>
+                          <CopyButton text={url} />
+                        </div>
+                      </div>
+                    ))}
+                  {configDraft && (
+                    <div className="flex gap-8 border-t border-[#2a3147] pt-2">
+                      <div>
+                        <div className="text-[10px] text-slate-500">
+                          Core Chain ID
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-slate-300">
+                            {configDraft.chainId}
+                          </span>
+                          <CopyButton text={configDraft.chainId} small />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-slate-500">
+                          EVM Chain ID
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-slate-300">
+                            {configDraft.evmChainId}
+                          </span>
+                          <CopyButton text={configDraft.evmChainId} small />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          </div>
-          <div className="flex gap-2">
-            {!isRunning ? (
-              <>
-                <button
-                  type="button"
-                  className="btn-success"
-                  disabled={isBusy}
-                  onClick={() => startMutation.mutate()}
-                >
-                  <Play className="h-4 w-4" /> Start
-                </button>
-                <button
-                  type="button"
-                  className="btn-warning"
-                  disabled={isBusy}
-                  title="Delete all chain data for this wallet (cannot be undone)"
-                  onClick={() => {
-                    if (
-                      confirm(
-                        'Wipe all chain data for this wallet? This cannot be undone.'
-                      )
-                    ) {
-                      wipeMutation.mutate();
-                    }
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" /> Wipe Data
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  disabled={isBusy}
-                  onClick={() => restartMutation.mutate()}
-                >
-                  <RotateCcw className="h-4 w-4" /> Restart
-                </button>
-                <button
-                  type="button"
-                  className="btn-warning"
-                  disabled={isBusy}
-                  title="Wipe this wallet's data directory and restart from block 0"
-                  onClick={() => {
-                    if (
-                      confirm(
-                        'Wipe all chain data for this wallet and restart from block 0?'
-                      )
-                    ) {
-                      restartWipeMutation.mutate();
-                    }
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" /> Wipe & Restart
-                </button>
-                <button
-                  type="button"
-                  className="btn-danger"
-                  disabled={isBusy}
-                  onClick={() => stopMutation.mutate()}
-                >
-                  <Square className="h-4 w-4" /> Stop
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+          )}
 
-        {/* RPC Endpoints — collapsible, hidden by default, accessible when running */}
-        {isRunning && rpcUrls && (
-          <div className="border-t border-[#2a3147] pt-3">
-            <button
-              type="button"
-              className="flex w-full items-center justify-between text-xs font-medium uppercase tracking-wider text-slate-500 hover:text-slate-300 transition-colors"
-              onClick={() => setShowRpc((v) => !v)}
-            >
-              <span>RPC Endpoints</span>
-              {showRpc ? (
-                <ChevronUp className="h-3.5 w-3.5" />
+          {/* Wallet selector — only when node is not running */}
+          {!isRunning && wallets.length > 0 && (
+            <div className="border-t border-[#2a3147] pt-4">
+              <label className="label flex items-center gap-1.5">
+                <Wallet className="h-3.5 w-3.5" /> Wallet
+              </label>
+              {wallets.length === 1 ? (
+                <div className="mt-1 flex items-center gap-2">
+                  <code className="text-xs text-blue-300">
+                    {activeWallet?.label ?? wallets[0].label}
+                  </code>
+                  <span className="rounded bg-blue-600/20 px-1.5 py-0.5 text-[10px] text-blue-400">
+                    active
+                  </span>
+                </div>
               ) : (
-                <ChevronDown className="h-3.5 w-3.5" />
+                <select
+                  className="input mt-1 w-full max-w-xs"
+                  value={activeWallet?.id ?? ''}
+                  onChange={(e) => activateWalletMutation.mutate(e.target.value)}
+                  disabled={activateWalletMutation.isPending}
+                >
+                  {wallets.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.label}
+                      {w.isActive ? ' (active)' : ''}
+                    </option>
+                  ))}
+                </select>
               )}
-            </button>
-            {showRpc && (
-              <div className="mt-3 space-y-2">
-                {(
-                  [
-                    ['Core RPC', rpcUrls.core],
-                    ['EVM / ETH RPC', rpcUrls.evm],
-                    ['Core WebSocket', rpcUrls.coreWs ?? rpcUrls.ws],
-                    ['EVM WebSocket', rpcUrls.evmWs ?? ''],
-                  ] as [string, string][]
-                )
-                  .filter(([, url]) => url)
-                  .map(([label, url]) => (
-                    <div
-                      key={label}
-                      className="flex items-center justify-between"
-                    >
-                      <span className="w-32 text-xs text-slate-500">
-                        {label}
-                      </span>
-                      <div className="flex flex-1 items-center overflow-hidden">
-                        <code className="flex-1 truncate rounded bg-[#0e1117] px-2 py-1 text-xs text-blue-300">
-                          {url}
-                        </code>
-                        <CopyButton text={url} />
-                      </div>
+            </div>
+          )}
+
+          {/* Network config — only when stopped */}
+          {!isRunning && configDraft && (
+            <div className="border-t border-slate-800 pt-6 mt-4">
+              <h3 className="mb-4 text-sm font-semibold text-slate-200">
+                Network Configuration
+              </h3>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  {(
+                    [
+                      ['Core RPC Port', 'coreRpcPort'],
+                      ['EVM RPC Port', 'evmRpcPort'],
+                      ['Core WS Port', 'wsPort'],
+                      ['EVM WS Port', 'evmWsPort'],
+                      ['Core Chain ID', 'chainId'],
+                      ['EVM Chain ID', 'evmChainId'],
+                    ] as [string, string][]
+                  ).map(([label, key]) => (
+                    <div key={key} className="space-y-1.5">
+                      <Label>{label}</Label>
+                      <Input
+                        type="number"
+                        value={configDraft[key] ?? ''}
+                        onChange={(e) =>
+                          setConfigDraft((d) =>
+                            d ? { ...d, [key]: e.target.value } : d
+                          )
+                        }
+                      />
                     </div>
                   ))}
-                {configDraft && (
-                  <div className="flex gap-8 border-t border-[#2a3147] pt-2">
-                    <div>
-                      <div className="text-[10px] text-slate-500">
-                        Core Chain ID
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-slate-300">
-                          {configDraft.chainId}
-                        </span>
-                        <CopyButton text={configDraft.chainId} small />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] text-slate-500">
-                        EVM Chain ID
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-slate-300">
-                          {configDraft.evmChainId}
-                        </span>
-                        <CopyButton text={configDraft.evmChainId} small />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Wallet selector — only when node is not running */}
-        {!isRunning && wallets.length > 0 && (
-          <div className="border-t border-[#2a3147] pt-4">
-            <label className="label flex items-center gap-1.5">
-              <Wallet className="h-3.5 w-3.5" /> Wallet
-            </label>
-            {wallets.length === 1 ? (
-              <div className="mt-1 flex items-center gap-2">
-                <code className="text-xs text-blue-300">
-                  {activeWallet?.label ?? wallets[0].label}
-                </code>
-                <span className="rounded bg-blue-600/20 px-1.5 py-0.5 text-[10px] text-blue-400">
-                  active
-                </span>
-              </div>
-            ) : (
-              <select
-                className="input mt-1 w-full max-w-xs"
-                value={activeWallet?.id ?? ''}
-                onChange={(e) => activateWalletMutation.mutate(e.target.value)}
-                disabled={activateWalletMutation.isPending}
-              >
-                {wallets.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.label}
-                    {w.isActive ? ' (active)' : ''}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-        )}
-
-        {/* Network config — only when stopped */}
-        {!isRunning && configDraft && (
-          <div className="border-t border-[#2a3147] pt-4">
-            <div className="mb-3 text-xs font-medium uppercase tracking-wider text-slate-500">
-              Network Configuration
-            </div>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {(
-                  [
-                    ['Core RPC Port', 'coreRpcPort'],
-                    ['EVM RPC Port', 'evmRpcPort'],
-                    ['Core WS Port', 'wsPort'],
-                    ['EVM WS Port', 'evmWsPort'],
-                    ['Core Chain ID', 'chainId'],
-                    ['EVM Chain ID', 'evmChainId'],
-                  ] as [string, string][]
-                ).map(([label, key]) => (
-                  <div key={key}>
-                    <label className="label">{label}</label>
-                    <input
-                      className="input"
-                      type="number"
-                      value={configDraft[key] ?? ''}
-                      onChange={(e) =>
-                        setConfigDraft((d) =>
-                          d ? { ...d, [key]: e.target.value } : d
-                        )
-                      }
-                    />
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  className="btn-primary"
-                  disabled={updateConfigMutation.isPending || isBusy}
-                  onClick={() =>
-                    configDraft && updateConfigMutation.mutate(configDraft)
-                  }
-                >
-                  <Save className="h-4 w-4" />
-                  {updateConfigMutation.isPending ? 'Saving…' : 'Save Config'}
-                </button>
-                {configSaved && (
-                  <span
-                    className={`text-sm ${configSaved.startsWith('✓') ? 'text-green-400' : 'text-red-400'}`}
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button
+                    disabled={updateConfigMutation.isPending || isBusy}
+                    onClick={() =>
+                      configDraft && updateConfigMutation.mutate(configDraft)
+                    }
                   >
-                    {configSaved}
-                  </span>
-                )}
+                    <Save className="mr-2 h-4 w-4" />
+                    {updateConfigMutation.isPending ? 'Saving…' : 'Save Config'}
+                  </Button>
+                  {configSaved && (
+                    <span
+                      className={`text-sm font-medium ${configSaved.startsWith('✓') ? 'text-green-400' : 'text-red-400'}`}
+                    >
+                      {configSaved}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </CardContent>
+      </Card>
       {/* ── Mining ─────────────────────────────────────── */}
       {isRunning && (
-        <div className="card">
-          {/* Single compact row */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Title */}
-            <span className="text-sm font-medium text-slate-300 shrink-0">
-              Mining
-            </span>
-
-            {/* Blocks mined badge — prominent */}
-            <span className="rounded bg-[#1a2235] px-2 py-0.5 text-sm font-semibold tabular-nums text-white shrink-0">
-              {(miningStatus?.blocksMined ?? 0).toLocaleString()}
-              <span className="ml-1 text-xs font-normal text-slate-400">
-                blocks
+        <Card>
+          <CardContent className="p-4 sm:p-6">
+            {/* Single compact row */}
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Title */}
+              <span className="text-sm font-medium text-slate-300 shrink-0">
+                Mining
               </span>
-            </span>
 
-            {/* Spacer */}
-            <div className="flex-1" />
+              {/* Blocks mined badge — prominent */}
+              <span className="rounded-md bg-slate-950 border border-slate-800 px-3 py-1 text-sm font-semibold tabular-nums text-white shrink-0 shadow-inner">
+                {(miningStatus?.blocksMined ?? 0).toLocaleString()}
+                <span className="ml-1.5 text-xs font-normal text-slate-400">
+                  blocks
+                </span>
+              </span>
 
-            {miningStatus?.isRunning ? (
-              /* Auto-mine ON: interval input inline */
-              <>
-                <label className="text-xs text-slate-500 shrink-0">
-                  Interval (ms)
-                </label>
-                <input
-                  className="input w-24 shrink-0"
-                  type="number"
-                  min="100"
-                  value={mineIntervalInput}
-                  onChange={(e) => setMineIntervalInput(e.target.value)}
-                />
-                {Number(mineIntervalInput) !== (miningStatus.interval ?? 0) && (
-                  <button
-                    type="button"
-                    className="btn-secondary shrink-0"
+              {/* Spacer */}
+              <div className="flex-1" />
+
+              {miningStatus?.isRunning ? (
+                /* Auto-mine ON: interval input inline */
+                <>
+                  <Label className="text-xs text-slate-500 shrink-0">
+                    Interval (ms)
+                  </Label>
+                  <Input
+                    className="w-24 shrink-0 h-9"
+                    type="number"
+                    min="100"
+                    value={mineIntervalInput}
+                    onChange={(e) => setMineIntervalInput(e.target.value)}
+                  />
+                  {Number(mineIntervalInput) !== (miningStatus.interval ?? 0) && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="shrink-0"
+                      disabled={miningBusy}
+                      onClick={handleUpdateInterval}
+                    >
+                      Apply
+                    </Button>
+                  )}
+                </>
+              ) : (
+                /* Manual mine: blocks input + Mine button inline */
+                <>
+                  <Label className="text-xs text-slate-500 shrink-0">
+                    Blocks
+                  </Label>
+                  <Input
+                    className="w-20 shrink-0 h-9"
+                    type="number"
+                    min="1"
+                    max="1000"
+                    value={mineBlocksInput}
+                    onChange={(e) => setMineBlocksInput(e.target.value)}
+                  />
+                  <Button
+                    size="sm"
+                    className="shrink-0"
                     disabled={miningBusy}
-                    onClick={handleUpdateInterval}
+                    onClick={() => mineMutation.mutate()}
                   >
-                    Apply
-                  </button>
-                )}
-              </>
-            ) : (
-              /* Manual mine: blocks input + Mine button inline */
-              <>
-                <label className="text-xs text-slate-500 shrink-0">
-                  Blocks
-                </label>
-                <input
-                  className="input w-20 shrink-0"
-                  type="number"
-                  min="1"
-                  max="1000"
-                  value={mineBlocksInput}
-                  onChange={(e) => setMineBlocksInput(e.target.value)}
-                />
+                    <Zap className="mr-1.5 h-3.5 w-3.5" />
+                    {mineMutation.isPending ? 'Mining…' : 'Mine'}
+                  </Button>
+                </>
+              )}
+
+              {/* Auto-mine toggle */}
+              <div className="flex items-center gap-2 shrink-0 border-l border-slate-800 pl-4 ml-1">
+                <span
+                  className={`text-xs font-semibold uppercase tracking-wider ${miningStatus?.isRunning ? 'text-cfx-400' : 'text-slate-500'}`}
+                >
+                  Auto
+                </span>
                 <button
                   type="button"
-                  className="btn-primary shrink-0"
                   disabled={miningBusy}
-                  onClick={() => mineMutation.mutate()}
-                >
-                  <Zap className="h-4 w-4" />
-                  {mineMutation.isPending ? 'Mining…' : 'Mine'}
-                </button>
-              </>
-            )}
-
-            {/* Auto-mine toggle */}
-            <div className="flex items-center gap-1.5 shrink-0 border-l border-[#2a3147] pl-3">
-              <span
-                className={`text-xs font-medium ${miningStatus?.isRunning ? 'text-green-400' : 'text-slate-500'}`}
-              >
-                Auto
-              </span>
-              <button
-                type="button"
-                disabled={miningBusy}
-                className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${
-                  miningStatus?.isRunning ? 'bg-green-600' : 'bg-slate-600'
-                }`}
-                onClick={() =>
-                  miningStatus?.isRunning
-                    ? stopMiningMutation.mutate()
-                    : startMiningMutation.mutate()
-                }
-                title={
-                  miningStatus?.isRunning
-                    ? 'Stop auto-mining'
-                    : 'Start auto-mining'
-                }
-              >
-                <span
-                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-cfx-500 focus:ring-offset-2 focus:ring-offset-slate-950 ${miningStatus?.isRunning ? 'bg-cfx-500' : 'bg-slate-700'
+                    }`}
+                  onClick={() =>
                     miningStatus?.isRunning
-                      ? 'translate-x-[18px]'
-                      : 'translate-x-0.5'
-                  }`}
-                />
-              </button>
+                      ? stopMiningMutation.mutate()
+                      : startMiningMutation.mutate()
+                  }
+                  title={
+                    miningStatus?.isRunning
+                      ? 'Stop auto-mining'
+                      : 'Start auto-mining'
+                  }
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${miningStatus?.isRunning
+                        ? 'translate-x-6'
+                        : 'translate-x-1'
+                      }`}
+                  />
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* Inline result / error feedback */}
-          {(mineResult ||
-            startMiningMutation.error ||
-            stopMiningMutation.error) && (
-            <p
-              className={`mt-2 text-xs ${mineResult?.startsWith('✓') ? 'text-green-400' : 'text-red-400'}`}
-            >
-              {mineResult ||
-                String(startMiningMutation.error ?? stopMiningMutation.error)}
-            </p>
-          )}
-        </div>
+            {/* Inline result / error feedback */}
+            {(mineResult ||
+              startMiningMutation.error ||
+              stopMiningMutation.error) && (
+                <p
+                  className={`mt-3 text-sm font-medium ${mineResult?.startsWith('✓') ? 'text-green-400' : 'text-red-400'}`}
+                >
+                  {mineResult ||
+                    String(startMiningMutation.error ?? stopMiningMutation.error)}
+                </p>
+              )}
+          </CardContent>
+        </Card>
       )}
       {/* ── Accounts ──────────────────────────────────────────────── */}
       {isRunning && (
-        <div className="space-y-3">
-          <h2 className="text-sm font-medium text-slate-300">Accounts</h2>
-
-          {/* Faucet — Core only, with Keys + Fund actions */}
-          {faucet && (
-            <div className="card">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="mb-1 text-xs font-medium uppercase tracking-wider text-slate-500">
-                    Faucet Account
+        <Card className="border-cfx-500/10">
+          <CardHeader>
+            <CardTitle className="text-lg">Accounts</CardTitle>
+            <CardDescription>Development accounts derived from mnemonic.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Faucet — Core only, with Keys + Fund actions */}
+            {faucet && (
+              <div className="rounded-xl border border-cfx-500/30 bg-cfx-900/10 p-5 shadow-inner">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-cfx-400">
+                      Faucet Account (Node Admin)
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <code className="text-sm font-medium text-slate-200">
+                        {truncateHex(faucet.coreAddress)}
+                      </code>
+                      <CopyButton text={faucet.coreAddress} />
+                    </div>
+                    <div className="mt-1.5 text-xl font-semibold text-white">
+                      {faucet.coreBalance} <span className="text-sm font-normal text-slate-400">CFX</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <code className="max-w-[260px] truncate text-xs text-blue-300">
-                      {faucet.coreAddress}
-                    </code>
-                    <CopyButton text={faucet.coreAddress} small />
+                  <div className="flex shrink-0 gap-3">
+                    <Button
+                      variant="outline"
+                      className="border-cfx-500/30 text-cfx-200 hover:bg-cfx-900/30 hover:text-white"
+                      title="Toggle private key visibility"
+                      onClick={() => setShowKeys((v) => !v)}
+                    >
+                      {showKeys ? (
+                        <EyeOff className="mr-2 h-4 w-4" />
+                      ) : (
+                        <Eye className="mr-2 h-4 w-4" />
+                      )}
+                      Keys
+                    </Button>
+                    <Button
+                      className="bg-cfx-600 hover:bg-cfx-500 text-white shadow-lg shadow-cfx-500/20"
+                      onClick={() => setShowFund(true)}
+                    >
+                      <Droplets className="mr-2 h-4 w-4" /> Fund Address
+                    </Button>
                   </div>
-                  <div className="mt-0.5 text-sm text-slate-300">
-                    {faucet.coreBalance} CFX
-                  </div>
-                </div>
-                <div className="flex shrink-0 gap-2">
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    title="Toggle private key visibility"
-                    onClick={() => setShowKeys((v) => !v)}
-                  >
-                    {showKeys ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                    Keys
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-primary"
-                    onClick={() => setShowFund(true)}
-                  >
-                    <Droplets className="h-4 w-4" /> Fund
-                  </button>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Accounts table */}
-          {accountsLoading ? (
-            <p className="text-sm text-slate-500">Loading accounts…</p>
-          ) : (
-            <>
-              <div className="overflow-x-auto rounded-lg border border-[#2a3147]">
-                <table className="w-full text-sm">
-                  <thead className="bg-[#161b27] text-xs uppercase tracking-wider text-slate-500">
-                    <tr>
-                      <th className="px-3 py-2 text-left">#</th>
-                      <th className="px-3 py-2 text-left">Core Address</th>
-                      <th className="px-3 py-2 text-left">EVM Address</th>
-                      <th className="px-3 py-2 text-right">Core</th>
-                      <th className="px-3 py-2 text-right">EVM</th>
-                      {showKeys && (
-                        <th className="px-3 py-2 text-left">Private Key</th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#2a3147]">
-                    {displayedAccounts.map((a: AccountInfo) => (
-                      <tr
-                        key={a.index}
-                        className="bg-[#0e1117] hover:bg-[#161b27]"
-                      >
-                        <td className="px-3 py-2 text-slate-500">{a.index}</td>
-                        <td className="px-3 py-2">
-                          <div className="flex items-center gap-1">
-                            <code className="max-w-[180px] truncate text-xs text-blue-300">
-                              {a.coreAddress}
-                            </code>
-                            <CopyButton text={a.coreAddress} small />
-                          </div>
-                        </td>
-                        <td className="px-3 py-2">
-                          <div className="flex items-center gap-1">
-                            <code className="max-w-[140px] truncate text-xs text-blue-300">
-                              {a.evmAddress}
-                            </code>
-                            <CopyButton text={a.evmAddress} small />
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 text-right text-xs text-slate-300">
-                          {a.coreBalance || '—'}
-                        </td>
-                        <td className="px-3 py-2 text-right text-xs text-slate-300">
-                          {a.evmBalance || '—'}
-                        </td>
+            {/* Accounts table */}
+            {accountsLoading ? (
+              <p className="text-sm text-slate-500 py-4 text-center">Loading accounts…</p>
+            ) : (
+              <div className="space-y-4">
+                <div className="overflow-x-auto rounded-xl border border-slate-800 shadow-sm">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-900 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      <tr>
+                        <th className="px-4 py-3 text-left">#</th>
+                        <th className="px-4 py-3 text-left">Core Address</th>
+                        <th className="px-4 py-3 text-left">eSpace Address</th>
+                        <th className="px-4 py-3 text-right">Core CFX</th>
+                        <th className="px-4 py-3 text-right">eSpace CFX</th>
                         {showKeys && (
-                          <td className="px-3 py-2">
-                            <div className="flex items-center gap-1">
-                              <code className="max-w-[120px] truncate text-xs text-slate-400">
-                                {a.privateKey}
-                              </code>
-                              <CopyButton text={a.privateKey} small />
-                            </div>
-                          </td>
+                          <th className="px-4 py-3 text-left">Private Key</th>
                         )}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800 bg-slate-950">
+                      {displayedAccounts.map((a: AccountInfo) => (
+                        <tr
+                          key={a.index}
+                          className="hover:bg-slate-900/50 transition-colors"
+                        >
+                          <td className="px-4 py-3 text-slate-500 font-medium">{a.index}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <code className="text-[13px] text-blue-300 font-medium whitespace-nowrap">
+                                {truncateHex(a.coreAddress)}
+                              </code>
+                              <CopyButton text={a.coreAddress} small />
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <code className="text-[13px] text-blue-300 font-medium whitespace-nowrap">
+                                {truncateHex(a.evmAddress)}
+                              </code>
+                              <CopyButton text={a.evmAddress} small />
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-right text-[13px] font-medium text-slate-200">
+                            {a.coreBalance || '—'}
+                          </td>
+                          <td className="px-4 py-3 text-right text-[13px] font-medium text-slate-200">
+                            {a.evmBalance || '—'}
+                          </td>
+                          {showKeys && (
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <code className="text-[13px] text-slate-400 whitespace-nowrap">
+                                  {truncateHex(a.privateKey)}
+                                </code>
+                                <CopyButton text={a.privateKey} small />
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {accounts.length > 5 && (
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => setExpandedAccounts((v) => !v)}
+                  >
+                    {expandedAccounts ? (
+                      <>
+                        <ChevronUp className="mr-2 h-4 w-4 focus:outline-none" />
+                        Show less
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="mr-2 h-4 w-4 focus:outline-none" />
+                        Show all {accounts.length} accounts
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
-              {accounts.length > 5 && (
-                <button
-                  type="button"
-                  className="btn-secondary w-full text-center text-xs"
-                  onClick={() => setExpandedAccounts((v) => !v)}
-                >
-                  {expandedAccounts ? (
-                    <>
-                      <ChevronUp className="mr-1 inline h-3.5 w-3.5" />
-                      Show less
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown className="mr-1 inline h-3.5 w-3.5" />
-                      Show all {accounts.length} accounts
-                    </>
-                  )}
-                </button>
-              )}
-            </>
-          )}
-        </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* ── Security Info ─────────────────────────────────────────── */}
@@ -992,16 +1001,16 @@ export default function DashboardPage() {
         restartMutation.error ||
         restartWipeMutation.error ||
         wipeMutation.error) && (
-        <div className="rounded-md border border-red-800 bg-red-950/50 px-4 py-2 text-sm text-red-400">
-          {String(
-            startMutation.error ??
+          <div className="rounded-md border border-red-800 bg-red-950/50 px-4 py-2 text-sm text-red-400">
+            {String(
+              startMutation.error ??
               stopMutation.error ??
               restartMutation.error ??
               restartWipeMutation.error ??
               wipeMutation.error
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
     </div>
   );
 }
