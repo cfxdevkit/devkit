@@ -19,10 +19,15 @@ vi.mock('@cfxdevkit/core/utils', () => ({
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function makeTmpPath(): string {
-  return join(tmpdir(), `keystore-test-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
+  return join(
+    tmpdir(),
+    `keystore-test-${Date.now()}-${Math.random().toString(36).slice(2)}.json`
+  );
 }
 
-function makeMinimalKeystoreV2(overrides: Partial<KeystoreV2> = {}): KeystoreV2 {
+function makeMinimalKeystoreV2(
+  overrides: Partial<KeystoreV2> = {}
+): KeystoreV2 {
   return {
     version: 2,
     setupCompleted: true,
@@ -116,14 +121,22 @@ describe('KeystoreService', () => {
     });
 
     it('returns true when a completed keystore is loaded', async () => {
-      writeFileSync(tmpPath, JSON.stringify(makeMinimalKeystoreV2({ setupCompleted: true })), 'utf-8');
+      writeFileSync(
+        tmpPath,
+        JSON.stringify(makeMinimalKeystoreV2({ setupCompleted: true })),
+        'utf-8'
+      );
       const service = new KeystoreService(tmpPath);
       await service.initialize();
       expect(await service.isSetupCompleted()).toBe(true);
     });
 
     it('returns false when setupCompleted is false in the file', async () => {
-      writeFileSync(tmpPath, JSON.stringify(makeMinimalKeystoreV2({ setupCompleted: false })), 'utf-8');
+      writeFileSync(
+        tmpPath,
+        JSON.stringify(makeMinimalKeystoreV2({ setupCompleted: false })),
+        'utf-8'
+      );
       const service = new KeystoreService(tmpPath);
       await service.initialize();
       expect(await service.isSetupCompleted()).toBe(false);
@@ -136,13 +149,17 @@ describe('KeystoreService', () => {
     it('throws when keystore is not loaded', async () => {
       const service = new KeystoreService(tmpPath);
       await service.initialize(); // no file → keystore = null
-      await expect(service.getAdminAddresses()).rejects.toThrow(/not loaded|initial setup/i);
+      await expect(service.getAdminAddresses()).rejects.toThrow(
+        /not loaded|initial setup/i
+      );
     });
 
     it('returns the admin addresses from the loaded keystore', async () => {
       writeFileSync(
         tmpPath,
-        JSON.stringify(makeMinimalKeystoreV2({ adminAddresses: ['0xAlice', '0xBob'] })),
+        JSON.stringify(
+          makeMinimalKeystoreV2({ adminAddresses: ['0xAlice', '0xBob'] })
+        ),
         'utf-8'
       );
       const service = new KeystoreService(tmpPath);
@@ -156,7 +173,11 @@ describe('KeystoreService', () => {
 
   describe('addAdminAddress()', () => {
     it('adds a new address and persists it', async () => {
-      writeFileSync(tmpPath, JSON.stringify(makeMinimalKeystoreV2({ adminAddresses: ['0xAlice'] })), 'utf-8');
+      writeFileSync(
+        tmpPath,
+        JSON.stringify(makeMinimalKeystoreV2({ adminAddresses: ['0xAlice'] })),
+        'utf-8'
+      );
       const service = new KeystoreService(tmpPath);
       await service.initialize();
       await service.addAdminAddress('0xBob');
@@ -165,10 +186,16 @@ describe('KeystoreService', () => {
     });
 
     it('throws when adding a duplicate address (case-insensitive)', async () => {
-      writeFileSync(tmpPath, JSON.stringify(makeMinimalKeystoreV2({ adminAddresses: ['0xAlice'] })), 'utf-8');
+      writeFileSync(
+        tmpPath,
+        JSON.stringify(makeMinimalKeystoreV2({ adminAddresses: ['0xAlice'] })),
+        'utf-8'
+      );
       const service = new KeystoreService(tmpPath);
       await service.initialize();
-      await expect(service.addAdminAddress('0xalice')).rejects.toThrow(/already exists/i);
+      await expect(service.addAdminAddress('0xalice')).rejects.toThrow(
+        /already exists/i
+      );
     });
   });
 });

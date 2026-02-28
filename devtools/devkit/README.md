@@ -35,7 +35,7 @@ conflux-devkit [options]
 | **Contracts** | Compile and deploy Solidity — choose from 6 built-in templates or paste custom source, call deployed contract functions |
 | **Mining** | Mine N blocks on demand, or set an auto-mining interval (ms) |
 | **Network** | View and update RPC / WebSocket ports and chain IDs |
-| **Wallet** | Configure an encrypted HDKeystore, manage mnemonic, lock / unlock |
+| **Wallet** | First-time setup wizard (generate new mnemonic, use Hardhat default, or import existing), encrypted HDKeystore, lock / unlock |
 
 ### Built-in Solidity templates
 
@@ -96,7 +96,24 @@ All messages are JSON with a `type` field:
 | `node:status` | `{ running: boolean, pid?: number }` — node lifecycle change |
 | `node:mined` | `{ blocks: number, hash: string }` — blocks mined |
 
+## Platform support
+
+`conflux-devkit` runs on any platform supported by [`@xcfx/node`](https://www.npmjs.com/package/@xcfx/node):
+
+| OS | Architecture | Status |
+|---|---|---|
+| Linux | x64 | ✅ Supported |
+| Linux | ARM64 | ✅ Supported |
+| macOS | ARM64 (Apple Silicon) | ✅ Supported |
+| macOS | x64 (Intel) | ❌ Not supported by `@xcfx/node` |
+| Windows | x64 | ✅ Supported |
+
+Node.js 20 or later is required.
+
 ## Environment data
 
-Node data (keystore, genesis accounts, chain state) is stored in
-`devtools/devkit/data/` by default. Delete this directory to reset all state.
+Node data (keystore, genesis accounts, chain state) is stored per-wallet in
+`~/.conflux-devkit/wallets/<wallet-id>/data/`. Delete this directory to reset
+all state for a specific wallet, or remove `~/.conflux-devkit/` to start
+fresh.
+

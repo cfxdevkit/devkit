@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { TransactionBatcher } from './batcher.js';
 import { BatcherError } from '../types/index.js';
+import { TransactionBatcher } from './batcher.js';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-function makeEvmTx(overrides: Partial<{ to: string; value: bigint; gasLimit: bigint }> = {}) {
+function makeEvmTx(
+  overrides: Partial<{ to: string; value: bigint; gasLimit: bigint }> = {}
+) {
   return {
     to: overrides.to ?? '0xRecipient',
     value: overrides.value,
@@ -36,7 +38,10 @@ describe('TransactionBatcher', () => {
     });
 
     it('accepts custom options', () => {
-      const batcher = new TransactionBatcher({ maxBatchSize: 5, minGasPrice: 100n });
+      const batcher = new TransactionBatcher({
+        maxBatchSize: 5,
+        minGasPrice: 100n,
+      });
       const opts = batcher.getOptions();
       expect(opts.maxBatchSize).toBe(5);
       expect(opts.minGasPrice).toBe(100n);
@@ -185,7 +190,9 @@ describe('TransactionBatcher', () => {
   describe('executeBatch', () => {
     it('throws BatcherError when batch is empty', async () => {
       const batcher = new TransactionBatcher();
-      await expect(batcher.executeBatch('evm')).rejects.toBeInstanceOf(BatcherError);
+      await expect(batcher.executeBatch('evm')).rejects.toBeInstanceOf(
+        BatcherError
+      );
     });
 
     it('executes and returns a BatchResult with hashes', async () => {

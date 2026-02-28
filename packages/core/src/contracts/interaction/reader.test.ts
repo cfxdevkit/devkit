@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ContractReader } from './reader.js';
 import { InteractionError } from '../types/index.js';
+import { ContractReader } from './reader.js';
 
 // Minimal ClientManager stub — the reader only uses getCoreClient/getEvmClient
 // and in its current stub implementation readFromCore/readFromEvm return {} as T

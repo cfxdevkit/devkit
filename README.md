@@ -73,7 +73,11 @@ Features:
 - **Contracts** — compile and deploy Solidity (6 built-in templates or paste source)
 - **Mining** — manual `mine N blocks` or configure auto-mining interval
 - **Network** — inspect and configure RPC ports / chain IDs
-- **Wallet** — keystore setup, mnemonic management, lock/unlock
+- **Wallet** — setup wizard (generate / use Hardhat default / import mnemonic), keystore, lock/unlock
+
+**Supported platforms** (via [`@xcfx/node`](https://www.npmjs.com/package/@xcfx/node)):
+Linux x64, Linux ARM64, macOS ARM64 (Apple Silicon), Windows x64.
+macOS Intel (x64) is not currently supported by `@xcfx/node`.
 
 See [devtools/devkit/README.md](devtools/devkit/README.md) for full CLI documentation.
 
@@ -185,9 +189,12 @@ pnpm --filter @cfxdevkit/contracts build
 pnpm install          # install all workspace dependencies
 pnpm build            # build all packages in dependency order (turbo)
 pnpm test             # run all tests
+pnpm test:coverage    # run tests with v8 coverage (outputs lcov.info per package)
 pnpm type-check       # TypeScript across all packages
 pnpm check            # Biome lint + format check
 pnpm format           # auto-format all sources
+pnpm release patch    # bump all package versions, commit, tag, push
+pnpm release --help   # see: patch | minor | major | x.y.z [--dry-run]
 ```
 
 Build a single package and everything that depends on it:
