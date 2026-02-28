@@ -1,0 +1,51 @@
+# docker-compose.yml — run conflux-devkit as a local service
+#
+# Usage:
+#   docker compose up -d                    # start in background
+#   docker compose logs -f                  # stream logs
+#   docker compose down                     # stop (data volume is preserved)
+#   docker compose down -v                  # stop AND delete chain data
+
+services:
+  devkit:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: conflux-devkit:latest
+    container_name: conflux-devkit
+    platform: linux/amd64
+
+    # ── Ports ──────────────────────────────────────────────────────────────
+    ports:
+      - "${DEVKIT_PORT:-7748}:${DEVKIT_PORT:-7748}"   # Web UI
+      - "8545:8545"                                    # EVM RPC (HTTP)
+      - "8546:8546"                                    # EVM RPC (WebSocket)
+      - "12537:12537"                                  # Core RPC (HTTP)
+      - "12535:12535"                                  # Core RPC (WebSocket)
+
+    # ── Persistent chain data ───────────────────────────────────────────────
+    volumes:
+      - conflux-devkit-data:/root/.conflux-devkit
+
+    # ── Configuration via environment variables ─────────────────────────────
+    # Copy .env.example to .env and customise as needed.
+    environment:
+      DEVKIT_HOST: "0.0.0.0"
+      DEVKIT_PORT: "${DEVKIT_PORT:-7748}"
+      DEVKIT_API_KEY: "${DEVKIT_API_KEY:-}"
+      DEVKIT_CORS_ORIGIN: "${DEVKIT_CORS_ORIGIN:-}"
+
+    restart: unless-stopped
+
+    # Simple health-check: the UI endpoint must respond with HTTP 200.
+    healthcheck:
+      test: ["CMD", "node", "-e",
+             "require('http').get('http://localhost:${DEVKIT_PORT:-7748}/', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+volumes:
+  conflux-devkit-data:
+    driver: local

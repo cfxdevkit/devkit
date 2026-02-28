@@ -89,6 +89,44 @@ pnpm --filter conflux-devkit build      # bundle CLI
 node devtools/devkit/dist/cli.js        # run
 ```
 
+### Run with Docker
+
+A pre-built Docker image is the easiest way to spin up `conflux-devkit` without
+installing Node.js locally. The image is `linux/amd64` only (mirrors the platform
+constraint of `@xcfx/node`).
+
+```bash
+# One-liner — exposes UI + all RPC ports, persists chain data in a named volume
+docker run --rm \
+  -p 7748:7748 -p 8545:8545 -p 8546:8546 \
+  -p 12537:12537 -p 12535:12535 \
+  -v conflux-devkit-data:/root/.conflux-devkit \
+  -e DEVKIT_API_KEY=change-me \
+  conflux-devkit
+
+# Or with Docker Compose (recommended for repeated use)
+cd docker
+cp .env.example .env        # set DEVKIT_API_KEY etc.
+docker compose up -d
+docker compose logs -f
+```
+
+| Environment variable  | CLI flag        | Default     | Description                          |
+|-----------------------|-----------------|-------------|--------------------------------------|
+| `DEVKIT_PORT`         | `--port`        | `7748`      | Web UI port                          |
+| `DEVKIT_HOST`         | `--host`        | `0.0.0.0`   | Bind address                         |
+| `DEVKIT_API_KEY`      | `--api-key`     | _(none)_    | Bearer token; recommended in Docker  |
+| `DEVKIT_CORS_ORIGIN`  | `--cors-origin` | _(none)_    | Allowed CORS origins (comma-separated)|
+
+Build the image locally:
+
+```bash
+docker build -t conflux-devkit -f docker/Dockerfile .
+```
+
+See [docker/](docker/) for the full `Dockerfile`, `docker-compose.yml`, and
+`.env.example`.
+
 ---
 
 ## Quick start — framework packages
@@ -202,6 +240,21 @@ Build a single package and everything that depends on it:
 ```bash
 pnpm turbo build --filter=@cfxdevkit/core...
 ```
+
+### Codespaces / devcontainer
+
+The repository ships a `.devcontainer/devcontainer.json` so you can open it
+instantly in GitHub Codespaces or any VS Code-compatible devcontainer host:
+
+1. Click **Code → Codespaces → Create codespace on main** on GitHub, _or_
+2. In VS Code with the Dev Containers extension: **Reopen in Container**.
+
+The container:
+- Uses `mcr.microsoft.com/devcontainers/javascript-node:22` (Debian bookworm)
+- Enables `pnpm` via corepack
+- Runs `pnpm install` and `pnpm build` automatically
+- Forwards ports 7748, 8545, 8546, 12537 and 12535
+- Installs Biome, ESLint, TypeScript and Docker VS Code extensions
 
 ---
 
