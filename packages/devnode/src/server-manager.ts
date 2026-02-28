@@ -1033,7 +1033,7 @@ export class ServerManager {
   /**
    * Check Core Space balance
    */
-  private async getCoreBalance(address: string): Promise<string> {
+  async getCoreBalance(address: string): Promise<string> {
     const { createPublicClient, http, formatCFX } = await import('cive');
 
     const publicClient = createPublicClient({
@@ -1071,7 +1071,7 @@ export class ServerManager {
   /**
    * Check eSpace balance
    */
-  private async getEvmBalance(address: string): Promise<string> {
+  async getEvmBalance(address: string): Promise<string> {
     const { createPublicClient, http, formatEther } = await import('viem');
 
     const publicClient = createPublicClient({
