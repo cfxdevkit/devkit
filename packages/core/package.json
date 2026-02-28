@@ -80,11 +80,11 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cfxdevkit/conflux-sdk.git"
+    "url": "git+https://github.com/cfxdevkit/devkit.git"
   },
   "homepage": "https://github.com/cfxdevkit/conflux-sdk#readme",
   "bugs": {
-    "url": "https://github.com/cfxdevkit/conflux-sdk/issues"
+    "url": "https://github.com/cfxdevkit/devkit/issues"
   },
   "dependencies": {
     "@scure/bip32": "^2.0.1",

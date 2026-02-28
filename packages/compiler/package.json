@@ -76,7 +76,7 @@
   "packageManager": "pnpm@10.11.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cfxdevkit/conflux-devkit.git",
+    "url": "git+https://github.com/cfxdevkit/devkit.git",
     "directory": "packages/sdk-compiler"
   }
 }
