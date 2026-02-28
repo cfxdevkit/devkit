@@ -1,0 +1,130 @@
+name: Release
+
+# Triggered by a semver tag pushed from main, e.g. git tag v0.2.0 && git push origin v0.2.0
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*" # allow pre-release tags like v1.0.0-beta.1
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false # never cancel an in-flight release
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Guard: run the full CI suite before publishing anything
+  # ─────────────────────────────────────────────────────────────────────────────
+  ci:
+    name: CI checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "10.11.0"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (Biome)
+        run: pnpm check
+
+      - name: Type-check
+        run: pnpm type-check
+
+      - name: Build all packages
+        run: pnpm build
+
+      - name: Run tests
+        run: pnpm test
+
+      # Persist the build artifacts for the publish job so we don't rebuild
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          # packages/*/dist  — @cfxdevkit/* library dist outputs
+          # devtools/devkit-ui/out — Next.js static export (needed by copy-ui.mjs)
+          # devtools/devkit/dist  — CLI bundle
+          # devtools/devkit/ui    — copied static UI assets (dist includes these via "files")
+          path: |
+            packages/*/dist
+            devtools/devkit-ui/out
+            devtools/devkit/dist
+            devtools/devkit/ui
+          retention-days: 1
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Publish to npm
+  # ─────────────────────────────────────────────────────────────────────────────
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    needs: ci
+    permissions:
+      contents: read
+      id-token: write # required for npm provenance attestations
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "10.11.0"
+
+      # registry-url causes setup-node to write an .npmrc that resolves
+      # NODE_AUTH_TOKEN at publish time — pnpm respects this file.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Restore pre-built artifacts from the ci job (avoids a full rebuild)
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      # ── 1. Publish all @cfxdevkit/* library packages ───────────────────────
+      # pnpm handles topological publish order (respects workspace:* deps).
+      # --no-git-checks skips the "working tree must be clean" check that
+      # would fail because the runner checked out only the tag, not a branch.
+      # --provenance attaches a signed SLSA provenance attestation to each pkg.
+      - name: Publish @cfxdevkit/* packages
+        run: |
+          pnpm publish \
+            --filter './packages/*' \
+            --recursive \
+            --access public \
+            --no-git-checks \
+            --provenance \
+            --report-summary
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # ── 2. Publish the conflux-devkit CLI ──────────────────────────────────
+      # Published separately (after the scoped packages) because its package.json
+      # lists workspace:* deps that pnpm rewrites to real versions at publish time.
+      # The CLI bundles all @cfxdevkit/* code via tsup noExternal, so npm users
+      # get a standalone binary — they are listed under bundledDependencies.
+      - name: Publish conflux-devkit CLI
+        run: |
+          pnpm publish \
+            --filter conflux-devkit \
+            --access public \
+            --no-git-checks \
+            --provenance \
+            --report-summary
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
