@@ -1,6 +1,6 @@
 {
   "name": "@cfxdevkit/core",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "Core Conflux SDK – blockchain client abstractions, wallet tools, and core utilities",
   "type": "module",
   "main": "dist/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "@cfxdevkit/compiler",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "Runtime Solidity compiler and contract templates for Conflux DevKit — compile .sol source on-the-fly using solc-js",
   "type": "module",
   "main": "dist/index.js",
