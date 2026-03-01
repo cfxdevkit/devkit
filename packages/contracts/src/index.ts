@@ -23,29 +23,29 @@ export * from './generated.js';
 // to @cfxdevkit/contracts with a one-line import change.
 export {
   automationManagerAbi as AUTOMATION_MANAGER_ABI,
-  swappiPriceAdapterAbi as SWAPPI_PRICE_ADAPTER_ABI,
   permitHandlerAbi as PERMIT_HANDLER_ABI,
+  swappiPriceAdapterAbi as SWAPPI_PRICE_ADAPTER_ABI,
 } from './generated.js';
 
 // ─── Standard token interface ABIs ────────────────────────────────────────────
 export {
-  // EIP-2612 permit
-  erc2612Abi,
+  ERC20_ABI,
+  ERC20_EXTENDED_ABI,
+  ERC721_ABI,
+  ERC721_EXTENDED_ABI,
+  ERC1155_ABI,
   ERC2612_ABI,
+  ERC4626_ABI,
   // ERC-20
   erc20Abi,
-  ERC20_ABI,
   erc20ExtendedAbi,
-  ERC20_EXTENDED_ABI,
   // ERC-721
   erc721Abi,
-  ERC721_ABI,
   erc721ExtendedAbi,
-  ERC721_EXTENDED_ABI,
   // ERC-1155
   erc1155Abi,
-  ERC1155_ABI,
+  // EIP-2612 permit
+  erc2612Abi,
   // ERC-4626
   erc4626Abi,
-  ERC4626_ABI,
 } from './standard-abis.js';

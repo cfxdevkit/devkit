@@ -1,19 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ERC1155_ABI,
   ERC20_ABI,
   ERC20_EXTENDED_ABI,
-  ERC2612_ABI,
-  ERC4626_ABI,
   ERC721_ABI,
   ERC721_EXTENDED_ABI,
-  erc1155Abi,
+  ERC1155_ABI,
+  ERC2612_ABI,
+  ERC4626_ABI,
   erc20Abi,
   erc20ExtendedAbi,
-  erc2612Abi,
-  erc4626Abi,
   erc721Abi,
   erc721ExtendedAbi,
+  erc1155Abi,
+  erc2612Abi,
+  erc4626Abi,
 } from './standard-abis.js';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -21,14 +21,10 @@ import {
 type AbiEntry = { type: string; name?: string };
 
 const fns = (abi: readonly AbiEntry[]) =>
-  abi
-    .filter((e) => e.type === 'function')
-    .map((e) => e.name as string);
+  abi.filter((e) => e.type === 'function').map((e) => e.name as string);
 
 const events = (abi: readonly AbiEntry[]) =>
-  abi
-    .filter((e) => e.type === 'event')
-    .map((e) => e.name as string);
+  abi.filter((e) => e.type === 'event').map((e) => e.name as string);
 
 // ── UPPER_CASE alias identity ─────────────────────────────────────────────────
 
@@ -71,7 +67,15 @@ describe('erc2612Abi', () => {
     ) as { inputs: { type: string }[] } | undefined;
     expect(permit).toBeDefined();
     const types = permit!.inputs.map((i) => i.type);
-    expect(types).toEqual(['address', 'address', 'uint256', 'uint256', 'uint8', 'bytes32', 'bytes32']);
+    expect(types).toEqual([
+      'address',
+      'address',
+      'uint256',
+      'uint256',
+      'uint8',
+      'bytes32',
+      'bytes32',
+    ]);
   });
 
   it('contains only functions (no events)', () => {
@@ -85,8 +89,15 @@ describe('erc20Abi', () => {
   it('contains all EIP-20 functions', () => {
     expect(fns(erc20Abi)).toEqual(
       expect.arrayContaining([
-        'name', 'symbol', 'decimals', 'totalSupply',
-        'balanceOf', 'allowance', 'transfer', 'approve', 'transferFrom',
+        'name',
+        'symbol',
+        'decimals',
+        'totalSupply',
+        'balanceOf',
+        'allowance',
+        'transfer',
+        'approve',
+        'transferFrom',
       ])
     );
   });
@@ -124,7 +135,14 @@ describe('erc20ExtendedAbi', () => {
 
   it('adds mint, burn, pause, unpause, cap', () => {
     expect(fns(erc20ExtendedAbi)).toEqual(
-      expect.arrayContaining(['mint', 'burn', 'burnFrom', 'pause', 'unpause', 'cap'])
+      expect.arrayContaining([
+        'mint',
+        'burn',
+        'burnFrom',
+        'pause',
+        'unpause',
+        'cap',
+      ])
     );
   });
 
@@ -137,7 +155,11 @@ describe('erc20ExtendedAbi', () => {
   it('includes AccessControl functions', () => {
     expect(fns(erc20ExtendedAbi)).toEqual(
       expect.arrayContaining([
-        'hasRole', 'grantRole', 'revokeRole', 'renounceRole', 'getRoleAdmin',
+        'hasRole',
+        'grantRole',
+        'revokeRole',
+        'renounceRole',
+        'getRoleAdmin',
       ])
     );
   });
@@ -167,8 +189,14 @@ describe('erc721Abi', () => {
   it('contains all EIP-721 functions', () => {
     expect(fns(erc721Abi)).toEqual(
       expect.arrayContaining([
-        'balanceOf', 'ownerOf', 'safeTransferFrom', 'transferFrom',
-        'approve', 'getApproved', 'setApprovalForAll', 'isApprovedForAll',
+        'balanceOf',
+        'ownerOf',
+        'safeTransferFrom',
+        'transferFrom',
+        'approve',
+        'getApproved',
+        'setApprovalForAll',
+        'isApprovedForAll',
         'supportsInterface',
       ])
     );
@@ -208,7 +236,11 @@ describe('erc721ExtendedAbi', () => {
 
   it('adds ERC721Enumerable functions', () => {
     expect(fns(erc721ExtendedAbi)).toEqual(
-      expect.arrayContaining(['totalSupply', 'tokenByIndex', 'tokenOfOwnerByIndex'])
+      expect.arrayContaining([
+        'totalSupply',
+        'tokenByIndex',
+        'tokenOfOwnerByIndex',
+      ])
     );
   });
 
@@ -235,9 +267,13 @@ describe('erc1155Abi', () => {
   it('contains all EIP-1155 functions', () => {
     expect(fns(erc1155Abi)).toEqual(
       expect.arrayContaining([
-        'uri', 'balanceOf', 'balanceOfBatch',
-        'setApprovalForAll', 'isApprovedForAll',
-        'safeTransferFrom', 'safeBatchTransferFrom',
+        'uri',
+        'balanceOf',
+        'balanceOfBatch',
+        'setApprovalForAll',
+        'isApprovedForAll',
+        'safeTransferFrom',
+        'safeBatchTransferFrom',
         'supportsInterface',
       ])
     );
@@ -246,7 +282,10 @@ describe('erc1155Abi', () => {
   it('contains TransferSingle, TransferBatch, ApprovalForAll, URI events', () => {
     expect(events(erc1155Abi)).toEqual(
       expect.arrayContaining([
-        'TransferSingle', 'TransferBatch', 'ApprovalForAll', 'URI',
+        'TransferSingle',
+        'TransferBatch',
+        'ApprovalForAll',
+        'URI',
       ])
     );
   });
@@ -257,7 +296,11 @@ describe('erc1155Abi', () => {
     ) as { inputs: { name: string }[] } | undefined;
     expect(ev).toBeDefined();
     expect(ev!.inputs.map((i) => i.name)).toEqual([
-      'operator', 'from', 'to', 'id', 'value',
+      'operator',
+      'from',
+      'to',
+      'id',
+      'value',
     ]);
   });
 });
@@ -268,7 +311,10 @@ describe('erc4626Abi', () => {
   it('inherits ERC-20 functions', () => {
     expect(fns(erc4626Abi)).toEqual(
       expect.arrayContaining([
-        'balanceOf', 'transfer', 'approve', 'totalSupply',
+        'balanceOf',
+        'transfer',
+        'approve',
+        'totalSupply',
       ])
     );
   });
@@ -276,8 +322,10 @@ describe('erc4626Abi', () => {
   it('contains EIP-4626 asset and conversion functions', () => {
     expect(fns(erc4626Abi)).toEqual(
       expect.arrayContaining([
-        'asset', 'totalAssets',
-        'convertToShares', 'convertToAssets',
+        'asset',
+        'totalAssets',
+        'convertToShares',
+        'convertToAssets',
       ])
     );
   });
@@ -285,7 +333,10 @@ describe('erc4626Abi', () => {
   it('contains all limit functions', () => {
     expect(fns(erc4626Abi)).toEqual(
       expect.arrayContaining([
-        'maxDeposit', 'maxMint', 'maxWithdraw', 'maxRedeem',
+        'maxDeposit',
+        'maxMint',
+        'maxWithdraw',
+        'maxRedeem',
       ])
     );
   });
@@ -293,7 +344,10 @@ describe('erc4626Abi', () => {
   it('contains all preview functions', () => {
     expect(fns(erc4626Abi)).toEqual(
       expect.arrayContaining([
-        'previewDeposit', 'previewMint', 'previewWithdraw', 'previewRedeem',
+        'previewDeposit',
+        'previewMint',
+        'previewWithdraw',
+        'previewRedeem',
       ])
     );
   });
@@ -316,7 +370,11 @@ describe('erc4626Abi', () => {
     ) as { inputs: { name: string }[] } | undefined;
     expect(ev).toBeDefined();
     expect(ev!.inputs.map((i) => i.name)).toEqual([
-      'sender', 'receiver', 'owner', 'assets', 'shares',
+      'sender',
+      'receiver',
+      'owner',
+      'assets',
+      'shares',
     ]);
   });
 });

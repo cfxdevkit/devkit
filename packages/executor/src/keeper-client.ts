@@ -6,8 +6,8 @@
  * unless the user has set an on-chain allowance for that specific swap.
  */
 
-import { logger } from '@cfxdevkit/core';
 import { AUTOMATION_MANAGER_ABI } from '@cfxdevkit/contracts';
+import { logger } from '@cfxdevkit/core';
 import {
   type Address,
   createPublicClient,

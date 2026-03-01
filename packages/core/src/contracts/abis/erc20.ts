@@ -20,4 +20,9 @@
  * `erc20Abi`         — minimal EIP-20 interface (transfer, approve, allowance, events)
  * `erc20ExtendedAbi` — + mint, burn, pause, permit (matches ERC20Base.sol)
  */
-export { erc20Abi, ERC20_ABI, erc20ExtendedAbi, ERC20_EXTENDED_ABI } from '@cfxdevkit/contracts';
+export {
+  ERC20_ABI,
+  ERC20_EXTENDED_ABI,
+  erc20Abi,
+  erc20ExtendedAbi,
+} from '@cfxdevkit/contracts';

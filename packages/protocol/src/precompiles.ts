@@ -16,17 +16,17 @@
  */
 export const CONFLUX_PRECOMPILE_ADDRESSES = {
   /** Core Space: set/revoke/query admin for a contract */
-  AdminControl:      '0x0888000000000000000000000000000000000000',
+  AdminControl: '0x0888000000000000000000000000000000000000',
   /** Core Space: gas/storage sponsorship management */
-  SponsorWhitelist:  '0x0888000000000000000000000000000000000001',
+  SponsorWhitelist: '0x0888000000000000000000000000000000000001',
   /** Core Space: PoS staking deposit, withdraw, vote lock */
-  Staking:           '0x0888000000000000000000000000000000000002',
+  Staking: '0x0888000000000000000000000000000000000002',
   /** Core Space: PoS validator registration and reward tracking */
-  PoSRegister:       '0x0888000000000000000000000000000000000005',
+  PoSRegister: '0x0888000000000000000000000000000000000005',
   /** eSpace & Core Space: synchronous Core↔eSpace message passing */
-  CrossSpaceCall:    '0x0888000000000000000000000000000000000006',
+  CrossSpaceCall: '0x0888000000000000000000000000000000000006',
   /** Core Space: on-chain governance parameter control */
-  ParamsControl:     '0x0888000000000000000000000000000000000007',
+  ParamsControl: '0x0888000000000000000000000000000000000007',
 } as const;
 
 // ─── AdminControl ────────────────────────────────────────────────────────────
@@ -42,7 +42,9 @@ export const adminControlAbi = [
   {
     type: 'function',
     name: 'getAdmin',
-    inputs: [{ name: 'contractAddr', type: 'address', internalType: 'address' }],
+    inputs: [
+      { name: 'contractAddr', type: 'address', internalType: 'address' },
+    ],
     outputs: [{ name: '', type: 'address', internalType: 'address' }],
     stateMutability: 'view',
   },
@@ -51,7 +53,7 @@ export const adminControlAbi = [
     name: 'setAdmin',
     inputs: [
       { name: 'contractAddr', type: 'address', internalType: 'address' },
-      { name: 'newAdmin',     type: 'address', internalType: 'address' },
+      { name: 'newAdmin', type: 'address', internalType: 'address' },
     ],
     outputs: [],
     stateMutability: 'nonpayable',
@@ -59,7 +61,9 @@ export const adminControlAbi = [
   {
     type: 'function',
     name: 'destroy',
-    inputs: [{ name: 'contractAddr', type: 'address', internalType: 'address' }],
+    inputs: [
+      { name: 'contractAddr', type: 'address', internalType: 'address' },
+    ],
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -81,35 +85,45 @@ export const sponsorWhitelistAbi = [
   {
     type: 'function',
     name: 'getSponsorForGas',
-    inputs: [{ name: 'contractAddr', type: 'address', internalType: 'address' }],
+    inputs: [
+      { name: 'contractAddr', type: 'address', internalType: 'address' },
+    ],
     outputs: [{ name: '', type: 'address', internalType: 'address' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'getSponsoredBalanceForGas',
-    inputs: [{ name: 'contractAddr', type: 'address', internalType: 'address' }],
+    inputs: [
+      { name: 'contractAddr', type: 'address', internalType: 'address' },
+    ],
     outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'getSponsoredGasFeeUpperBound',
-    inputs: [{ name: 'contractAddr', type: 'address', internalType: 'address' }],
+    inputs: [
+      { name: 'contractAddr', type: 'address', internalType: 'address' },
+    ],
     outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'getSponsorForCollateral',
-    inputs: [{ name: 'contractAddr', type: 'address', internalType: 'address' }],
+    inputs: [
+      { name: 'contractAddr', type: 'address', internalType: 'address' },
+    ],
     outputs: [{ name: '', type: 'address', internalType: 'address' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'getSponsoredBalanceForCollateral',
-    inputs: [{ name: 'contractAddr', type: 'address', internalType: 'address' }],
+    inputs: [
+      { name: 'contractAddr', type: 'address', internalType: 'address' },
+    ],
     outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
     stateMutability: 'view',
   },
@@ -118,7 +132,7 @@ export const sponsorWhitelistAbi = [
     name: 'isWhitelisted',
     inputs: [
       { name: 'contractAddr', type: 'address', internalType: 'address' },
-      { name: 'userAddr',     type: 'address', internalType: 'address' },
+      { name: 'userAddr', type: 'address', internalType: 'address' },
     ],
     outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
     stateMutability: 'view',
@@ -126,7 +140,9 @@ export const sponsorWhitelistAbi = [
   {
     type: 'function',
     name: 'isAllWhitelisted',
-    inputs: [{ name: 'contractAddr', type: 'address', internalType: 'address' }],
+    inputs: [
+      { name: 'contractAddr', type: 'address', internalType: 'address' },
+    ],
     outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
     stateMutability: 'view',
   },
@@ -135,7 +151,7 @@ export const sponsorWhitelistAbi = [
     name: 'addPrivilegeByAdmin',
     inputs: [
       { name: 'contractAddr', type: 'address', internalType: 'address' },
-      { name: 'addresses',    type: 'address[]', internalType: 'address[]' },
+      { name: 'addresses', type: 'address[]', internalType: 'address[]' },
     ],
     outputs: [],
     stateMutability: 'nonpayable',
@@ -145,7 +161,7 @@ export const sponsorWhitelistAbi = [
     name: 'removePrivilegeByAdmin',
     inputs: [
       { name: 'contractAddr', type: 'address', internalType: 'address' },
-      { name: 'addresses',    type: 'address[]', internalType: 'address[]' },
+      { name: 'addresses', type: 'address[]', internalType: 'address[]' },
     ],
     outputs: [],
     stateMutability: 'nonpayable',
@@ -154,8 +170,8 @@ export const sponsorWhitelistAbi = [
     type: 'function',
     name: 'setSponsorForGas',
     inputs: [
-      { name: 'contractAddr',    type: 'address', internalType: 'address' },
-      { name: 'upperBound',      type: 'uint256', internalType: 'uint256' },
+      { name: 'contractAddr', type: 'address', internalType: 'address' },
+      { name: 'upperBound', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [],
     stateMutability: 'payable',
@@ -163,21 +179,27 @@ export const sponsorWhitelistAbi = [
   {
     type: 'function',
     name: 'setSponsorForCollateral',
-    inputs: [{ name: 'contractAddr', type: 'address', internalType: 'address' }],
+    inputs: [
+      { name: 'contractAddr', type: 'address', internalType: 'address' },
+    ],
     outputs: [],
     stateMutability: 'payable',
   },
   {
     type: 'function',
     name: 'addPrivilege',
-    inputs: [{ name: 'addresses', type: 'address[]', internalType: 'address[]' }],
+    inputs: [
+      { name: 'addresses', type: 'address[]', internalType: 'address[]' },
+    ],
     outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     name: 'removePrivilege',
-    inputs: [{ name: 'addresses', type: 'address[]', internalType: 'address[]' }],
+    inputs: [
+      { name: 'addresses', type: 'address[]', internalType: 'address[]' },
+    ],
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -185,10 +207,10 @@ export const sponsorWhitelistAbi = [
     type: 'event',
     name: 'SponsorUpdated',
     inputs: [
-      { indexed: true,  name: 'contractAddr', type: 'address' },
-      { indexed: false, name: 'sponsorType',  type: 'uint32' },
-      { indexed: false, name: 'sponsor',      type: 'address' },
-      { indexed: false, name: 'value',        type: 'uint256' },
+      { indexed: true, name: 'contractAddr', type: 'address' },
+      { indexed: false, name: 'sponsorType', type: 'uint32' },
+      { indexed: false, name: 'sponsor', type: 'address' },
+      { indexed: false, name: 'value', type: 'uint256' },
     ],
     anonymous: false,
   },
@@ -196,16 +218,17 @@ export const sponsorWhitelistAbi = [
     type: 'event',
     name: 'WhitelistUpdated',
     inputs: [
-      { indexed: true,  name: 'contractAddr', type: 'address' },
-      { indexed: true,  name: 'userAddr',     type: 'address' },
-      { indexed: false, name: 'isAdded',      type: 'bool' },
+      { indexed: true, name: 'contractAddr', type: 'address' },
+      { indexed: true, name: 'userAddr', type: 'address' },
+      { indexed: false, name: 'isAdded', type: 'bool' },
     ],
     anonymous: false,
   },
 ] as const;
 
 export const SPONSOR_WHITELIST_ABI = sponsorWhitelistAbi;
-export const sponsorWhitelistAddress = CONFLUX_PRECOMPILE_ADDRESSES.SponsorWhitelist;
+export const sponsorWhitelistAddress =
+  CONFLUX_PRECOMPILE_ADDRESSES.SponsorWhitelist;
 
 // ─── Staking ─────────────────────────────────────────────────────────────────
 
@@ -228,8 +251,8 @@ export const stakingAbi = [
     type: 'function',
     name: 'getLockedStakingBalance',
     inputs: [
-      { name: 'user',         type: 'address', internalType: 'address' },
-      { name: 'blockNumber',  type: 'uint256', internalType: 'uint256' },
+      { name: 'user', type: 'address', internalType: 'address' },
+      { name: 'blockNumber', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
     stateMutability: 'view',
@@ -238,7 +261,7 @@ export const stakingAbi = [
     type: 'function',
     name: 'getVotePower',
     inputs: [
-      { name: 'user',        type: 'address', internalType: 'address' },
+      { name: 'user', type: 'address', internalType: 'address' },
       { name: 'blockNumber', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
@@ -262,8 +285,8 @@ export const stakingAbi = [
     type: 'function',
     name: 'voteLock',
     inputs: [
-      { name: 'amount',       type: 'uint256', internalType: 'uint256' },
-      { name: 'unlockBlock',  type: 'uint256', internalType: 'uint256' },
+      { name: 'amount', type: 'uint256', internalType: 'uint256' },
+      { name: 'unlockBlock', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [],
     stateMutability: 'nonpayable',
@@ -272,7 +295,7 @@ export const stakingAbi = [
     type: 'event',
     name: 'Deposit',
     inputs: [
-      { indexed: true,  name: 'user',   type: 'address' },
+      { indexed: true, name: 'user', type: 'address' },
       { indexed: false, name: 'amount', type: 'uint256' },
     ],
     anonymous: false,
@@ -281,7 +304,7 @@ export const stakingAbi = [
     type: 'event',
     name: 'Withdraw',
     inputs: [
-      { indexed: true,  name: 'user',   type: 'address' },
+      { indexed: true, name: 'user', type: 'address' },
       { indexed: false, name: 'amount', type: 'uint256' },
     ],
     anonymous: false,
@@ -290,9 +313,9 @@ export const stakingAbi = [
     type: 'event',
     name: 'VoteLock',
     inputs: [
-      { indexed: true,  name: 'user',        type: 'address' },
-      { indexed: false, name: 'amount',       type: 'uint256' },
-      { indexed: false, name: 'unlockBlock',  type: 'uint256' },
+      { indexed: true, name: 'user', type: 'address' },
+      { indexed: false, name: 'amount', type: 'uint256' },
+      { indexed: false, name: 'unlockBlock', type: 'uint256' },
     ],
     anonymous: false,
   },
@@ -316,8 +339,8 @@ export const crossSpaceCallAbi = [
     type: 'function',
     name: 'callEVM',
     inputs: [
-      { name: 'to',   type: 'bytes20', internalType: 'bytes20' },
-      { name: 'data', type: 'bytes',   internalType: 'bytes' },
+      { name: 'to', type: 'bytes20', internalType: 'bytes20' },
+      { name: 'data', type: 'bytes', internalType: 'bytes' },
     ],
     outputs: [{ name: '', type: 'bytes', internalType: 'bytes' }],
     stateMutability: 'payable',
@@ -326,8 +349,8 @@ export const crossSpaceCallAbi = [
     type: 'function',
     name: 'staticCallEVM',
     inputs: [
-      { name: 'to',   type: 'bytes20', internalType: 'bytes20' },
-      { name: 'data', type: 'bytes',   internalType: 'bytes' },
+      { name: 'to', type: 'bytes20', internalType: 'bytes20' },
+      { name: 'data', type: 'bytes', internalType: 'bytes' },
     ],
     outputs: [{ name: '', type: 'bytes', internalType: 'bytes' }],
     stateMutability: 'view',
@@ -358,11 +381,11 @@ export const crossSpaceCallAbi = [
     type: 'event',
     name: 'Call',
     inputs: [
-      { indexed: true,  name: 'sender',    type: 'bytes20' },
-      { indexed: true,  name: 'receiver',  type: 'bytes20' },
-      { indexed: false, name: 'value',     type: 'uint256' },
-      { indexed: false, name: 'nonce',     type: 'uint256' },
-      { indexed: false, name: 'data',      type: 'bytes' },
+      { indexed: true, name: 'sender', type: 'bytes20' },
+      { indexed: true, name: 'receiver', type: 'bytes20' },
+      { indexed: false, name: 'value', type: 'uint256' },
+      { indexed: false, name: 'nonce', type: 'uint256' },
+      { indexed: false, name: 'data', type: 'bytes' },
     ],
     anonymous: false,
   },
@@ -371,14 +394,15 @@ export const crossSpaceCallAbi = [
     name: 'Outcome',
     inputs: [
       { indexed: false, name: 'success', type: 'bool' },
-      { indexed: false, name: 'data',    type: 'bytes' },
+      { indexed: false, name: 'data', type: 'bytes' },
     ],
     anonymous: false,
   },
 ] as const;
 
 export const CROSS_SPACE_CALL_ABI = crossSpaceCallAbi;
-export const crossSpaceCallAddress = CONFLUX_PRECOMPILE_ADDRESSES.CrossSpaceCall;
+export const crossSpaceCallAddress =
+  CONFLUX_PRECOMPILE_ADDRESSES.CrossSpaceCall;
 
 // ─── PoSRegister ─────────────────────────────────────────────────────────────
 
@@ -394,11 +418,11 @@ export const posRegisterAbi = [
     type: 'function',
     name: 'register',
     inputs: [
-      { name: 'indentifier',      type: 'bytes32', internalType: 'bytes32' },
-      { name: 'votePower',        type: 'uint64',  internalType: 'uint64' },
-      { name: 'blsPubKey',        type: 'bytes',   internalType: 'bytes' },
-      { name: 'vrfPubKey',        type: 'bytes',   internalType: 'bytes' },
-      { name: 'blsPubKeyProof',   type: 'bytes[2]', internalType: 'bytes[2]' },
+      { name: 'indentifier', type: 'bytes32', internalType: 'bytes32' },
+      { name: 'votePower', type: 'uint64', internalType: 'uint64' },
+      { name: 'blsPubKey', type: 'bytes', internalType: 'bytes' },
+      { name: 'vrfPubKey', type: 'bytes', internalType: 'bytes' },
+      { name: 'blsPubKeyProof', type: 'bytes[2]', internalType: 'bytes[2]' },
     ],
     outputs: [],
     stateMutability: 'nonpayable',
@@ -422,7 +446,7 @@ export const posRegisterAbi = [
     name: 'getVotes',
     inputs: [{ name: 'identifier', type: 'bytes32', internalType: 'bytes32' }],
     outputs: [
-      { name: 'totalVotes',  type: 'uint256', internalType: 'uint256' },
+      { name: 'totalVotes', type: 'uint256', internalType: 'uint256' },
       { name: 'unlockedVotes', type: 'uint256', internalType: 'uint256' },
     ],
     stateMutability: 'view',
@@ -445,9 +469,9 @@ export const posRegisterAbi = [
     type: 'event',
     name: 'Register',
     inputs: [
-      { indexed: true,  name: 'identifier', type: 'bytes32' },
-      { indexed: false, name: 'blsPubKey',  type: 'bytes' },
-      { indexed: false, name: 'vrfPubKey',  type: 'bytes' },
+      { indexed: true, name: 'identifier', type: 'bytes32' },
+      { indexed: false, name: 'blsPubKey', type: 'bytes' },
+      { indexed: false, name: 'vrfPubKey', type: 'bytes' },
     ],
     anonymous: false,
   },
@@ -455,8 +479,8 @@ export const posRegisterAbi = [
     type: 'event',
     name: 'IncreaseStake',
     inputs: [
-      { indexed: true,  name: 'identifier', type: 'bytes32' },
-      { indexed: false, name: 'votePower',  type: 'uint64' },
+      { indexed: true, name: 'identifier', type: 'bytes32' },
+      { indexed: false, name: 'votePower', type: 'uint64' },
     ],
     anonymous: false,
   },
@@ -464,8 +488,8 @@ export const posRegisterAbi = [
     type: 'event',
     name: 'Retire',
     inputs: [
-      { indexed: true,  name: 'identifier', type: 'bytes32' },
-      { indexed: false, name: 'votePower',  type: 'uint64' },
+      { indexed: true, name: 'identifier', type: 'bytes32' },
+      { indexed: false, name: 'votePower', type: 'uint64' },
     ],
     anonymous: false,
   },

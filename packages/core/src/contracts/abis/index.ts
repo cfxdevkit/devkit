@@ -27,9 +27,23 @@
  * All ABIs are sourced from @cfxdevkit/contracts (generated from audited Solidity).
  */
 
-export { erc20Abi, ERC20_ABI, erc20ExtendedAbi, ERC20_EXTENDED_ABI } from './erc20.js';
-export { erc721Abi, ERC721_ABI, erc721ExtendedAbi, ERC721_EXTENDED_ABI } from './erc721.js';
-export { erc1155Abi, ERC1155_ABI } from './erc1155.js';
-
 // Additional standard ABIs available directly from @cfxdevkit/contracts:
-export { erc2612Abi, ERC2612_ABI, erc4626Abi, ERC4626_ABI } from '@cfxdevkit/contracts';
+export {
+  ERC2612_ABI,
+  ERC4626_ABI,
+  erc2612Abi,
+  erc4626Abi,
+} from '@cfxdevkit/contracts';
+export {
+  ERC20_ABI,
+  ERC20_EXTENDED_ABI,
+  erc20Abi,
+  erc20ExtendedAbi,
+} from './erc20.js';
+export {
+  ERC721_ABI,
+  ERC721_EXTENDED_ABI,
+  erc721Abi,
+  erc721ExtendedAbi,
+} from './erc721.js';
+export { ERC1155_ABI, erc1155Abi } from './erc1155.js';

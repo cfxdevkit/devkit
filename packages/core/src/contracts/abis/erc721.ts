@@ -20,4 +20,9 @@
  * `erc721Abi`         — minimal EIP-721 interface (safeTransfer, approve, tokenURI, events)
  * `erc721ExtendedAbi` — + safeMint, burn, pause, enumerable helpers (matches ERC721Base.sol)
  */
-export { erc721Abi, ERC721_ABI, erc721ExtendedAbi, ERC721_EXTENDED_ABI } from '@cfxdevkit/contracts';
+export {
+  ERC721_ABI,
+  ERC721_EXTENDED_ABI,
+  erc721Abi,
+  erc721ExtendedAbi,
+} from '@cfxdevkit/contracts';

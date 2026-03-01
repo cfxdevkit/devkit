@@ -6,17 +6,17 @@ import {
   erc20ExtendedAbi,
 } from '../contracts/abis/erc20.js';
 import {
+  ERC721_ABI as ERC721,
+  ERC721_EXTENDED_ABI,
+  erc721ExtendedAbi,
+} from '../contracts/abis/erc721.js';
+import { ERC1155_ABI as ERC1155 } from '../contracts/abis/erc1155.js';
+import {
   ERC2612_ABI,
   ERC4626_ABI,
   erc2612Abi,
   erc4626Abi,
 } from '../contracts/abis/index.js';
-import { ERC1155_ABI as ERC1155 } from '../contracts/abis/erc1155.js';
-import {
-  ERC721_ABI as ERC721,
-  ERC721_EXTENDED_ABI,
-  erc721ExtendedAbi,
-} from '../contracts/abis/erc721.js';
 import {
   ContractError,
   DeploymentError,
@@ -41,8 +41,15 @@ describe('ERC20_ABI', () => {
   it('contains standard ERC20 function signatures', () => {
     expect(fns(ERC20_ABI)).toEqual(
       expect.arrayContaining([
-        'transfer', 'approve', 'balanceOf', 'totalSupply', 'allowance',
-        'transferFrom', 'name', 'symbol', 'decimals',
+        'transfer',
+        'approve',
+        'balanceOf',
+        'totalSupply',
+        'allowance',
+        'transferFrom',
+        'name',
+        'symbol',
+        'decimals',
       ])
     );
   });
@@ -71,8 +78,15 @@ describe('ERC20_EXTENDED_ABI', () => {
   it('adds mint, burn, pause/unpause, permit, cap', () => {
     expect(fns(ERC20_EXTENDED_ABI)).toEqual(
       expect.arrayContaining([
-        'mint', 'burn', 'burnFrom', 'pause', 'unpause', 'cap',
-        'permit', 'nonces', 'DOMAIN_SEPARATOR',
+        'mint',
+        'burn',
+        'burnFrom',
+        'pause',
+        'unpause',
+        'cap',
+        'permit',
+        'nonces',
+        'DOMAIN_SEPARATOR',
       ])
     );
   });
@@ -123,8 +137,13 @@ describe('ERC721_EXTENDED_ABI', () => {
   it('adds ERC721Enumerable, burn, safeMint, royaltyInfo', () => {
     expect(fns(ERC721_EXTENDED_ABI)).toEqual(
       expect.arrayContaining([
-        'totalSupply', 'tokenByIndex', 'tokenOfOwnerByIndex',
-        'burn', 'safeMint', 'royaltyInfo', 'maxSupply',
+        'totalSupply',
+        'tokenByIndex',
+        'tokenOfOwnerByIndex',
+        'burn',
+        'safeMint',
+        'royaltyInfo',
+        'maxSupply',
       ])
     );
   });
@@ -136,8 +155,13 @@ describe('ERC1155_ABI', () => {
   it('contains balanceOf, balanceOfBatch, safeTransferFrom, safeBatchTransferFrom', () => {
     expect(fns(ERC1155)).toEqual(
       expect.arrayContaining([
-        'balanceOf', 'balanceOfBatch', 'safeTransferFrom', 'safeBatchTransferFrom',
-        'setApprovalForAll', 'isApprovedForAll', 'uri',
+        'balanceOf',
+        'balanceOfBatch',
+        'safeTransferFrom',
+        'safeBatchTransferFrom',
+        'setApprovalForAll',
+        'isApprovedForAll',
+        'uri',
       ])
     );
   });
@@ -174,13 +198,27 @@ describe('ERC4626_ABI re-exported from core/abis/index', () => {
     expect(fns(ERC4626_ABI)).toEqual(
       expect.arrayContaining([
         // ERC-20
-        'balanceOf', 'transfer', 'approve', 'totalSupply',
+        'balanceOf',
+        'transfer',
+        'approve',
+        'totalSupply',
         // EIP-4626
-        'asset', 'totalAssets',
-        'deposit', 'mint', 'withdraw', 'redeem',
-        'maxDeposit', 'maxMint', 'maxWithdraw', 'maxRedeem',
-        'previewDeposit', 'previewMint', 'previewWithdraw', 'previewRedeem',
-        'convertToShares', 'convertToAssets',
+        'asset',
+        'totalAssets',
+        'deposit',
+        'mint',
+        'withdraw',
+        'redeem',
+        'maxDeposit',
+        'maxMint',
+        'maxWithdraw',
+        'maxRedeem',
+        'previewDeposit',
+        'previewMint',
+        'previewWithdraw',
+        'previewRedeem',
+        'convertToShares',
+        'convertToAssets',
       ])
     );
   });

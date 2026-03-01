@@ -19,4 +19,4 @@
  *
  * `erc1155Abi` - full EIP-1155 interface (safeTransfer, safeBatchTransfer, balanceOf, URI, events)
  */
-export { erc1155Abi, ERC1155_ABI } from '@cfxdevkit/contracts';
+export { ERC1155_ABI, erc1155Abi } from '@cfxdevkit/contracts';

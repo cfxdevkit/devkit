@@ -10,5 +10,10 @@ export default defineConfig({
   sourcemap: true,
   splitting: false,
   minify: false,
-  external: ['@cfxdevkit/contracts', '@cfxdevkit/core', '@cfxdevkit/protocol', 'viem'],
+  external: [
+    '@cfxdevkit/contracts',
+    '@cfxdevkit/core',
+    '@cfxdevkit/protocol',
+    'viem',
+  ],
 });

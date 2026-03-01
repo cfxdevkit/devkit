@@ -15,26 +15,6 @@
  * below are kept for backward compatibility and will be removed in v2.
  */
 
-// ─── Precompile ABIs (new canonical exports) ──────────────────────────────────
-export {
-  CONFLUX_PRECOMPILE_ADDRESSES,
-  adminControlAbi,
-  ADMIN_CONTROL_ABI,
-  adminControlAddress,
-  sponsorWhitelistAbi,
-  SPONSOR_WHITELIST_ABI,
-  sponsorWhitelistAddress,
-  stakingAbi,
-  STAKING_ABI,
-  stakingAddress,
-  crossSpaceCallAbi,
-  CROSS_SPACE_CALL_ABI,
-  crossSpaceCallAddress,
-  posRegisterAbi,
-  POS_REGISTER_ABI,
-  posRegisterAddress,
-} from './precompiles.js';
-
 // ─── DevKit contract ABIs (deprecated — use @cfxdevkit/contracts) ─────────────
 export {
   automationManagerAbi as AUTOMATION_MANAGER_ABI,
@@ -53,3 +33,22 @@ export {
   swappiPriceAdapterBytecode,
   swappiPriceAdapterConfig,
 } from './abi.js';
+// ─── Precompile ABIs (new canonical exports) ──────────────────────────────────
+export {
+  ADMIN_CONTROL_ABI,
+  adminControlAbi,
+  adminControlAddress,
+  CONFLUX_PRECOMPILE_ADDRESSES,
+  CROSS_SPACE_CALL_ABI,
+  crossSpaceCallAbi,
+  crossSpaceCallAddress,
+  POS_REGISTER_ABI,
+  posRegisterAbi,
+  posRegisterAddress,
+  SPONSOR_WHITELIST_ABI,
+  STAKING_ABI,
+  sponsorWhitelistAbi,
+  sponsorWhitelistAddress,
+  stakingAbi,
+  stakingAddress,
+} from './precompiles.js';

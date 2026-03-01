@@ -66,14 +66,17 @@ const CONTRACT_NAMES = [...CONTRACT_NAMES_DEPLOYED, ...CONTRACT_NAMES_LIBRARY];
 
 const deploymentRegistry = loadDeployments();
 // Only deployed contracts have addresses
-const wagmiDeployments = toWagmiDeployments(deploymentRegistry, CONTRACT_NAMES_DEPLOYED);
+const wagmiDeployments = toWagmiDeployments(
+  deploymentRegistry,
+  CONTRACT_NAMES_DEPLOYED
+);
 
 /** Map of library contract name → subdirectory under contracts/ */
 const ARTIFACT_SUBDIRS: Record<string, string> = {
-  ERC20Base:     'tokens',
-  ERC721Base:    'tokens',
-  ERC1155Base:   'tokens',
-  WrappedCFX:    'tokens',
+  ERC20Base: 'tokens',
+  ERC721Base: 'tokens',
+  ERC1155Base: 'tokens',
+  WrappedCFX: 'tokens',
   StakingRewards: 'defi',
   VestingSchedule: 'defi',
   MerkleAirdrop: 'defi',
@@ -96,8 +99,8 @@ function getArtifactPath(name: string): string {
  */
 function toCamelCase(str: string): string {
   return str
-    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')       // e.g. 0B → 0_B
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')     // e.g. ERCBase → ERC_Base
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2') // e.g. 0B → 0_B
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2') // e.g. ERCBase → ERC_Base
     .toLowerCase()
     .replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
 }
