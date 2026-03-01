@@ -1,6 +1,6 @@
 {
   "name": "@cfxdevkit/contracts",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "Generated ABI, bytecode, and deployed addresses for Conflux DevKit contracts",
   "type": "module",
   "exports": {

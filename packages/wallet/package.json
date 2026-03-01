@@ -1,6 +1,6 @@
 {
   "name": "@cfxdevkit/wallet",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "Advanced wallet abstractions for Conflux - session keys, transaction batching, and embedded wallets",
   "type": "module",
   "main": "dist/index.js",
