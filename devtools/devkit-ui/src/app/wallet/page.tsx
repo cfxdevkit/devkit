@@ -287,6 +287,7 @@ export default function WalletPage() {
                     value={renameLabel}
                     onChange={(e) => setRenameLabel(e.target.value)}
                     placeholder="New wallet label"
+                    // biome-ignore lint/a11y/noAutofocus: intentional — dialog opens for rename action
                     autoFocus
                     onKeyDown={(e) =>
                       e.key === 'Enter' &&

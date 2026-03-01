@@ -14,7 +14,6 @@ import {
   toCiveChain,
   toViemChain,
 } from '@cfxdevkit/core/config';
-import type { Address as CiveAddress } from 'cive';
 import { contractStorage } from './contract-storage.js';
 import type { NodeManager } from './node-manager.js';
 

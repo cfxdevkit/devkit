@@ -19,10 +19,10 @@
     "test": "vitest run --pass-with-no-tests",
     "test:coverage": "vitest --run --coverage --pass-with-no-tests",
     "clean": "rm -rf dist ui/out",
-    "lint": "biome lint src/",
-    "lint:fix": "biome lint --write src/",
-    "check": "biome check src/",
-    "check:fix": "biome check --write src/"
+    "lint": "biome lint src/ scripts/",
+    "lint:fix": "biome lint --write src/ scripts/",
+    "check": "biome check src/ scripts/",
+    "check:fix": "biome check --write src/ scripts/"
   },
   "dependencies": {
     "@xcfx/node": "0.8.0",
@@ -47,6 +47,7 @@
     "@types/express": "^5.0.1",
     "@types/node": "^22.10.6",
     "conflux-devkit-ui": "workspace:*",
+    "@biomejs/biome": "^2.3.10",
     "tsup": "^8.5.1",
     "typescript": "^5.7.3",
     "vitest": "^4.0.18"

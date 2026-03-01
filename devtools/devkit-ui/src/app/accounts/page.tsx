@@ -36,12 +36,17 @@ function FundModal({ onClose }: { onClose: () => void }) {
 
   const fundMutation = useMutation({
     mutationFn: () => accountsApi.fund(address, amount || undefined, chain),
-    onSuccess: (e: any) => {
+    onSuccess: (e: {
+      ok: boolean;
+      txHash?: string;
+      confirmed?: boolean;
+      message?: string;
+    }) => {
       if (e?.confirmed) {
         setResult(`✓ tx: ${e.txHash} (confirmed)`);
       } else if (e?.txHash) {
         setResult(
-          `✓ tx: ${e.txHash} (pending)` + (e?.message ? ` - ${e.message}` : '')
+          `✓ tx: ${e.txHash} (pending)${e?.message ? ` - ${e.message}` : ''}`
         );
       } else {
         setResult('Submitted');
