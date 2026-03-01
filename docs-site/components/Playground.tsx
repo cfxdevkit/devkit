@@ -141,8 +141,7 @@ interface PlaygroundProps {
 
 const DEFAULT_DEPS: Record<string, string> = {
   viem: '^2.0.0',
-  '@cfxdevkit/core': 'latest',
-  '@cfxdevkit/contracts': 'latest',
+  // @cfxdevkit/* packages omitted — not yet on npm; examples use viem directly
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
