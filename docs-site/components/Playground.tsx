@@ -176,7 +176,7 @@ export function Playground({
             position: 'relative',
           }}
         >
-          <LoadingOverlay />
+          <LoadingOverlay showOpenInCodeSandbox={false} />
           <SandpackCodeEditor
             showLineNumbers
             showInlineErrors
