@@ -55,3 +55,6 @@ Thumbs.db
 # ── Dev-only artifacts (not part of submission) ───────────────────────────────
 # (project-specific deviation notes)
 TODO.md
+
+# ── Internal planning docs (local only) ───────────────────────────────────────
+docs/CFXDEVKIT-ORG-PLAN.md
