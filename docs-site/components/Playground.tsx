@@ -112,129 +112,8 @@ interface PlaygroundProps {
 
 const DEFAULT_DEPS: Record<string, string> = {
   viem: '^2.0.0',
+  '@cfxdevkit/core': '^1.0.15',
 }
-
-// ── Browser-compatible shim ────────────────────────────────────────────────
-// @cfxdevkit/core uses node:events (via ClientManager) which Sandpack's bundler
-// cannot polyfill. This shim re-implements the same public API surface using
-// viem directly. In a real project you import from '@cfxdevkit/core'.
-const CFXDEVKIT_SHIM = `// cfxdevkit.ts — browser shim for @cfxdevkit/core
-// Real project: replace './cfxdevkit' with '@cfxdevkit/core'
-import {
-  createPublicClient, createWalletClient, http,
-  formatEther, formatUnits, parseEther, parseUnits, defineChain,
-} from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
-
-export { formatEther, formatUnits, parseEther, parseUnits } from 'viem'
-
-export const ERC20_ABI = [
-  { name: 'name',        type: 'function', stateMutability: 'view',        inputs: [],                                                                                outputs: [{ type: 'string'  }] },
-  { name: 'symbol',      type: 'function', stateMutability: 'view',        inputs: [],                                                                                outputs: [{ type: 'string'  }] },
-  { name: 'decimals',    type: 'function', stateMutability: 'view',        inputs: [],                                                                                outputs: [{ type: 'uint8'   }] },
-  { name: 'totalSupply', type: 'function', stateMutability: 'view',        inputs: [],                                                                                outputs: [{ type: 'uint256' }] },
-  { name: 'balanceOf',   type: 'function', stateMutability: 'view',        inputs: [{ name: 'account', type: 'address' }],                                            outputs: [{ type: 'uint256' }] },
-  { name: 'allowance',   type: 'function', stateMutability: 'view',        inputs: [{ name: 'owner',   type: 'address' }, { name: 'spender', type: 'address' }],      outputs: [{ type: 'uint256' }] },
-  { name: 'transfer',    type: 'function', stateMutability: 'nonpayable',   inputs: [{ name: 'to',      type: 'address' }, { name: 'amount',  type: 'uint256' }],      outputs: [{ type: 'bool'    }] },
-  { name: 'approve',     type: 'function', stateMutability: 'nonpayable',   inputs: [{ name: 'spender', type: 'address' }, { name: 'amount',  type: 'uint256' }],      outputs: [{ type: 'bool'    }] },
-  { name: 'transferFrom',type: 'function', stateMutability: 'nonpayable',   inputs: [{ name: 'from',    type: 'address' }, { name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ type: 'bool' }] },
-] as const
-
-function makeChain(chainId, rpcUrl) {
-  const names = { 71: 'Conflux eSpace Testnet', 1030: 'Conflux eSpace' }
-  return defineChain({
-    id: chainId,
-    name: names[chainId] || 'Conflux eSpace (' + chainId + ')',
-    nativeCurrency: { name: 'Conflux', symbol: 'CFX', decimals: 18 },
-    rpcUrls: { default: { http: [rpcUrl] } },
-  })
-}
-
-export class EspaceClient {
-  public publicClient
-  public chainId
-  public rpcUrl
-  public address = ''
-
-  constructor({ chainId, rpcUrl }) {
-    this.chainId = chainId
-    this.rpcUrl  = rpcUrl
-    this.publicClient = createPublicClient({
-      chain:     makeChain(chainId, rpcUrl),
-      transport: http(rpcUrl),
-    })
-  }
-
-  async getBlockNumber()    { return this.publicClient.getBlockNumber() }
-  async getChainId()        { return this.publicClient.getChainId() }
-  async getGasPrice()       { return this.publicClient.getGasPrice() }
-  async isConnected()       { try { await this.publicClient.getBlockNumber(); return true } catch { return false } }
-
-  async getBalance(address) {
-    const wei = await this.publicClient.getBalance({ address })
-    return formatEther(wei)
-  }
-
-  async getTokenBalance(address, tokenAddress) {
-    const bal = await this.publicClient.readContract({
-      address: tokenAddress, abi: ERC20_ABI, functionName: 'balanceOf', args: [address],
-    })
-    return String(bal)
-  }
-
-  async readContract({ address, abi, functionName, args = [] }) {
-    return this.publicClient.readContract({ address, abi, functionName, args })
-  }
-
-  async estimateGas({ to, value, data }) {
-    return this.publicClient.estimateGas({ to, value, data })
-  }
-
-  async waitForTransaction(hash) {
-    const r = await this.publicClient.waitForTransactionReceipt({ hash })
-    return {
-      hash: r.transactionHash, blockNumber: r.blockNumber,
-      gasUsed: r.gasUsed, status: r.status, contractAddress: r.contractAddress ?? undefined,
-    }
-  }
-}
-
-export class EspaceWalletClient extends EspaceClient {
-  _account
-  _walletClient
-
-  constructor({ chainId, rpcUrl, privateKey }) {
-    super({ chainId, rpcUrl })
-    this._account     = privateKeyToAccount(privateKey)
-    this.address      = this._account.address
-    this._walletClient = createWalletClient({
-      account: this._account, chain: makeChain(chainId, rpcUrl), transport: http(rpcUrl),
-    })
-  }
-
-  getAddress() { return this.address }
-
-  async sendTransaction({ to, value, data }) {
-    return this._walletClient.sendTransaction({
-      account: this._account, chain: makeChain(this.chainId, this.rpcUrl),
-      to, value, data,
-    })
-  }
-
-  async signMessage(message) {
-    return this._walletClient.signMessage({ account: this._account, message })
-  }
-
-  async deployContract(abi, bytecode, args = []) {
-    const hash = await this._walletClient.deployContract({
-      account: this._account, chain: makeChain(this.chainId, this.rpcUrl),
-      abi, bytecode, args,
-    })
-    const r = await this.waitForTransaction(hash)
-    return r.contractAddress
-  }
-}
-`
 
 // ── Main component ────────────────────────────────────────────────────────────
 export function Playground({
@@ -249,7 +128,6 @@ export function Playground({
   const networkFile = `// Auto-generated network config\nexport const NETWORK = {\n  chainId: ${networkConfig.chainId},\n  rpcUrl: '${networkConfig.rpcUrl}',\n  blockExplorer: '${networkConfig.blockExplorer}',\n} as const\n`
 
   const mergedFiles = {
-    '/cfxdevkit.ts': { code: CFXDEVKIT_SHIM, hidden: true, readOnly: true },
     '/network-config.ts': { code: networkFile, readOnly: true },
     ...Object.fromEntries(
       Object.entries(files).map(([name, code]) => [
