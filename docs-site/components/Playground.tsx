@@ -5,42 +5,27 @@ import {
   SandpackProvider,
   SandpackLayout,
   SandpackCodeEditor,
-  SandpackPreview,
   SandpackConsole,
+  SandpackPreview,
   useSandpack,
 } from '@codesandbox/sandpack-react'
-// sandpackDark is bundled with sandpack-react
-const sandpackDark = 'dark' as const
 
-function RunButton() {
-  const { dispatch, sandpack } = useSandpack()
-  const isLoading = sandpack.status === 'initial' || sandpack.status === 'timeout'
-  return (
-    <button
-      onClick={() => dispatch({ type: 'refresh' })}
-      disabled={isLoading}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '4px 14px',
-        borderRadius: '4px',
-        border: 'none',
-        cursor: isLoading ? 'not-allowed' : 'pointer',
-        fontFamily: 'var(--sp-font-mono)',
-        fontSize: '12px',
-        fontWeight: 600,
-        background: isLoading ? 'var(--sp-colors-surface2)' : '#22c55e',
-        color: isLoading ? 'var(--sp-colors-fg-inactive)' : '#fff',
-        transition: 'background 0.15s',
-      }}
-    >
-      ▶ Run
-    </button>
-  )
-}
+// Hard-coded dark toolbar colors — CSS vars are only scoped inside SandpackLayout
+const T = {
+  bg: '#1c1c1e',
+  border: '#3a3a3c',
+  muted: '#888',
+  text: '#ccc',
+  activeBg: '#0070f3',
+  activeText: '#fff',
+  pillBg: '#2a2a2c',
+  runBg: '#22c55e',
+  runText: '#fff',
+  runDisabledBg: '#2a2a2c',
+  runDisabledText: '#666',
+} as const
 
-// Conflux network configs
+// ── Conflux network configs ──────────────────────────────────────────────────
 const NETWORKS = {
   testnet: {
     label: 'Testnet',
@@ -58,16 +43,99 @@ const NETWORKS = {
 
 type Network = keyof typeof NETWORKS
 
+// ── Run button — must be inside SandpackProvider ─────────────────────────────
+function RunButton() {
+  const { sandpack } = useSandpack()
+  const busy =
+    sandpack.status === 'initial' ||
+    sandpack.status === 'timeout'
+
+  return (
+    <button
+      onClick={() => sandpack.runSandpack()}
+      disabled={busy}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '5px',
+        padding: '4px 14px',
+        borderRadius: '4px',
+        border: 'none',
+        cursor: busy ? 'not-allowed' : 'pointer',
+        fontFamily: 'ui-monospace, monospace',
+        fontSize: '12px',
+        fontWeight: 600,
+        background: busy ? T.runDisabledBg : T.runBg,
+        color: busy ? T.runDisabledText : T.runText,
+        transition: 'background 0.15s',
+        flexShrink: 0,
+      }}
+    >
+      ▶ Run
+    </button>
+  )
+}
+
+// ── Network toggle ────────────────────────────────────────────────────────────
+function NetworkToggle({
+  network,
+  onChange,
+}: {
+  network: Network
+  onChange: (n: Network) => void
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        fontSize: '12px',
+        fontFamily: 'ui-monospace, monospace',
+        color: T.muted,
+        minWidth: 0,
+        overflow: 'hidden',
+      }}
+    >
+      <span style={{ whiteSpace: 'nowrap' }}>network:</span>
+      {(Object.keys(NETWORKS) as Network[]).map((key) => (
+        <button
+          key={key}
+          onClick={() => onChange(key)}
+          style={{
+            padding: '2px 9px',
+            borderRadius: '4px',
+            border: 'none',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: '11px',
+            whiteSpace: 'nowrap',
+            background: network === key ? T.activeBg : T.pillBg,
+            color: network === key ? T.activeText : T.text,
+          }}
+        >
+          {NETWORKS[key].label}
+        </button>
+      ))}
+      <span
+        style={{
+          color: T.muted,
+          fontSize: '10px',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        · chain {NETWORKS[network].chainId}
+      </span>
+    </div>
+  )
+}
+
+// ── Props ────────────────────────────────────────────────────────────────────
 interface PlaygroundProps {
-  /** The active code file name, e.g. "index.ts" */
   file?: string
-  /** Record of filename → code content */
   files?: Record<string, string>
-  /** Template: "vanilla-ts" | "nextjs" | "node" */
   template?: 'vanilla-ts' | 'node'
-  /** Show console instead of preview */
   showConsole?: boolean
-  /** Extra npm dependencies beyond the defaults */
   extraDeps?: Record<string, string>
 }
 
@@ -77,41 +145,7 @@ const DEFAULT_DEPS: Record<string, string> = {
   '@cfxdevkit/contracts': 'latest',
 }
 
-function NetworkToggle({
-  network,
-  onChange,
-}: {
-  network: Network
-  onChange: (n: Network) => void
-}) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontFamily: 'var(--sp-font-mono)' }}>
-      <span style={{ color: 'var(--sp-colors-fg-inactive)' }}>network:</span>
-      {(Object.keys(NETWORKS) as Network[]).map((key) => (
-        <button
-          key={key}
-          onClick={() => onChange(key)}
-          style={{
-            padding: '2px 10px',
-            borderRadius: '4px',
-            border: 'none',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            fontSize: '11px',
-            background: network === key ? 'var(--sp-colors-accent)' : 'var(--sp-colors-surface2)',
-            color: network === key ? '#fff' : 'var(--sp-colors-fg-inactive)',
-          }}
-        >
-          {NETWORKS[key].label}
-        </button>
-      ))}
-      <span style={{ color: 'var(--sp-colors-fg-inactive)', fontSize: '10px' }}>
-        · chain {NETWORKS[network].chainId}
-      </span>
-    </div>
-  )
-}
-
+// ── Main component ────────────────────────────────────────────────────────────
 export function Playground({
   files = {},
   template = 'vanilla-ts',
@@ -123,14 +157,7 @@ export function Playground({
 
   const networkConfig = NETWORKS[network]
 
-  // Inject a network-config helper that examples can import
-  const networkFile = `// Auto-generated — re-renders when you toggle network above
-export const NETWORK = {
-  chainId: ${networkConfig.chainId},
-  rpcUrl: '${networkConfig.rpcUrl}',
-  blockExplorer: '${networkConfig.blockExplorer}',
-} as const
-`
+  const networkFile = `// Auto-generated — changes when you toggle network\nexport const NETWORK = {\n  chainId: ${networkConfig.chainId},\n  rpcUrl: '${networkConfig.rpcUrl}',\n  blockExplorer: '${networkConfig.blockExplorer}',\n} as const\n`
 
   const mergedFiles = {
     '/network-config.ts': { code: networkFile, readOnly: true },
@@ -142,40 +169,49 @@ export const NETWORK = {
     ),
   }
 
+  const activeFile = file.startsWith('/') ? file : `/${file}`
+
   return (
-    <div style={{ margin: '1.5rem 0', borderRadius: '8px', overflow: 'hidden' }}>
+    <div
+      style={{
+        margin: '1.5rem 0',
+        borderRadius: '8px',
+        overflow: 'hidden',
+        border: `1px solid ${T.border}`,
+      }}
+    >
       <SandpackProvider
-        key={network} // remount on network change to reset execution
+        key={network}
         template={template}
-        theme={sandpackDark}
+        theme="dark"
         files={mergedFiles}
         options={{
-          activeFile: file.startsWith('/') ? file : `/${file}`,
+          activeFile,
           visibleFiles: Object.keys(mergedFiles),
           recompileMode: 'delayed',
-          recompileDelay: 500,
+          recompileDelay: 600,
+          autorun: true,
         }}
         customSetup={{
-          dependencies: {
-            ...DEFAULT_DEPS,
-            ...extraDeps,
-          },
+          dependencies: { ...DEFAULT_DEPS, ...extraDeps },
         }}
       >
-        {/* Inner toolbar — inside Provider so RunButton can access sandpack context */}
+        {/* Toolbar — inside Provider to access sandpack context, outside Layout to control bg */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '6px 12px',
-            borderBottom: '1px solid var(--sp-colors-surface2)',
-            background: 'var(--sp-colors-surface1)',
+            padding: '6px 10px',
+            background: T.bg,
+            borderBottom: `1px solid ${T.border}`,
+            gap: '8px',
           }}
         >
           <NetworkToggle network={network} onChange={setNetwork} />
           <RunButton />
         </div>
+
         <SandpackLayout>
           <SandpackCodeEditor
             showLineNumbers
@@ -184,11 +220,7 @@ export const NETWORK = {
             style={{ height: 380 }}
           />
           {showConsole ? (
-            <SandpackConsole
-              showHeader
-              showResetConsoleButton
-              style={{ height: 380 }}
-            />
+            <SandpackConsole showHeader style={{ height: 380 }} />
           ) : (
             <SandpackPreview style={{ height: 380 }} showNavigator={false} />
           )}
