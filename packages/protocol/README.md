@@ -1,25 +1,46 @@
 # @cfxdevkit/protocol
 
-Static on-chain contract artifacts for Conflux DevKit — ABIs, deployment bytecode, and deployed addresses for all automation contracts. Zero runtime dependencies.
+Conflux network-level ABIs and addresses — Conflux precompile contracts plus low-level DevKit contract artifacts.
 
-> **Note:** This package provides the raw low-level artifacts. For a higher-level experience with wagmi config objects and wagmi-compatible exports see [`@cfxdevkit/contracts`](../contracts).
+> **Note:** For a higher-level experience (wagmi config objects, standard ABIs, bootstrap templates)
+> see [`@cfxdevkit/contracts`](../contracts).
+
+---
 
 ## What's included
+
+### Conflux precompile contracts
+
+Built-in contracts always deployed at fixed addresses on every Conflux network:
+
+| Export | Address | Description |
+|---|---|---|
+| `adminControlAbi` / `ADMIN_CONTROL_ABI` + `adminControlAddress` | `0x0888000000000000000000000000000000000000` | Contract admin management (Core Space) |
+| `sponsorWhitelistAbi` / `SPONSOR_WHITELIST_ABI` + `sponsorWhitelistAddress` | `0x0888000000000000000000000000000000000001` | Gas/collateral sponsorship (Core Space) |
+| `stakingAbi` / `STAKING_ABI` + `stakingAddress` | `0x0888000000000000000000000000000000000002` | PoS staking deposit/withdraw/vote (Core Space) |
+| `crossSpaceCallAbi` / `CROSS_SPACE_CALL_ABI` + `crossSpaceCallAddress` | `0x0888000000000000000000000000000000000006` | Synchronous Core ↔ eSpace messaging (eSpace) |
+| `posRegisterAbi` / `POS_REGISTER_ABI` + `posRegisterAddress` | `0x0888000000000000000000000000000000000005` | PoS validator registration (Core Space) |
+| `CONFLUX_PRECOMPILE_ADDRESSES` | — | Named map of all precompile addresses |
+
+Use `cive` client for Core Space precompiles; `viem` for `CrossSpaceCall` on eSpace.
+
+### DevKit contract ABIs _(deprecated — use `@cfxdevkit/contracts`)_
 
 | Export | Description |
 |---|---|
 | `automationManagerAbi` / `AUTOMATION_MANAGER_ABI` | Full type-safe ABI for `AutomationManager` |
 | `automationManagerAddress` | Deployed addresses keyed by chain ID |
-| `automationManagerBytecode` | Deployment bytecode (for testing / deployment scripts) |
+| `automationManagerBytecode` | Deployment bytecode |
 | `automationManagerConfig` | `{ abi, address }` combined config |
 | `permitHandlerAbi` / `PERMIT_HANDLER_ABI` | ABI for `PermitHandler` |
-| `permitHandlerAddress` | Deployed addresses keyed by chain ID |
-| `permitHandlerBytecode` | Deployment bytecode |
+| `permitHandlerAddress` / `permitHandlerBytecode` / `permitHandlerConfig` | — |
 | `swappiPriceAdapterAbi` / `SWAPPI_PRICE_ADAPTER_ABI` | ABI for `SwappiPriceAdapter` |
-| `swappiPriceAdapterAddress` | Deployed addresses keyed by chain ID |
-| `swappiPriceAdapterBytecode` | Deployment bytecode |
+| `swappiPriceAdapterAddress` / `swappiPriceAdapterBytecode` / `swappiPriceAdapterConfig` | — |
 
-Exports are available as both `camelCase` (wagmi/viem idiomatic) and `UPPER_CASE` (legacy compatibility).
+> ⚠️ These re-exports exist for backward compatibility and will be removed in v2.
+> Migrate to `@cfxdevkit/contracts` — change your import path and nothing else.
+
+---
 
 ## Installation
 
@@ -29,53 +50,98 @@ pnpm add @cfxdevkit/protocol
 npm install @cfxdevkit/protocol
 ```
 
-No peer dependencies — this package is pure TypeScript constants with no runtime imports.
+No peer dependencies — pure TypeScript constants, zero runtime imports.
+
+---
 
 ## Usage
 
-### Read a contract value with viem
+### Interact with a Core Space precompile (cive)
+
+```ts
+import { createPublicClient, http } from 'cive';
+import { mainnet } from 'cive/chains';
+import { adminControlAbi, adminControlAddress } from '@cfxdevkit/protocol';
+
+const client = createPublicClient({ chain: mainnet, transport: http() });
+
+// Check who can destroy a contract
+const admin = await client.readContract({
+  address: adminControlAddress,
+  abi: adminControlAbi,
+  functionName: 'getAdmin',
+  args: ['cfx:acg...'],
+});
+```
+
+### CrossSpaceCall (eSpace — viem)
 
 ```ts
 import { createPublicClient, http } from 'viem';
 import { confluxESpace } from 'viem/chains';
-import { automationManagerAbi, automationManagerAddress } from '@cfxdevkit/protocol';
+import { crossSpaceCallAbi, crossSpaceCallAddress } from '@cfxdevkit/protocol';
 
-const client = createPublicClient({
-  chain: confluxESpace,
-  transport: http(),
-});
+const client = createPublicClient({ chain: confluxESpace, transport: http() });
 
-const maxJobs = await client.readContract({
-  address: automationManagerAddress[1030],
-  abi: automationManagerAbi,
-  functionName: 'maxJobsPerUser',
+// Call a Core Space contract synchronously from eSpace
+const result = await client.readContract({
+  address: crossSpaceCallAddress,
+  abi: crossSpaceCallAbi,
+  functionName: 'callEVM',
+  args: [coreSpaceAddress, calldata],
 });
 ```
 
-### Deploy in a Hardhat or viem script
+### Sponsor whitelist — check sponsorship status
 
 ```ts
-import { automationManagerBytecode, automationManagerAbi } from '@cfxdevkit/protocol';
+import { sponsorWhitelistAbi, sponsorWhitelistAddress } from '@cfxdevkit/protocol';
 
-const hash = await walletClient.deployContract({
-  abi: automationManagerAbi,
-  bytecode: automationManagerBytecode,
-  args: [swapRouter, priceAdapter],
+const sponsor = await client.readContract({
+  address: sponsorWhitelistAddress,
+  abi: sponsorWhitelistAbi,
+  functionName: 'getSponsorForGas',
+  args: ['cfx:acg...'],
 });
 ```
 
-## Regenerating artifacts
+### Migrate from @cfxdevkit/protocol DevKit ABIs
 
-Artifacts are generated from the Hardhat workspace — do not edit them by hand:
-
-```bash
-pnpm --filter @cfxdevkit/contracts codegen
-# equivalent to: cd devtools/contracts && hardhat compile && wagmi generate
+```diff
+-import { automationManagerAbi } from '@cfxdevkit/protocol';
++import { automationManagerAbi } from '@cfxdevkit/contracts';
 ```
 
-## Conflux Compatibility
+---
+
+## Conflux precompile address reference
+
+```ts
+import { CONFLUX_PRECOMPILE_ADDRESSES } from '@cfxdevkit/protocol';
+
+console.log(CONFLUX_PRECOMPILE_ADDRESSES);
+// {
+//   AdminControl:       '0x0888000000000000000000000000000000000000',
+//   SponsorWhitelist:   '0x0888000000000000000000000000000000000001',
+//   Staking:            '0x0888000000000000000000000000000000000002',
+//   CrossSpaceCall:     '0x0888000000000000000000000000000000000006',
+//   PoSRegister:        '0x0888000000000000000000000000000000000005',
+// }
+```
+
+---
+
+## Conflux compatibility
 
 | Network | Chain ID | Support |
 |---|---|---|
 | Conflux eSpace Mainnet | 1030 | ✅ |
-| Conflux eSpace Testnet | 71 | ✅ (when deployed) |
+| Conflux eSpace Testnet | 71 | ✅ |
+| Conflux Core Space Mainnet | 1029 | ✅ (precompiles) |
+| Conflux Core Space Testnet | 1 | ✅ (precompiles) |
+
+---
+
+## License
+
+Apache-2.0 — see [LICENSE](LICENSE).

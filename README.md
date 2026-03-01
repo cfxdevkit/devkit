@@ -77,6 +77,7 @@ Features:
 - **Node lifecycle** — start / stop / restart `@xcfx/node`
 - **Accounts** — pre-funded genesis accounts, faucet, fund EVM/Core addresses
 - **Contracts** — compile and deploy Solidity (6 built-in templates or paste source)
+- **Bootstrap** — one-click deploy from the `@cfxdevkit/contracts` catalog (ERC20Base, VestingSchedule, StakingRewards, …); browse Conflux precompile ABIs
 - **Mining** — manual `mine N blocks` or configure auto-mining interval
 - **Network** — inspect and configure RPC ports / chain IDs
 - **Wallet** — setup wizard (generate / use Hardhat default / import mnemonic), keystore, lock/unlock
@@ -135,6 +136,17 @@ See [docker/](docker/) for the full `Dockerfile`, `docker-compose.yml`, and
 
 ---
 
+## Documentation
+
+| Document | Description |
+|---|---|
+| [docs/QUICKSTART.md](docs/QUICKSTART.md) | 5-minute getting started guide |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Full monorepo structure and design decisions |
+| [docs/PACKAGES.md](docs/PACKAGES.md) | Per-package API reference and import cheat sheet |
+| [docs/AGENT-CONTEXT.md](docs/AGENT-CONTEXT.md) | Machine-readable codebase map for AI agents |
+
+---
+
 ## Quick start — framework packages
 
 ```bash
@@ -142,8 +154,8 @@ pnpm add @cfxdevkit/core                 # foundation — always needed
 pnpm add @cfxdevkit/services             # encryption, keystore, swap
 pnpm add @cfxdevkit/wallet               # wallet without full RPC layer
 pnpm add @cfxdevkit/compiler             # runtime Solidity compilation
-pnpm add @cfxdevkit/contracts            # generated ABIs + addresses
-pnpm add @cfxdevkit/protocol             # low-level on-chain artifacts (bytecode + ABIs)
+pnpm add @cfxdevkit/contracts            # generated ABIs, standard token ABIs, bootstrap templates
+pnpm add @cfxdevkit/protocol             # Conflux precompile ABIs (AdminControl, Staking, CrossSpaceCall, …)
 pnpm add @cfxdevkit/executor             # on-chain execution primitives (keepers)
 pnpm add @cfxdevkit/defi-react           # DeFi React hooks + helpers
 pnpm add @cfxdevkit/devnode -D           # local dev node (dev/test only)
@@ -154,13 +166,14 @@ pnpm add @cfxdevkit/react
 ### Read contract state
 
 ```typescript
-import { ClientManager, ContractReader, ERC20_ABI } from '@cfxdevkit/core';
+import { ClientManager, ContractReader } from '@cfxdevkit/core';
+import { erc20Abi } from '@cfxdevkit/contracts';
 
 const client = new ClientManager({ network: 'testnet' });
 const reader = new ContractReader(client.evm);
 const balance = await reader.read({
   address: '0xTokenAddress',
-  abi: ERC20_ABI,
+  abi: erc20Abi,
   functionName: 'balanceOf',
   args: ['0xUserAddress'],
 });
@@ -273,11 +286,12 @@ The container:
 Packages only import from **lower** layers — never sideways, never upward.
 
 ```
-@cfxdevkit/wallet-connect   @cfxdevkit/react
-           ↑                        ↑
+@cfxdevkit/wallet-connect   @cfxdevkit/react   @cfxdevkit/defi-react
+           ↑                        ↑                      ↑
        (peer deps: react, wagmi, viem)
                           ↑
 @cfxdevkit/wallet   @cfxdevkit/services   @cfxdevkit/compiler   @cfxdevkit/devnode
+@cfxdevkit/contracts   @cfxdevkit/protocol   @cfxdevkit/executor
                           ↑
                  @cfxdevkit/core
                  (external deps: viem, cive)

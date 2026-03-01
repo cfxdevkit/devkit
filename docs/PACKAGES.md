@@ -111,6 +111,9 @@ npx conflux-devkit --port 8888 --no-open
 | `deriveFaucetAccount` | Derive the mining/faucet account |
 | `ERC20_ABI` | Standard ERC-20 ABI as const |
 | `ERC721_ABI` | Standard ERC-721 ABI as const |
+| `ERC1155_ABI` | Standard ERC-1155 ABI as const |
+| `ERC2612_ABI` | EIP-2612 permit extension ABI |
+| `ERC4626_ABI` | ERC-4626 tokenised vault ABI |
 | `EVM_TESTNET`, `EVM_MAINNET`, `EVM_LOCAL` | viem chain configs for Conflux eSpace |
 | `CORE_TESTNET`, `CORE_MAINNET`, `CORE_LOCAL` | cive chain configs for Core Space |
 | `COIN_TYPES`, `CORE_NETWORK_IDS` | BIP-44 derivation constants |
@@ -220,10 +223,11 @@ await node.stop();
 **Dir**: `packages/contracts`
 **Source**: `devtools/contracts` (Hardhat project)
 
-Generated ABI, bytecode, and multi-chain deployed addresses. Do **not** edit `src/generated.ts` by hand.
+Generated ABI, bytecode, and multi-chain deployed addresses. Includes standard token ABIs and a bootstrap library of deployable templates. Do **not** edit `src/generated.ts` or `src/bootstrap-abis.ts` by hand.
 
 ```typescript
 import {
+  // DevKit contracts
   automationManagerAbi,
   automationManagerAddress,   // Record<chainId, `0x${string}`>
   automationManagerConfig,    // { abi, address } — usable directly in wagmi hooks
@@ -232,6 +236,23 @@ import {
   swappiPriceAdapterConfig,
   permitHandlerAbi,
   permitHandlerConfig,
+  // Standard token ABIs (base + extended)
+  erc20Abi, ERC20_ABI, erc20ExtendedAbi,
+  erc721Abi, ERC721_ABI, erc721ExtendedAbi,
+  erc1155Abi, ERC1155_ABI,
+  erc2612Abi, ERC2612_ABI,
+  erc4626Abi, ERC4626_ABI,
+  // Bootstrap library (deployable)
+  erc20BaseAbi, erc20BaseBytecode,
+  erc721BaseAbi, erc721BaseBytecode,
+  erc1155BaseAbi, erc1155BaseBytecode,
+  wrappedCfxAbi, wrappedCfxBytecode,
+  stakingRewardsAbi, stakingRewardsBytecode,
+  vestingScheduleAbi, vestingScheduleBytecode,
+  merkleAirdropAbi, merkleAirdropBytecode,
+  multiSigWalletAbi, multiSigWalletBytecode,
+  paymentSplitterAbi, paymentSplitterBytecode,
+  mockPriceOracleAbi, mockPriceOracleBytecode,
 } from '@cfxdevkit/contracts';
 ```
 
@@ -244,7 +265,69 @@ pnpm --filter @cfxdevkit/contracts build          # build the lean package
 
 ---
 
-### `@cfxdevkit/wallet-connect`
+### `@cfxdevkit/protocol`
+
+**Tier**: Layer 1 — Conflux network artifacts.
+**Dir**: `packages/protocol`
+**No peer dependencies**
+
+Conflux precompile contract ABIs + deprecated DevKit ABI re-exports.
+
+```typescript
+import {
+  adminControlAbi, adminControlAddress,
+  sponsorWhitelistAbi, sponsorWhitelistAddress,
+  stakingAbi, stakingAddress,
+  crossSpaceCallAbi, crossSpaceCallAddress,
+  posRegisterAbi, posRegisterAddress,
+  CONFLUX_PRECOMPILE_ADDRESSES,
+} from '@cfxdevkit/protocol';
+```
+
+> ⚠️ DevKit contract ABIs (automationManagerAbi etc.) re-exported here are **deprecated**. Migrate to `@cfxdevkit/contracts`.
+
+---
+
+### `@cfxdevkit/executor`
+
+**Tier**: Layer 1 — execution engine.
+**Dir**: `packages/executor`
+**Depends on**: `@cfxdevkit/core`, `@cfxdevkit/contracts`
+
+| Export | Description |
+|---|---|
+| `Executor` | Orchestrator — evaluates jobs, checks prices, submits transactions |
+| `KeeperClientImpl` | viem client wrapping `AutomationManager` contract |
+| `SafetyGuard` | Circuit-breaker — per-tick swap caps, retry caps, consecutive-failure breaker |
+| `RetryQueue` | Exponential backoff with jitter |
+| `PriceChecker` | Pluggable price source + condition evaluation (`gte`/`lte`) |
+| `noopLogger` | Silent `AutomationLogger` (use as default when no logger needed) |
+| `LimitOrderStrategy`, `DCAStrategy`, `TWAPStrategy`, `SwapStrategy` | Strategy types |
+| `LimitOrderJob`, `DCAJob`, `TWAPJob`, `SwapJob` | Job types (union: `Job`) |
+
+```typescript
+import { Executor, KeeperClientImpl, SafetyGuard, noopLogger } from '@cfxdevkit/executor';
+```
+
+---
+
+### `@cfxdevkit/defi-react`
+
+**Tier**: Layer 2 — React / DeFi UI.
+**Dir**: `packages/defi-react`
+**Peer deps**: react, viem
+
+```typescript
+import { usePoolTokens, getPairedTokens, ERC20_ABI, WCFX_ABI } from '@cfxdevkit/defi-react';
+
+const { tokens, pairs, isLoading, error } = usePoolTokens({
+  poolsApiUrl: '/api/pools',
+  chain: confluxESpace,
+  address: walletAddress,
+});
+```
+
+---
 
 **Tier**: Layer 2 — React UI, frontend only.
 **Dir**: `packages/wallet-connect`
@@ -319,9 +402,16 @@ node devtools/devkit/dist/cli.js        # run directly
 | AES encryption | `@cfxdevkit/services` → `EncryptionService` |
 | Solidity compile (runtime) | `@cfxdevkit/compiler` → `compileSolidity` |
 | Pre-built contract templates | `@cfxdevkit/compiler` → `TEST_CONTRACTS` |
-| Generated ABI + addresses | `@cfxdevkit/contracts` |
+| Standard ERC-20/721/1155 ABI | `@cfxdevkit/contracts` → `erc20Abi` etc. |
+| EIP-2612 permit ABI | `@cfxdevkit/contracts` → `erc2612Abi` |
+| ERC-4626 vault ABI | `@cfxdevkit/contracts` → `erc4626Abi` |
+| Bootstrap contract deploy | `@cfxdevkit/contracts` → `erc20BaseAbi` + `erc20BaseBytecode` etc. |
+| Generated DevKit ABI + addresses | `@cfxdevkit/contracts` → `automationManagerAbi` etc. |
+| Conflux precompile ABI | `@cfxdevkit/protocol` → `adminControlAbi` etc. |
+| Execution engine (keeper/bot) | `@cfxdevkit/executor` → `Executor` |
 | Wallet connect UI (React) | `@cfxdevkit/wallet-connect` → `WalletConnect` |
 | React components / hooks | `@cfxdevkit/react` |
+| DeFi pool tokens (React) | `@cfxdevkit/defi-react` → `usePoolTokens` |
 | Local dev node (programmatic) | `@cfxdevkit/devnode` → `ServerManager` |
 | Local dev node (browser UI) | `npx conflux-devkit` |
 

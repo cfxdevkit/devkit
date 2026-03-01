@@ -1,12 +1,9 @@
 # @cfxdevkit/services
 
-> Conflux SDK · blockchain client library for Conflux Core Space & eSpace
-
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
 
-Single-package SDK extracted from [conflux-devkit](https://github.com/cfxdevkit/conflux-devkit).  
-Provides chain clients, contract utilities, wallet derivation, swap services, and keystore management for building on Conflux.
+Conflux SDK services layer — AES-256-GCM encrypted keystore, Swappi DEX integration, and low-level encryption primitives.
 
 ---
 
@@ -18,211 +15,128 @@ pnpm add @cfxdevkit/services
 npm install @cfxdevkit/services
 ```
 
-Peer dependencies (install if using React hooks):
-
-```bash
-pnpm add react react-dom
-```
+Peer dependency: `@cfxdevkit/core` (already a direct workspace dependency; resolved automatically in monorepo context).
 
 ---
 
-## Package Structure
+## What's included
 
-| Subpath | Contents |
-|---------|----------|
-| `@cfxdevkit/core` | RPC clients, core utilities |
-| `@cfxdevkit/services` | `SwapService`, `KeystoreService`, `EncryptionService` |
-| `@cfxdevkit/core/wallet` | HD derivation, session keys, batching, embedded wallets |
+| Export | Description |
+|---|---|
+| `KeystoreService` | File-backed HD wallet keystore encrypted with AES-256-GCM + PBKDF2 |
+| `SwapService` | Swappi DEX router — getPrice, swap, getTokenInfo, pool listing |
+| `EncryptionService` | Low-level AES-256-GCM encryption / decryption primitives |
 
 ---
 
 ## Quick Start
 
-### Connect to Conflux eSpace
+### Encrypted keystore
 
 ```typescript
-import { ClientManager, EVM_MAINNET } from '@cfxdevkit/core';
+import { KeystoreService } from '@cfxdevkit/services';
 
-const manager = new ClientManager({
-  evm: { chain: EVM_MAINNET },
-});
+// Point at a JSON file (created on first use)
+const keystore = new KeystoreService('/path/to/.keystore.json');
 
-await manager.connect();
-const block = await manager.evm.publicClient.getBlockNumber();
-console.log('Current block:', block);
+// First-time setup — generates encrypted file
+await keystore.setup({ password: 'my-strong-passphrase' });
+await keystore.addMnemonic({ mnemonic: 'word1 word2 ...', label: 'main' });
+
+// Later — unlock and derive
+await keystore.unlockKeystore('my-strong-passphrase');
+const mnemonic = await keystore.getActiveMnemonic();
+const accounts = await keystore.deriveAccountsFromMnemonic(mnemonic, 'espace', 5, 0);
+
+// Lock when done
+keystore.lock();
 ```
 
-### Connect to Conflux Core Space
+### Swappi DEX quotes
 
 ```typescript
-import { ClientManager, CORE_MAINNET } from '@cfxdevkit/core';
-
-const manager = new ClientManager({
-  core: { chain: CORE_MAINNET },
-});
-
-await manager.connect();
-const epochNumber = await manager.core.publicClient.getEpochNumber();
-console.log('Current epoch:', epochNumber);
-```
-
-### HD Wallet Derivation
-
-```typescript
-import { generateMnemonic, deriveAccounts } from '@cfxdevkit/core/wallet';
-
-// Generate new wallet
-const mnemonic = generateMnemonic();
-
-// Derive 5 accounts (both Core & eSpace addresses)
-const accounts = deriveAccounts(mnemonic, { count: 5 });
-
-for (const account of accounts) {
-  console.log(`[${account.index}] Core: ${account.coreAddress}`);
-  console.log(`[${account.index}] eSpace: ${account.evmAddress}`);
-}
-```
-
-### Read an ERC-20 token
-
-```typescript
-import { ClientManager, EVM_MAINNET } from '@cfxdevkit/core';
-import { ContractReader } from '@cfxdevkit/core/contracts';
-import { ERC20_ABI } from '@cfxdevkit/core/contracts';
-
-const manager = new ClientManager({ evm: { chain: EVM_MAINNET } });
-await manager.connect();
-
-const reader = new ContractReader(manager);
-const balance = await reader.read({
-  address: '0x14b2d3bc65e74dae1030eafd8ac30c533c976a9b', // WCFX
-  abi: ERC20_ABI,
-  functionName: 'balanceOf',
-  args: ['0xYourAddress'],
-  chain: 'evm',
-});
-console.log('Balance:', balance);
-```
-
-### Query a DEX swap quote (Swappi)
-
-```typescript
-import { ClientManager, EVM_MAINNET } from '@cfxdevkit/core';
 import { SwapService } from '@cfxdevkit/services';
+import { ClientManager, EVM_MAINNET } from '@cfxdevkit/core';
 
 const manager = new ClientManager({ evm: { chain: EVM_MAINNET } });
 await manager.connect();
 
 const swap = new SwapService(manager.evm.publicClient, 'mainnet');
+
+// Get a quote (no transaction)
 const quote = await swap.getQuote({
-  tokenIn: 'WCFX',
-  tokenOut: 'USDT',
-  amountIn: '1',   // 1 WCFX
-  slippageBps: 50, // 0.5%
+  tokenIn:     'WCFX',
+  tokenOut:    'USDT',
+  amountIn:    '1',    // 1 WCFX (human-readable)
+  slippageBps: 50,     // 0.5%
 });
 console.log('Expected out:', quote.amountOut);
+
+// Execute the swap
+const txHash = await swap.swap({
+  ...quote,
+  walletClient,
+  deadline: Math.floor(Date.now() / 1000) + 300,
+});
 ```
 
-### Encrypted Keystore
+### Resolve token info
 
 ```typescript
-import { KeystoreService } from '@cfxdevkit/services';
-
-const keystore = new KeystoreService('/path/to/.keystore.json');
-await keystore.setup({ password: 'my-password' });
-await keystore.addMnemonic({ mnemonic: 'word1 word2 ...', label: 'main' });
-
-// Later – unlock and derive
-await keystore.unlockKeystore('my-password');
-const accounts = await keystore.deriveAccountsFromMnemonic(
-  mnemonic, 'espace', 5, 0
-);
+const token = await swap.getTokenInfo('WCFX');
+console.log(token.address, token.decimals, token.name);
 ```
 
-### Automation (SafetyGuard · RetryQueue · PriceChecker)
+### Low-level encryption
 
 ```typescript
-import {
-  SafetyGuard, RetryQueue, PriceChecker, AUTOMATION_MANAGER_ABI,
-} from '@cfxdevkit/core/automation';
+import { EncryptionService } from '@cfxdevkit/services';
 
-// Injectable logger — pass pino/winston/console or omit for silence
-const guard = new SafetyGuard({ maxSwapUsd: 5_000 }, myLogger);
-const queue = new RetryQueue({ baseDelayMs: 5_000 }, myLogger);
-const checker = new PriceChecker(myPriceSource, tokenPricesUsd, myLogger);
-
-// Pre-flight check before sending a transaction
-const result = guard.check(job, { swapUsd: estimatedUsd });
-if (!result.ok) {
-  queue.enqueue(job);     // schedule retry with exponential backoff
-}
-
-// Check price condition
-const { conditionMet, swapUsd } = await checker.checkLimitOrder(job);
+const enc = new EncryptionService();
+const encrypted = await enc.encrypt('secret data', 'my-password');
+const decrypted = await enc.decrypt(encrypted, 'my-password');
 ```
+
+---
+
+## KeystoreService API
+
+| Method | Description |
+|---|---|
+| `setup(opts)` | Initialise a new encrypted keystore file |
+| `addMnemonic(opts)` | Add a labelled mnemonic to the keystore |
+| `unlockKeystore(password)` | Decrypt the keystore into memory |
+| `lock()` | Clear the in-memory decrypted state |
+| `getActiveMnemonic()` | Return the active mnemonic (must be unlocked) |
+| `deriveAccountsFromMnemonic(mnemonic, space, count, offset)` | Derive N accounts for `'espace'` or `'core'` |
+| `listMnemonics()` | List all labelled mnemonic entries (no secrets) |
+| `removeMnemonic(label)` | Delete a mnemonic entry |
 
 ---
 
 ## Architecture
 
 ```
-@cfxdevkit/core
+@cfxdevkit/services
 │
-├── clients/         ← cive (Core) + viem (eSpace) thin wrappers + ClientManager
-├── config/          ← Chain definitions: local / testnet / mainnet for both spaces
-├── types/           ← ChainType, UnifiedAccount, Address, etc.
-├── utils/           ← Logger
-│
-├── wallet/
-│   ├── derivation.ts    ← BIP32/BIP39 HD derivation (Core ↔ eSpace)
-│   ├── session-keys/    ← Temporary delegated signing
-│   ├── batching/        ← Multi-tx batching
-│   └── embedded/        ← Server-side custody
-│
-├── contracts/
-│   ├── abis/            ← ERC20, ERC721, ERC1155
-│   ├── deployer/        ← Deploy to Core or eSpace
-│   └── interaction/     ← ContractReader, ContractWriter
-│
-├── services/
-│   ├── swap.ts          ← Swappi DEX integration (Uniswap V2 style)
-│   ├── keystore.ts      ← Encrypted HD wallet storage (AES-256-GCM)
-│   └── encryption.ts    ← AES-256-GCM + PBKDF2 primitives
-│
-└── automation/          ← Off-chain automation primitives (no pino dep; injectable logger)
-    ├── types.ts         ← Job + safety types (JobStatus, SafetyConfig, …)
-    ├── safety-guard.ts  ← SafetyGuard — off-chain pre-flight checks
-    ├── retry-queue.ts   ← RetryQueue — exponential backoff scheduling
-    ├── price-checker.ts ← PriceChecker — price-source abstraction
-    ├── abi.ts           ← AUTOMATION_MANAGER_ABI (viem `as const`)
-    ├── keeper-interface.ts ← KeeperClient interface
-    └── index.ts         ← Barrel export
+├── keystore.ts      ← Encrypted HD wallet storage (AES-256-GCM + PBKDF2, file-backed)
+├── swap.ts          ← Swappi DEX router integration (Uniswap V2 style)
+└── encryption.ts    ← AES-256-GCM + PBKDF2 primitives
 ```
 
 ---
 
-## Dual-Space Architecture
+## Relation to @cfxdevkit/core
 
-Conflux has two parallel spaces on the same chain:
+`@cfxdevkit/core` is the foundation layer (RPC clients, chain config, HD derivation). This package provides the stateful services layer built on top of it:
 
-| | Core Space | eSpace |
-|--|--|--|
-| **API** | Conflux RPC (Epoch-based) | EVM-compatible JSON-RPC |
-| **Addresses** | `cfx:aaa...` (base32) | `0x...` (hex) |
-| **SDK Client** | `CoreClient` (via `cive`) | `EspaceClient` (via `viem`) |
-| **Native token** | CFX | CFX (same) |
+```
+@cfxdevkit/services  (@cfxdevkit/core peer dep)
+       ↑
+@cfxdevkit/core  (viem + cive)
+```
 
-Use `ClientManager` to manage both simultaneously.
-
----
-
-## Conflux Networks
-
-| Network | Core Chain ID | eSpace Chain ID |
-|---------|--------------|----------------|
-| Mainnet | 1029 | 1030 |
-| Testnet | 1 | 71 |
-| Local | 2029 | 2030 |
+If you only need service utilities and not the full RPC client layer, import from `@cfxdevkit/services` directly.
 
 ---
 
@@ -240,12 +154,4 @@ pnpm test:coverage
 
 ## License
 
-Apache-2.0 — see [LICENSE](LICENSE)
-
----
-
-## Relation to conflux-devkit
-
-This library was extracted from the [conflux-devkit](https://github.com/cfxdevkit/conflux-devkit) monorepo.  
-It contains only production-usable, framework-agnostic code.  
-The DevNode management CLI, MCP server, and dashboard are **not** included.
+Apache-2.0 — see [LICENSE](LICENSE).

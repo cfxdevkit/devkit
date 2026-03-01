@@ -5,8 +5,9 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
 
-Single-package SDK extracted from [conflux-devkit](https://github.com/cfxdevkit/conflux-devkit).  
-Provides chain clients, contract utilities, wallet derivation, swap services, and keystore management for building on Conflux.
+Foundation layer of the Conflux DevKit SDK — chain clients, contract utilities, HD wallet derivation, and automation primitives. Extracted from [conflux-devkit](https://github.com/cfxdevkit/conflux-devkit).
+
+For swap services and keystore management see [`@cfxdevkit/services`](../services).
 
 ---
 
@@ -36,9 +37,8 @@ pnpm add react react-dom
 | `@cfxdevkit/core/types` | Shared TypeScript types |
 | `@cfxdevkit/core/utils` | Logger |
 | `@cfxdevkit/core/wallet` | HD derivation, session keys, batching, embedded wallets |
-| `@cfxdevkit/core/contracts` | `ContractDeployer`, `ContractReader`, `ContractWriter`, ERC ABIs |
-| `@cfxdevkit/core/services` | `SwapService` (Swappi DEX), `KeystoreService`, `EncryptionService` |
-| `@cfxdevkit/core/automation` | `SafetyGuard`, `RetryQueue`, `PriceChecker`, `AUTOMATION_MANAGER_ABI`, types |
+| `@cfxdevkit/core/contracts` | `ContractDeployer`, `ContractReader`, `ContractWriter`, ERC ABIs (erc20Abi, erc721Abi, erc1155Abi, erc2612Abi, erc4626Abi) |
+| `@cfxdevkit/core/automation` | `SafetyGuard`, `RetryQueue`, `PriceChecker`, `KeeperClient` interface, types — see also [`@cfxdevkit/executor`](../executor) |
 
 ---
 
@@ -145,11 +145,13 @@ const accounts = await keystore.deriveAccountsFromMnemonic(
 );
 ```
 
-### Automation (SafetyGuard · RetryQueue · PriceChecker)
+### Automation primitives (SafetyGuard · RetryQueue · PriceChecker)
+
+The `@cfxdevkit/core/automation` subpath exports the base primitives. For the full execution engine (Executor, KeeperClientImpl) see [`@cfxdevkit/executor`](../executor).
 
 ```typescript
 import {
-  SafetyGuard, RetryQueue, PriceChecker, AUTOMATION_MANAGER_ABI,
+  SafetyGuard, RetryQueue, PriceChecker,
 } from '@cfxdevkit/core/automation';
 
 // Injectable logger — pass pino/winston/console or omit for silence
@@ -186,16 +188,13 @@ const { conditionMet, swapUsd } = await checker.checkLimitOrder(job);
 │   └── embedded/        ← Server-side custody
 │
 ├── contracts/
-│   ├── abis/            ← ERC20, ERC721, ERC1155
+│   ├── abis/            ← ERC20, ERC721, ERC1155, ERC2612, ERC4626 (re-exported from @cfxdevkit/contracts)
 │   ├── deployer/        ← Deploy to Core or eSpace
 │   └── interaction/     ← ContractReader, ContractWriter
 │
-├── services/
-│   ├── swap.ts          ← Swappi DEX integration (Uniswap V2 style)
-│   ├── keystore.ts      ← Encrypted HD wallet storage (AES-256-GCM)
-│   └── encryption.ts    ← AES-256-GCM + PBKDF2 primitives
-│
 └── automation/          ← Off-chain automation primitives (no pino dep; injectable logger)
+                         → full execution engine: @cfxdevkit/executor
+                         → swap/keystore services:  @cfxdevkit/services
     ├── types.ts         ← Job + safety types (JobStatus, SafetyConfig, …)
     ├── safety-guard.ts  ← SafetyGuard — off-chain pre-flight checks
     ├── retry-queue.ts   ← RetryQueue — exponential backoff scheduling
