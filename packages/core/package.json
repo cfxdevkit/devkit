@@ -87,6 +87,7 @@
     "url": "https://github.com/cfxdevkit/devkit/issues"
   },
   "dependencies": {
+    "@cfxdevkit/contracts": "workspace:*",
     "@scure/bip32": "^2.0.1",
     "@scure/bip39": "^2.0.1",
     "cive": "^0.8.1",

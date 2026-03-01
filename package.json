@@ -15,7 +15,7 @@
     "lint:unsafe": "biome check --write --unsafe packages",
     "format": "biome format --write packages",
     "check": "biome check --reporter=summary packages",
-    "devkit:build": "pnpm --filter conflux-devkit build",
+    "devkit:build": "pnpm --filter conflux-devkit-ui build && pnpm --filter conflux-devkit build",
     "devkit:start": "node devtools/devkit/dist/cli.js",
     "devkit:dev": "pnpm --filter conflux-devkit dev:server",
     "release": "node scripts/release.mjs"

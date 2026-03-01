@@ -157,14 +157,20 @@ export function createAccountRoutes(nodeManager: NodeManager): Router {
         try {
           if (detectedChain === 'core') {
             const targetAfter = await manager.getCoreBalance(address);
-            if (Number(targetAfter || 0) >= Number(targetBefore || 0) + amountNum - 1e-9) {
+            if (
+              Number(targetAfter || 0) >=
+              Number(targetBefore || 0) + amountNum - 1e-9
+            ) {
               confirmed = true;
               message = 'confirmed';
               break;
             }
             // also check faucet decreased
             const faucetAfter = await manager.getFaucetBalances();
-            if (Number(faucetAfter.core || 0) <= Number(faucetBefore.core || 0) - amountNum - 1e-9) {
+            if (
+              Number(faucetAfter.core || 0) <=
+              Number(faucetBefore.core || 0) - amountNum - 1e-9
+            ) {
               confirmed = true;
               message = 'confirmed (faucet debited)';
               break;
@@ -172,13 +178,19 @@ export function createAccountRoutes(nodeManager: NodeManager): Router {
           } else {
             // EVM funding uses the Core->eSpace bridge: check faucet core decrease or target eSpace increase
             const faucetAfter = await manager.getFaucetBalances();
-            if (Number(faucetAfter.core || 0) <= Number(faucetBefore.core || 0) - amountNum - 1e-9) {
+            if (
+              Number(faucetAfter.core || 0) <=
+              Number(faucetBefore.core || 0) - amountNum - 1e-9
+            ) {
               confirmed = true;
               message = 'confirmed (bridge tx mined)';
               break;
             }
             const targetAfter = await manager.getEvmBalance(address);
-            if (Number(targetAfter || 0) >= Number(targetBefore || 0) + amountNum - 1e-9) {
+            if (
+              Number(targetAfter || 0) >=
+              Number(targetBefore || 0) + amountNum - 1e-9
+            ) {
               confirmed = true;
               message = 'confirmed (eSpace balance updated)';
               break;

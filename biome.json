@@ -7,17 +7,18 @@
     "ignoreUnknown": false,
     "includes": [
       "**",
-      "!**/node_modules/**",
-      "!**/dist/**",
-      "!**/.next/**",
-      "!**/artifacts/**",
-      "!**/cache/**",
-      "!**/coverage/**",
-      "!**/typechain-types/**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/.next",
+      "!**/artifacts",
+      "!**/cache",
+      "!**/coverage",
+      "!**/typechain-types",
+      "!**/ui/out",
       "!**/*.min.js",
       "!pnpm-lock.yaml",
       "!**/generated.ts",
-      "!conflux-contracts/**",
+      "!conflux-contracts",
       "!**/globals.css"
     ]
   },
@@ -80,10 +81,34 @@
       }
     },
     {
-      "includes": [
-        "devtools/devkit-ui/**/*.tsx",
-        "devtools/devkit-ui/**/*.ts"
-      ],
+      "includes": ["devtools/devkit/**/*.ts", "devtools/devkit/**/*.mjs"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "warn"
+          },
+          "correctness": {
+            "noUnusedFunctionParameters": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["devtools/contracts/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          },
+          "style": {
+            "useNodejsImportProtocol": "off",
+            "useImportType": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["devtools/devkit-ui/**/*.tsx", "devtools/devkit-ui/**/*.ts"],
       "linter": {
         "rules": {
           "a11y": {

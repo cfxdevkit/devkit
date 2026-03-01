@@ -30,7 +30,8 @@ const post = <T>(path: string, body?: unknown) =>
   request<T>('POST', path, body);
 const del = <T>(path: string) => request<T>('DELETE', path);
 const put = <T>(path: string, body?: unknown) => request<T>('PUT', path, body);
-const patch = <T>(path: string, body?: unknown) => request<T>('PATCH', path, body);
+const patch = <T>(path: string, body?: unknown) =>
+  request<T>('PATCH', path, body);
 
 /* ─── node ────────────────────────────────────────────────────────── */
 export interface NodeStatus {
@@ -251,4 +252,50 @@ export interface ServerSettings {
 
 export const settingsApi = {
   get: () => get<ServerSettings>('/settings'),
+};
+
+/* ─── bootstrap ────────────────────────────────────────────────────────── */
+
+export interface BootstrapArgDef {
+  name: string;
+  type: string;
+  description: string;
+  placeholder?: string;
+}
+
+export interface BootstrapDeployableEntry {
+  type: 'deployable';
+  name: string;
+  category: 'tokens' | 'defi' | 'governance' | 'utils' | 'mocks';
+  description: string;
+  chains: ('evm' | 'core')[];
+  constructorArgs: BootstrapArgDef[];
+  abi?: unknown[];
+  bytecode?: string;
+}
+
+export interface BootstrapPrecompileEntry {
+  type: 'precompile';
+  name: string;
+  category: 'precompile';
+  description: string;
+  chains: ('evm' | 'core')[];
+  address: string;
+  abi?: unknown[];
+}
+
+export type BootstrapEntry =
+  | BootstrapDeployableEntry
+  | BootstrapPrecompileEntry;
+
+export const bootstrapApi = {
+  catalog: () => get<BootstrapEntry[]>('/bootstrap/catalog'),
+  catalogEntry: (name: string) =>
+    get<BootstrapEntry>(`/bootstrap/catalog/${name}`),
+  deploy: (opts: {
+    name: string;
+    args?: unknown[];
+    chain?: 'evm' | 'core';
+    accountIndex?: number;
+  }) => post<DeployResult>('/bootstrap/deploy', opts),
 };

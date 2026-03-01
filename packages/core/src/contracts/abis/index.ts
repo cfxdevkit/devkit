@@ -18,11 +18,18 @@
  * Standard Contract ABIs
  *
  * Provides commonly used contract interfaces for:
- * - ERC20: Fungible tokens
- * - ERC721: Non-fungible tokens (NFTs)
+ * - ERC20: Fungible tokens (base + extended with mint/burn/pause/permit)
+ * - ERC721: Non-fungible tokens (base + extended with enumerable/royalties)
  * - ERC1155: Multi-token standard
+ * - ERC2612: Permit extension for ERC-20
+ * - ERC4626: Tokenised vault standard
+ *
+ * All ABIs are sourced from @cfxdevkit/contracts (generated from audited Solidity).
  */
 
-export { ERC20_ABI } from './erc20.js';
-export { ERC721_ABI } from './erc721.js';
-export { ERC1155_ABI } from './erc1155.js';
+export { erc20Abi, ERC20_ABI, erc20ExtendedAbi, ERC20_EXTENDED_ABI } from './erc20.js';
+export { erc721Abi, ERC721_ABI, erc721ExtendedAbi, ERC721_EXTENDED_ABI } from './erc721.js';
+export { erc1155Abi, ERC1155_ABI } from './erc1155.js';
+
+// Additional standard ABIs available directly from @cfxdevkit/contracts:
+export { erc2612Abi, ERC2612_ABI, erc4626Abi, ERC4626_ABI } from '@cfxdevkit/contracts';

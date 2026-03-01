@@ -34,12 +34,17 @@ const NETWORKS = [
   },
 ];
 
-async function getBalance(rpcUrl: string, address: `0x${string}`): Promise<bigint | null> {
+async function getBalance(
+  rpcUrl: string,
+  address: `0x${string}`
+): Promise<bigint | null> {
   try {
     const client = createPublicClient({ transport: http(rpcUrl) });
     return await Promise.race<bigint | null>([
       client.getBalance({ address }),
-      new Promise<null>((_r, rej) => setTimeout(() => rej(new Error('timeout')), 5_000)),
+      new Promise<null>((_r, rej) =>
+        setTimeout(() => rej(new Error('timeout')), 5_000)
+      ),
     ]);
   } catch {
     return null;
@@ -66,8 +71,12 @@ async function main(): Promise<void> {
   const key = rawKey.startsWith('0x') ? rawKey : `0x${rawKey}`;
 
   if (key === HARDHAT_DEFAULT_KEY) {
-    console.error('\n🚨  DEPLOYER_PRIVATE_KEY matches the well-known Hardhat test key.');
-    console.error('    Anyone can drain this account. Set a real key in .env.\n');
+    console.error(
+      '\n🚨  DEPLOYER_PRIVATE_KEY matches the well-known Hardhat test key.'
+    );
+    console.error(
+      '    Anyone can drain this account. Set a real key in .env.\n'
+    );
     process.exit(1);
   }
 
@@ -76,7 +85,9 @@ async function main(): Promise<void> {
   try {
     account = privateKeyToAccount(key as `0x${string}`);
   } catch {
-    console.error('\n❌  DEPLOYER_PRIVATE_KEY is invalid (must be 0x-prefixed 32-byte hex).\n');
+    console.error(
+      '\n❌  DEPLOYER_PRIVATE_KEY is invalid (must be 0x-prefixed 32-byte hex).\n'
+    );
     process.exit(1);
   }
 
@@ -88,7 +99,7 @@ async function main(): Promise<void> {
       const rpcUrl = (process.env[net.rpcEnv] ?? net.rpcDefault) as string;
       const balance = await getBalance(rpcUrl, account.address);
       return { ...net, rpcUrl, balance };
-    }),
+    })
   );
 
   // 4. Print table
@@ -103,7 +114,9 @@ async function main(): Promise<void> {
       console.log(`  ${r.name}  ${fmt(r.balance).padEnd(16)} ${icon}`);
       if (val < r.minRecommended) {
         const faucet = r.faucetHint ? `  💧 ${r.faucetHint}` : '';
-        console.log(`                              Minimum recommended: ${r.minRecommended} CFX${faucet}`);
+        console.log(
+          `                              Minimum recommended: ${r.minRecommended} CFX${faucet}`
+        );
       }
     }
   }

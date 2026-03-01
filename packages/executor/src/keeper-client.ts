@@ -7,7 +7,7 @@
  */
 
 import { logger } from '@cfxdevkit/core';
-import { AUTOMATION_MANAGER_ABI } from '@cfxdevkit/protocol';
+import { AUTOMATION_MANAGER_ABI } from '@cfxdevkit/contracts';
 import {
   type Address,
   createPublicClient,

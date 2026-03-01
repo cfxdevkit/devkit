@@ -20,6 +20,18 @@ import {
   Zap,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { AddNetworkButton } from '@/components/AddNetworkButton';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   type AccountInfo,
   accountsApi,
@@ -30,11 +42,6 @@ import {
   settingsApi,
 } from '@/lib/api';
 import { getSocket, type NodeStatusEvent } from '@/lib/socket';
-
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 /* ─── helpers ────────────────────────────────────────────────────── */
 
@@ -496,7 +503,9 @@ export default function DashboardPage() {
           {/* Status row */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <span className={`relative flex h-3.5 w-3.5 ${dotClass === 'status-dot-green' ? 'bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.6)]' : dotClass === 'status-dot-yellow' ? 'bg-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.6)]' : 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.6)]'} rounded-full`} />
+              <span
+                className={`relative flex h-3.5 w-3.5 ${dotClass === 'status-dot-green' ? 'bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.6)]' : dotClass === 'status-dot-yellow' ? 'bg-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.6)]' : 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.6)]'} rounded-full`}
+              />
               <div>
                 <div className="text-base font-semibold text-white tracking-wide">
                   {statusLabel}
@@ -640,6 +649,19 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Add eSpace network to browser wallet */}
+                  <div className="border-t border-[#2a3147] pt-2 flex justify-end">
+                    <AddNetworkButton
+                      evmChainId={
+                        configDraft?.evmChainId
+                          ? Number(configDraft.evmChainId)
+                          : undefined
+                      }
+                      evmRpcUrl={rpcUrls?.evm}
+                      chainName="Conflux DevKit eSpace"
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -664,7 +686,9 @@ export default function DashboardPage() {
                 <select
                   className="input mt-1 w-full max-w-xs"
                   value={activeWallet?.id ?? ''}
-                  onChange={(e) => activateWalletMutation.mutate(e.target.value)}
+                  onChange={(e) =>
+                    activateWalletMutation.mutate(e.target.value)
+                  }
                   disabled={activateWalletMutation.isPending}
                 >
                   {wallets.map((w) => (
@@ -768,7 +792,8 @@ export default function DashboardPage() {
                     value={mineIntervalInput}
                     onChange={(e) => setMineIntervalInput(e.target.value)}
                   />
-                  {Number(mineIntervalInput) !== (miningStatus.interval ?? 0) && (
+                  {Number(mineIntervalInput) !==
+                    (miningStatus.interval ?? 0) && (
                     <Button
                       variant="secondary"
                       size="sm"
@@ -816,8 +841,9 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   disabled={miningBusy}
-                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-cfx-500 focus:ring-offset-2 focus:ring-offset-slate-950 ${miningStatus?.isRunning ? 'bg-cfx-500' : 'bg-slate-700'
-                    }`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-cfx-500 focus:ring-offset-2 focus:ring-offset-slate-950 ${
+                    miningStatus?.isRunning ? 'bg-cfx-500' : 'bg-slate-700'
+                  }`}
                   onClick={() =>
                     miningStatus?.isRunning
                       ? stopMiningMutation.mutate()
@@ -830,10 +856,11 @@ export default function DashboardPage() {
                   }
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${miningStatus?.isRunning
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                      miningStatus?.isRunning
                         ? 'translate-x-6'
                         : 'translate-x-1'
-                      }`}
+                    }`}
                   />
                 </button>
               </div>
@@ -843,13 +870,13 @@ export default function DashboardPage() {
             {(mineResult ||
               startMiningMutation.error ||
               stopMiningMutation.error) && (
-                <p
-                  className={`mt-3 text-sm font-medium ${mineResult?.startsWith('✓') ? 'text-green-400' : 'text-red-400'}`}
-                >
-                  {mineResult ||
-                    String(startMiningMutation.error ?? stopMiningMutation.error)}
-                </p>
-              )}
+              <p
+                className={`mt-3 text-sm font-medium ${mineResult?.startsWith('✓') ? 'text-green-400' : 'text-red-400'}`}
+              >
+                {mineResult ||
+                  String(startMiningMutation.error ?? stopMiningMutation.error)}
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
@@ -858,7 +885,9 @@ export default function DashboardPage() {
         <Card className="border-cfx-500/10">
           <CardHeader>
             <CardTitle className="text-lg">Accounts</CardTitle>
-            <CardDescription>Development accounts derived from mnemonic.</CardDescription>
+            <CardDescription>
+              Development accounts derived from mnemonic.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Faucet — Core only, with Keys + Fund actions */}
@@ -876,7 +905,10 @@ export default function DashboardPage() {
                       <CopyButton text={faucet.coreAddress} />
                     </div>
                     <div className="mt-1.5 text-xl font-semibold text-white">
-                      {faucet.coreBalance} <span className="text-sm font-normal text-slate-400">CFX</span>
+                      {faucet.coreBalance}{' '}
+                      <span className="text-sm font-normal text-slate-400">
+                        CFX
+                      </span>
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-3">
@@ -906,7 +938,9 @@ export default function DashboardPage() {
 
             {/* Accounts table */}
             {accountsLoading ? (
-              <p className="text-sm text-slate-500 py-4 text-center">Loading accounts…</p>
+              <p className="text-sm text-slate-500 py-4 text-center">
+                Loading accounts…
+              </p>
             ) : (
               <div className="space-y-4">
                 <div className="overflow-x-auto rounded-xl border border-slate-800 shadow-sm">
@@ -929,7 +963,9 @@ export default function DashboardPage() {
                           key={a.index}
                           className="hover:bg-slate-900/50 transition-colors"
                         >
-                          <td className="px-4 py-3 text-slate-500 font-medium">{a.index}</td>
+                          <td className="px-4 py-3 text-slate-500 font-medium">
+                            {a.index}
+                          </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <code className="text-[13px] text-blue-300 font-medium whitespace-nowrap">
@@ -1001,16 +1037,16 @@ export default function DashboardPage() {
         restartMutation.error ||
         restartWipeMutation.error ||
         wipeMutation.error) && (
-          <div className="rounded-md border border-red-800 bg-red-950/50 px-4 py-2 text-sm text-red-400">
-            {String(
-              startMutation.error ??
+        <div className="rounded-md border border-red-800 bg-red-950/50 px-4 py-2 text-sm text-red-400">
+          {String(
+            startMutation.error ??
               stopMutation.error ??
               restartMutation.error ??
               restartWipeMutation.error ??
               wipeMutation.error
-            )}
-          </div>
-        )}
+          )}
+        </div>
+      )}
     </div>
   );
 }

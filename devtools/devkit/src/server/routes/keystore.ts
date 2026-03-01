@@ -103,8 +103,9 @@ export function createKeystoreRoutes(): Router {
       }
       const wallets = await ks.listMnemonics();
       res.json(wallets);
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      res.status(500).json({ error: msg });
     }
   });
 
@@ -161,8 +162,9 @@ export function createKeystoreRoutes(): Router {
     try {
       await ks.updateMnemonicLabel(req.params.id, label);
       res.json({ ok: true });
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      res.status(500).json({ error: msg });
     }
   });
 

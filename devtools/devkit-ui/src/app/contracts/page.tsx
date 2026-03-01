@@ -1,5 +1,6 @@
 'use client';
 
+import Editor from '@monaco-editor/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
@@ -14,15 +15,24 @@ import {
   Upload,
 } from 'lucide-react';
 import { useState } from 'react';
-import Editor from '@monaco-editor/react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   type AccountInfo,
   accountsApi,
+  type BootstrapDeployableEntry,
+  type BootstrapEntry,
+  bootstrapApi,
   type CallResult,
   type CompileResult,
   type ContractTemplate,
@@ -240,10 +250,11 @@ function FunctionCallForm({
 
       {result && (
         <pre
-          className={`text-xs font-mono break-all whitespace-pre-wrap p-2 rounded ${result.ok
+          className={`text-xs font-mono break-all whitespace-pre-wrap p-2 rounded ${
+            result.ok
               ? 'bg-[#0d1117] text-green-300'
               : 'bg-red-950/50 text-red-400'
-            }`}
+          }`}
         >
           {result.ok ? JSON.stringify(result.value, null, 2) : result.error}
         </pre>
@@ -353,9 +364,18 @@ function CopyBtn({ text }: { text: string }) {
 
 export default function ContractsPage() {
   const qc = useQueryClient();
-  const [tab, setTab] = useState<'templates' | 'custom' | 'deployed'>(
-    'templates'
-  );
+  const [tab, setTab] = useState<
+    'templates' | 'custom' | 'deployed' | 'bootstrap'
+  >('templates');
+  // ── Bootstrap state ───────────────────────────────────────────────────────
+  const [bootstrapDeploy, setBootstrapDeploy] =
+    useState<BootstrapDeployableEntry | null>(null);
+  const [bootstrapArgs, setBootstrapArgs] = useState<string[]>([]);
+  const [bootstrapChain, setBootstrapChain] = useState<'evm' | 'core'>('evm');
+  const [bootstrapAccountIndex, setBootstrapAccountIndex] = useState(0);
+  const [bootstrapResult, setBootstrapResult] = useState('');
+  const [bootstrapCategoryFilter, setBootstrapCategoryFilter] =
+    useState<string>('all');
   const [source, setSource] = useState(DEFAULT_SOURCE);
   const [contractName, setContractName] = useState('HelloWorld');
   const [compiled, setCompiled] = useState<CompileResult | null>(null);
@@ -391,6 +411,12 @@ export default function ContractsPage() {
     queryKey: ['contracts', 'deployed'],
     queryFn: () => contractsApi.deployed(),
     refetchInterval: 5000,
+  });
+
+  const { data: bootstrapCatalog = [] } = useQuery({
+    queryKey: ['bootstrap', 'catalog'],
+    queryFn: bootstrapApi.catalog,
+    staleTime: 60_000,
   });
 
   const compileMutation = useMutation({
@@ -451,6 +477,41 @@ export default function ContractsPage() {
       qc.invalidateQueries({ queryKey: ['contracts', 'deployed'] }),
   });
 
+  const bootstrapDeployMutation = useMutation({
+    mutationFn: () => {
+      if (!bootstrapDeploy) throw new Error('No contract selected');
+      if (!nodeRunning)
+        throw new Error(
+          'Node is not running. Start it from the Dashboard first.'
+        );
+      const args: unknown[] = (bootstrapDeploy.constructorArgs ?? []).map(
+        (_argDef, i) => {
+          const raw = (bootstrapArgs[i] ?? '').trim();
+          if (!raw) return '';
+          try {
+            return JSON.parse(raw);
+          } catch {
+            return raw;
+          }
+        }
+      );
+      return bootstrapApi.deploy({
+        name: bootstrapDeploy.name,
+        args,
+        chain: bootstrapChain,
+        accountIndex: bootstrapAccountIndex,
+      });
+    },
+    onSuccess: (d) => {
+      setBootstrapResult(`✓ Deployed at ${d.address} (tx: ${d.txHash})`);
+      qc.invalidateQueries({ queryKey: ['contracts', 'deployed'] });
+    },
+    onError: (e: unknown) => {
+      const msg = e instanceof Error ? e.message : String(e);
+      setBootstrapResult(`✗ ${msg}`);
+    },
+  });
+
   async function loadTemplate(name: string) {
     setLoadError('');
     try {
@@ -503,21 +564,26 @@ export default function ContractsPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-lg border border-[#2a3147] bg-[#161b27] p-1 w-fit">
-        {(['templates', 'custom', 'deployed'] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            className={`rounded-md px-4 py-1.5 text-sm capitalize transition-colors ${tab === t
-                ? 'bg-blue-600 text-white'
-                : 'text-slate-400 hover:text-slate-200'
+        {(['templates', 'custom', 'deployed', 'bootstrap'] as const).map(
+          (t) => (
+            <button
+              key={t}
+              type="button"
+              className={`rounded-md px-4 py-1.5 text-sm capitalize transition-colors ${
+                tab === t
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:text-slate-200'
               }`}
-            onClick={() => setTab(t)}
-          >
-            {t === 'deployed'
-              ? `Deployed${deployed.length > 0 ? ` (${deployed.length})` : ''}`
-              : t}
-          </button>
-        ))}
+              onClick={() => setTab(t)}
+            >
+              {t === 'deployed'
+                ? `Deployed${deployed.length > 0 ? ` (${deployed.length})` : ''}`
+                : t === 'bootstrap'
+                  ? 'Bootstrap'
+                  : t}
+            </button>
+          )
+        )}
       </div>
 
       {/* ── Templates ── */}
@@ -601,7 +667,9 @@ export default function ContractsPage() {
         <div className="space-y-4">
           {/* Editor */}
           <div className="space-y-2">
-            <Label className="text-sm font-semibold text-slate-200">Solidity Source</Label>
+            <Label className="text-sm font-semibold text-slate-200">
+              Solidity Source
+            </Label>
             <div className="h-[500px] rounded-lg border border-slate-800 overflow-hidden shadow-sm">
               <Editor
                 height="100%"
@@ -620,7 +688,8 @@ export default function ContractsPage() {
                   padding: { top: 16, bottom: 16 },
                   smoothScrolling: true,
                   cursorBlinking: 'smooth',
-                  fontFamily: "'JetBrains Mono', 'Fira Code', 'Monaco', monospace",
+                  fontFamily:
+                    "'JetBrains Mono', 'Fira Code', 'Monaco', monospace",
                 }}
               />
             </div>
@@ -780,10 +849,11 @@ export default function ContractsPage() {
                   </div>
                   {deployResult && (
                     <p
-                      className={`break-all text-sm ${deployResult.startsWith('✓')
+                      className={`break-all text-sm ${
+                        deployResult.startsWith('✓')
                           ? 'text-green-400'
                           : 'text-red-400'
-                        }`}
+                      }`}
                     >
                       {deployResult}
                     </p>
@@ -824,10 +894,11 @@ export default function ContractsPage() {
                             <FileCode2 className="h-4 w-4 text-blue-400" />
                             {c.name}
                             <span
-                              className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${c.chain === 'evm'
+                              className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${
+                                c.chain === 'evm'
                                   ? 'bg-purple-900/50 text-purple-300'
                                   : 'bg-cyan-900/50 text-cyan-300'
-                                }`}
+                              }`}
                             >
                               {c.chain === 'evm' ? 'eSpace' : 'Core'}
                             </span>
@@ -914,6 +985,259 @@ export default function ContractsPage() {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* ── Bootstrap ── */}
+      {tab === 'bootstrap' && (
+        <div className="space-y-4">
+          <p className="text-xs text-slate-500">
+            Production-ready contracts from the{' '}
+            <span className="text-slate-300">@cfxdevkit/contracts</span>{' '}
+            library. Select a contract, fill in any constructor arguments, then
+            deploy directly — no compilation step required.
+          </p>
+
+          {/* Category filter */}
+          {bootstrapCatalog.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {[
+                'all',
+                ...Array.from(
+                  new Set(
+                    (bootstrapCatalog as BootstrapEntry[])
+                      .filter(
+                        (e): e is BootstrapDeployableEntry =>
+                          e.type === 'deployable'
+                      )
+                      .map((e) => e.category)
+                  )
+                ),
+              ].map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setBootstrapCategoryFilter(cat)}
+                  className={`rounded px-2.5 py-0.5 text-xs capitalize transition-colors ${
+                    bootstrapCategoryFilter === cat
+                      ? 'bg-blue-600 text-white'
+                      : 'border border-[#2a3147] text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {/* Deployable contracts */}
+            {(bootstrapCatalog as BootstrapEntry[])
+              .filter(
+                (e): e is BootstrapDeployableEntry =>
+                  e.type === 'deployable' &&
+                  (bootstrapCategoryFilter === 'all' ||
+                    e.category === bootstrapCategoryFilter)
+              )
+              .map((e) => {
+                const isSelected = bootstrapDeploy?.name === e.name;
+                return (
+                  <div
+                    key={e.name}
+                    className={`card space-y-3 cursor-pointer transition-shadow ${
+                      isSelected ? 'ring-1 ring-blue-500' : ''
+                    }`}
+                    onClick={() => {
+                      if (!isSelected) {
+                        setBootstrapDeploy(e);
+                        setBootstrapArgs(
+                          (e.constructorArgs ?? []).map(() => '')
+                        );
+                        setBootstrapChain(e.chains[0] ?? 'evm');
+                        setBootstrapAccountIndex(0);
+                        setBootstrapResult('');
+                      }
+                    }}
+                  >
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-semibold text-white">
+                            {e.name}
+                          </span>
+                          <span className="rounded border px-1.5 py-0.5 text-[9px] uppercase tracking-wider border-slate-700 text-slate-400">
+                            {e.category}
+                          </span>
+                          {e.chains.map((c) => (
+                            <span
+                              key={c}
+                              className={`rounded border px-1.5 py-0.5 text-[9px] uppercase tracking-wider ${
+                                c === 'evm'
+                                  ? 'border-violet-800 text-violet-400'
+                                  : 'border-cyan-800 text-cyan-400'
+                              }`}
+                            >
+                              {c === 'evm' ? 'eSpace' : 'Core'}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="mt-1 text-xs text-slate-400 leading-relaxed">
+                          {e.description}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Deploy form — only visible when selected */}
+                    {isSelected && (
+                      <div
+                        className="space-y-3 pt-1 border-t border-[#2a3147]"
+                        onClick={(ev) => ev.stopPropagation()}
+                      >
+                        {/* Constructor args */}
+                        {(e.constructorArgs ?? []).length > 0 && (
+                          <div className="space-y-1.5">
+                            {(e.constructorArgs ?? []).map((arg, i) => (
+                              <div key={arg.name}>
+                                <label className="label">
+                                  {arg.name}{' '}
+                                  <span className="text-slate-600">
+                                    ({arg.type})
+                                  </span>
+                                </label>
+                                <input
+                                  className="input"
+                                  placeholder={arg.placeholder ?? arg.type}
+                                  value={bootstrapArgs[i] ?? ''}
+                                  onChange={(ev) =>
+                                    setBootstrapArgs((prev) => {
+                                      const next = [...prev];
+                                      next[i] = ev.target.value;
+                                      return next;
+                                    })
+                                  }
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Chain + account + deploy row */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {e.chains.length > 1 && (
+                            <select
+                              className="input w-auto"
+                              value={bootstrapChain}
+                              onChange={(ev) =>
+                                setBootstrapChain(
+                                  ev.target.value as 'evm' | 'core'
+                                )
+                              }
+                            >
+                              {e.chains.map((c) => (
+                                <option key={c} value={c}>
+                                  {c === 'evm' ? 'eSpace' : 'Core Space'}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+
+                          {(accounts as AccountInfo[]).length > 0 && (
+                            <select
+                              className="input flex-1"
+                              value={bootstrapAccountIndex}
+                              onChange={(ev) =>
+                                setBootstrapAccountIndex(
+                                  Number(ev.target.value)
+                                )
+                              }
+                            >
+                              {(accounts as AccountInfo[]).map((acc) => (
+                                <option key={acc.index} value={acc.index}>
+                                  #{acc.index} —{' '}
+                                  {bootstrapChain === 'evm'
+                                    ? `${acc.evmAddress.slice(0, 10)}…`
+                                    : `${acc.coreAddress.slice(0, 10)}…`}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+
+                          <button
+                            type="button"
+                            className="btn-primary shrink-0"
+                            disabled={
+                              bootstrapDeployMutation.isPending || !nodeRunning
+                            }
+                            title={
+                              !nodeRunning ? 'Start the node first' : undefined
+                            }
+                            onClick={() => {
+                              setBootstrapResult('');
+                              bootstrapDeployMutation.mutate();
+                            }}
+                          >
+                            <Upload className="h-4 w-4" />
+                            {bootstrapDeployMutation.isPending
+                              ? 'Deploying…'
+                              : 'Deploy'}
+                          </button>
+                        </div>
+
+                        {bootstrapResult && (
+                          <p
+                            className={`break-all text-xs ${
+                              bootstrapResult.startsWith('✓')
+                                ? 'text-green-400'
+                                : 'text-red-400'
+                            }`}
+                          >
+                            {bootstrapResult}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+            {/* Precompiles section */}
+            {(bootstrapCatalog as BootstrapEntry[]).filter(
+              (e) => e.type === 'precompile'
+            ).length > 0 &&
+              (bootstrapCategoryFilter === 'all' ||
+                bootstrapCategoryFilter === 'precompile') && (
+                <div className="col-span-full space-y-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Core Space Precompiles
+                  </h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {(bootstrapCatalog as BootstrapEntry[])
+                      .filter((e) => e.type === 'precompile')
+                      .map((entry) => (
+                        <div key={entry.name} className="card">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-white">
+                              {entry.name}
+                            </span>
+                            <span className="rounded border px-1.5 py-0.5 text-[9px] uppercase tracking-wider border-cyan-800 text-cyan-400">
+                              precompile
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-slate-400">
+                            {entry.description}
+                          </p>
+                          {'address' in entry && entry.address && (
+                            <code className="mt-2 block text-xs text-blue-300">
+                              {String(entry.address)}
+                            </code>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+          </div>
         </div>
       )}
     </div>

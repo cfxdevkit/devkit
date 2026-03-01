@@ -218,8 +218,9 @@ export default function WalletPage() {
           {(wallets as WalletEntry[]).map((w) => (
             <div key={w.id}>
               <div
-                className={`card flex items-center justify-between ${w.isActive ? 'border-cfx-500/50 bg-cfx-900/10' : ''
-                  }`}
+                className={`card flex items-center justify-between ${
+                  w.isActive ? 'border-cfx-500/50 bg-cfx-900/10' : ''
+                }`}
               >
                 <div className="flex items-center gap-3">
                   {w.isActive && (
@@ -278,16 +279,24 @@ export default function WalletPage() {
               {/* Inline rename card */}
               {showRename === w.id && (
                 <div className="card mt-2 mb-4 ml-6 space-y-3 border-slate-700 bg-slate-900/50 shadow-inner">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Rename Wallet</h3>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Rename Wallet
+                  </h3>
                   <input
                     className="input w-full max-w-sm"
                     value={renameLabel}
                     onChange={(e) => setRenameLabel(e.target.value)}
                     placeholder="New wallet label"
                     autoFocus
-                    onKeyDown={(e) => e.key === 'Enter' && renameLabel.trim() && renameMutation.mutate(w.id)}
+                    onKeyDown={(e) =>
+                      e.key === 'Enter' &&
+                      renameLabel.trim() &&
+                      renameMutation.mutate(w.id)
+                    }
                   />
-                  {renameError && <p className="text-sm text-red-400">{renameError}</p>}
+                  {renameError && (
+                    <p className="text-sm text-red-400">{renameError}</p>
+                  )}
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -299,7 +308,11 @@ export default function WalletPage() {
                     <button
                       type="button"
                       className="btn-primary bg-cfx-600 hover:bg-cfx-500"
-                      disabled={!renameLabel.trim() || renameLabel === w.label || renameMutation.isPending}
+                      disabled={
+                        !renameLabel.trim() ||
+                        renameLabel === w.label ||
+                        renameMutation.isPending
+                      }
                       onClick={() => renameMutation.mutate(w.id)}
                     >
                       {renameMutation.isPending ? 'Saving…' : 'Save'}

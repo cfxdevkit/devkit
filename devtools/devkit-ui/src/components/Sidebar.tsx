@@ -56,10 +56,11 @@ export function Sidebar() {
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors relative ${active
+              className={`flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors relative ${
+                active
                   ? 'bg-cfx-500/10 text-cfx-400 font-medium before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-cfx-500'
                   : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-                }`}
+              }`}
             >
               <Icon className="h-4 w-4 shrink-0" />
               {label}

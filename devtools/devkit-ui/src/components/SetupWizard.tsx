@@ -1,14 +1,28 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCheck, Copy, RefreshCw, KeyRound, Download, HardHat, AlertTriangle } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCheck,
+  Copy,
+  Download,
+  HardHat,
+  KeyRound,
+  RefreshCw,
+} from 'lucide-react';
 import { useState } from 'react';
-import { keystoreApi } from '@/lib/api';
-
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { keystoreApi } from '@/lib/api';
 
 function CopyBtn({ text }: { text: string }) {
   const [c, setC] = useState(false);
@@ -48,7 +62,9 @@ const HARDHAT_MNEMONIC =
 export function SetupWizard({ onDone }: Props) {
   const qc = useQueryClient();
   const [step, setStep] = useState<'choose' | 'confirm'>('choose');
-  const [mode, setMode] = useState<'generate' | 'hardhat' | 'import'>('generate');
+  const [mode, setMode] = useState<'generate' | 'hardhat' | 'import'>(
+    'generate'
+  );
   const [generated, setGenerated] = useState('');
   const [mnemonic, setMnemonic] = useState('');
   const [label, setLabel] = useState('Default');
@@ -90,8 +106,8 @@ export function SetupWizard({ onDone }: Props) {
         <CardHeader>
           <CardTitle className="text-xl">First-time Setup</CardTitle>
           <CardDescription>
-            Create or import a mnemonic to derive genesis accounts for your local
-            Conflux node. The mnemonic is stored encrypted on disk.
+            Create or import a mnemonic to derive genesis accounts for your
+            local Conflux node. The mnemonic is stored encrypted on disk.
           </CardDescription>
         </CardHeader>
 
@@ -107,7 +123,9 @@ export function SetupWizard({ onDone }: Props) {
                   generateMutation.mutate();
                 }}
               >
-                <RefreshCw className={`h-5 w-5 ${generateMutation.isPending ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`h-5 w-5 ${generateMutation.isPending ? 'animate-spin' : ''}`}
+                />
                 Generate New Mnemonic
               </Button>
 
@@ -116,7 +134,9 @@ export function SetupWizard({ onDone }: Props) {
                   <span className="w-full border-t border-slate-800" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-slate-900/50 px-2 text-slate-500">or</span>
+                  <span className="bg-slate-900/50 px-2 text-slate-500">
+                    or
+                  </span>
                 </div>
               </div>
 
@@ -140,7 +160,9 @@ export function SetupWizard({ onDone }: Props) {
                   <span className="w-full border-t border-slate-800" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-slate-900/50 px-2 text-slate-500">or</span>
+                  <span className="bg-slate-900/50 px-2 text-slate-500">
+                    or
+                  </span>
                 </div>
               </div>
 
@@ -165,11 +187,14 @@ export function SetupWizard({ onDone }: Props) {
                 <div className="flex items-start gap-3 rounded-lg border border-amber-700/50 bg-amber-950/30 px-4 py-3 text-sm text-amber-300">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
                   <div className="space-y-1">
-                    <p className="font-medium text-amber-200">Known test mnemonic — do not use with real funds</p>
+                    <p className="font-medium text-amber-200">
+                      Known test mnemonic — do not use with real funds
+                    </p>
                     <p className="text-amber-400/80">
-                      This is the public Hardhat default phrase. Anyone knows it. It is safe
-                      for local development only. Future features for testnet and mainnet
-                      deployment will be disabled while this mnemonic is active.
+                      This is the public Hardhat default phrase. Anyone knows
+                      it. It is safe for local development only. Future features
+                      for testnet and mainnet deployment will be disabled while
+                      this mnemonic is active.
                     </p>
                   </div>
                 </div>
@@ -201,7 +226,9 @@ export function SetupWizard({ onDone }: Props) {
               ) : (
                 <div className="space-y-2">
                   <Label>
-                    {mode === 'hardhat' ? 'Hardhat Default Mnemonic' : 'Recovery Phrase (12 or 24 words)'}
+                    {mode === 'hardhat'
+                      ? 'Hardhat Default Mnemonic'
+                      : 'Recovery Phrase (12 or 24 words)'}
                   </Label>
                   <textarea
                     className="flex min-h-[80px] w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-blue-100 placeholder:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cfx-500 disabled:cursor-not-allowed disabled:opacity-60"
@@ -225,7 +252,10 @@ export function SetupWizard({ onDone }: Props) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>
-                    Encrypt with password <span className="font-normal text-slate-500">(optional)</span>
+                    Encrypt with password{' '}
+                    <span className="font-normal text-slate-500">
+                      (optional)
+                    </span>
                   </Label>
                   <Input
                     type="password"
@@ -269,7 +299,11 @@ export function SetupWizard({ onDone }: Props) {
               Back
             </Button>
             <Button
-              disabled={!mnemonic.trim() || (mode === 'generate' && !saved) || setupMutation.isPending}
+              disabled={
+                !mnemonic.trim() ||
+                (mode === 'generate' && !saved) ||
+                setupMutation.isPending
+              }
               onClick={() => setupMutation.mutate()}
             >
               {setupMutation.isPending ? 'Setting up…' : 'Complete Setup'}

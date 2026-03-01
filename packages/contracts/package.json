@@ -17,11 +17,15 @@
   "scripts": {
     "build": "tsup",
     "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.16",
     "tsup": "^8.5.1",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.0.16"
   },
   "peerDependencies": {
     "viem": ">=2.0.0"

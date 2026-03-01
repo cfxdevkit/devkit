@@ -11,6 +11,7 @@ import express from 'express';
 import { Server as IOServer } from 'socket.io';
 import { NodeManager } from './node-manager.js';
 import { createAccountRoutes } from './routes/accounts.js';
+import { createBootstrapRoutes } from './routes/bootstrap.js';
 import { createContractRoutes } from './routes/contracts.js';
 import { createDevnodeRoutes } from './routes/devnode.js';
 import { createKeystoreRoutes } from './routes/keystore.js';
@@ -92,7 +93,7 @@ function makeAuthMiddleware(apiKey: string) {
       return;
     }
 
-    const authHeader = req.headers['authorization'] ?? '';
+    const authHeader = req.headers.authorization ?? '';
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
 
     if (token !== apiKey) {
@@ -135,8 +136,8 @@ export function createApp(config: AppConfig): AppInstance {
   if (isPublic && !apiKey) {
     console.warn(
       '\n⚠  WARNING: conflux-devkit is bound to a public interface without an API key.\n' +
-      '   Anyone who can reach this host can control the node and access private keys.\n' +
-      '   Pass --api-key <secret> to require Bearer token authentication.\n'
+        '   Anyone who can reach this host can control the node and access private keys.\n' +
+        '   Pass --api-key <secret> to require Bearer token authentication.\n'
     );
   }
 
@@ -196,6 +197,7 @@ export function createApp(config: AppConfig): AppInstance {
   app.use('/api/node', createDevnodeRoutes(nodeManager));
   app.use('/api/accounts', createAccountRoutes(nodeManager));
   app.use('/api/contracts', createContractRoutes(nodeManager));
+  app.use('/api/bootstrap', createBootstrapRoutes(nodeManager));
   app.use('/api/mining', createMiningRoutes(nodeManager));
   app.use('/api/network', createNetworkRoutes(nodeManager));
   app.use('/api/keystore', createKeystoreRoutes());

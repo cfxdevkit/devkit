@@ -40,7 +40,9 @@ function FundModal({ onClose }: { onClose: () => void }) {
       if (e?.confirmed) {
         setResult(`✓ tx: ${e.txHash} (confirmed)`);
       } else if (e?.txHash) {
-        setResult(`✓ tx: ${e.txHash} (pending)` + (e?.message ? ` - ${e.message}` : ''));
+        setResult(
+          `✓ tx: ${e.txHash} (pending)` + (e?.message ? ` - ${e.message}` : '')
+        );
       } else {
         setResult('Submitted');
       }

@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCheck, Copy, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { AddNetworkButton } from '@/components/AddNetworkButton';
 import { networkApi, nodeApi } from '@/lib/api';
 
 function CopyBtn({ text }: { text: string }) {
@@ -181,6 +182,15 @@ export default function NetworkPage() {
               </div>
             </div>
           ))}
+
+          {/* Add eSpace to browser wallet */}
+          <div className="border-t border-[#2a3147] pt-3 flex justify-end">
+            <AddNetworkButton
+              evmChainId={config?.evmChainId}
+              evmRpcUrl={rpcUrls?.evm}
+              chainName="Conflux DevKit eSpace"
+            />
+          </div>
         </div>
       )}
     </div>

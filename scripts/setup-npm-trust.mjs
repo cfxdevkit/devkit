@@ -53,8 +53,8 @@ const REVOKE_IDX = process.argv.indexOf('--revoke-and-recreate');
 const REVOKE_PKG = REVOKE_IDX !== -1 ? process.argv[REVOKE_IDX + 1] : null;
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const GITHUB_REPO   = 'cfxdevkit/devkit';   // owner/repo
-const WORKFLOW_FILE = 'release.yml';         // .github/workflows/<file>
+const GITHUB_REPO = 'cfxdevkit/devkit'; // owner/repo
+const WORKFLOW_FILE = 'release.yml'; // .github/workflows/<file>
 
 // Library packages published under packages/*/
 const LIB_PACKAGES = [
@@ -82,7 +82,11 @@ function run(cmd, { cwd = ROOT, allowFail = false } = {}) {
     return '';
   }
   try {
-    return execSync(cmd, { cwd, stdio: ['inherit', 'pipe', 'inherit'], encoding: 'utf8' }).trim();
+    return execSync(cmd, {
+      cwd,
+      stdio: ['inherit', 'pipe', 'inherit'],
+      encoding: 'utf8',
+    }).trim();
   } catch (err) {
     if (allowFail) return null;
     throw err;
@@ -104,7 +108,8 @@ function runInteractive(cmd, { cwd = ROOT } = {}) {
 }
 
 function pkgName(relDir) {
-  return JSON.parse(readFileSync(resolve(ROOT, relDir, 'package.json'), 'utf8')).name;
+  return JSON.parse(readFileSync(resolve(ROOT, relDir, 'package.json'), 'utf8'))
+    .name;
 }
 
 function packageExists(name) {
@@ -124,18 +129,29 @@ if (REVOKE_PKG) {
   // Get existing trust IDs from text output (one block per entry, "id: <uuid>")
   let trustText = '';
   try {
-    trustText = execSync(`npm trust list "${REVOKE_PKG}"`, { stdio: 'pipe', encoding: 'utf8' });
-  } catch { /* no entries */ }
+    trustText = execSync(`npm trust list "${REVOKE_PKG}"`, {
+      stdio: 'pipe',
+      encoding: 'utf8',
+    });
+  } catch {
+    /* no entries */
+  }
 
-  const ids = [...trustText.matchAll(/^id:\s*(.+)$/gm)].map(m => m[1].trim());
+  const ids = [...trustText.matchAll(/^id:\s*(.+)$/gm)].map((m) => m[1].trim());
 
   if (ids.length === 0) {
-    console.log(`  No existing trust entries found for ${REVOKE_PKG} — nothing to revoke.`);
+    console.log(
+      `  No existing trust entries found for ${REVOKE_PKG} — nothing to revoke.`
+    );
   } else {
     for (const id of ids) {
       console.log(`  −  Revoking entry ${id}…`);
-      console.log(`\n     npm will open a 2FA URL — open it in your browser to confirm.\n`);
-      const code = runInteractive(`npm trust revoke "${REVOKE_PKG}" "${id}" --yes`);
+      console.log(
+        `\n     npm will open a 2FA URL — open it in your browser to confirm.\n`
+      );
+      const code = runInteractive(
+        `npm trust revoke "${REVOKE_PKG}" "${id}" --yes`
+      );
       if (code !== 0) {
         console.error(`  ✗  Revoke failed (exit ${code}). Aborting.`);
         process.exit(1);
@@ -145,9 +161,11 @@ if (REVOKE_PKG) {
   }
 
   console.log(`\n  +  Adding fresh trust for ${REVOKE_PKG}…`);
-  console.log(`\n     npm will open a 2FA URL — open it in your browser to confirm.\n`);
+  console.log(
+    `\n     npm will open a 2FA URL — open it in your browser to confirm.\n`
+  );
   const addCode = runInteractive(
-    `npm trust github "${REVOKE_PKG}" --repository ${GITHUB_REPO} --file ${WORKFLOW_FILE} --yes`,
+    `npm trust github "${REVOKE_PKG}" --repository ${GITHUB_REPO} --file ${WORKFLOW_FILE} --yes`
   );
   if (addCode !== 0) {
     console.error(`  ✗  Trust add failed (exit ${addCode}).`);
@@ -181,8 +199,15 @@ for (const dir of LIB_PACKAGES) {
     console.log(`  ✓  ${cliName} — already exists, skipping publish`);
   } else {
     console.log(`  ↑  ${cliName} — does not exist, packing + publishing…`);
-    run(`pnpm pack --pack-destination ${ROOT}`, { cwd: resolve(ROOT, CLI_DIR) });
-    const tarball = execSync(`ls ${ROOT}/conflux-devkit-*.tgz`, { encoding: 'utf8' }).trim().split('\n').at(-1);
+    run(`pnpm pack --pack-destination ${ROOT}`, {
+      cwd: resolve(ROOT, CLI_DIR),
+    });
+    const tarball = execSync(`ls ${ROOT}/conflux-devkit-*.tgz`, {
+      encoding: 'utf8',
+    })
+      .trim()
+      .split('\n')
+      .at(-1);
     run(`npm publish "${tarball}" --access public`);
     run(`rm -f "${tarball}"`);
     console.log(`     published ✓`);
@@ -200,22 +225,32 @@ for (const dir of allPackageDirs) {
   // Check if a trust relationship already exists for this workflow
   let existing = '';
   try {
-    existing = execSync(`npm trust list "${name}" --json`, { stdio: 'pipe', encoding: 'utf8' });
-  } catch { /* package might not have any trust entries */ }
+    existing = execSync(`npm trust list "${name}" --json`, {
+      stdio: 'pipe',
+      encoding: 'utf8',
+    });
+  } catch {
+    /* package might not have any trust entries */
+  }
 
-  const alreadyConfigured = existing.includes(WORKFLOW_FILE) && existing.includes(GITHUB_REPO);
+  const alreadyConfigured =
+    existing.includes(WORKFLOW_FILE) && existing.includes(GITHUB_REPO);
   if (alreadyConfigured) {
     console.log(`  ✓  ${name} — trust already configured`);
     continue;
   }
 
   console.log(`  +  ${name} — adding trust…`);
-  console.log(`\n     npm will open a 2FA URL — open it in your browser to confirm.\n`);
+  console.log(
+    `\n     npm will open a 2FA URL — open it in your browser to confirm.\n`
+  );
   const exitCode = runInteractive(
-    `npm trust github "${name}" --repository ${GITHUB_REPO} --file ${WORKFLOW_FILE} --yes`,
+    `npm trust github "${name}" --repository ${GITHUB_REPO} --file ${WORKFLOW_FILE} --yes`
   );
   if (exitCode !== 0) {
-    console.error(`\n  ✗  ${name} — trust command exited with code ${exitCode}`);
+    console.error(
+      `\n  ✗  ${name} — trust command exited with code ${exitCode}`
+    );
     console.error(`     Re-run the script to retry failed packages.\n`);
   } else {
     console.log(`     trust added ✓`);
