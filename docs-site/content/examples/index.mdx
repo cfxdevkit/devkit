@@ -17,14 +17,17 @@ Examples run against **Conflux eSpace Testnet** (`chainId: 71`). Sandpack runs i
 
 ## Available examples
 
-### @cfxdevkit/core · eSpace client
+### @cfxdevkit/core
 
-- [Block Number](/examples/espace-block-number) — Connect `EspaceClient`, read block number, gas price, and latest block header
-- [Read Balance](/examples/read-balance) — Query native CFX and ERC-20 balances
-- [ERC-20 Token Info](/examples/erc20-info) — Batch-read token metadata with `ERC20_ABI` and `readContract`
-- [Send CFX](/examples/send-cfx) — Sign and broadcast a native transfer with `EspaceWalletClient`
-- [Deploy ERC-20](/examples/deploy-token) — Deploy a token contract using `deployContract`
+- [EspaceClient](/examples/espace-block-number) — Connect `EspaceClient`, check connectivity, read block number, gas price, and block details
+- [Balances](/examples/read-balance) — Query native CFX and ERC-20 token balances
+- [ERC-20 Token Info](/examples/erc20-info) — Batch-read token metadata with `ERC20_ABI` and `client.publicClient.readContract`
 
-### @cfxdevkit/services
+### @cfxdevkit/wallet
 
-- [Swap Quote](/examples/swap-quote) — Get a live WCFX → USDT quote from Swappi DEX
+- [HD Wallet / Mnemonic](/examples/send-cfx) — Generate mnemonics, validate phrases, and derive HD wallet accounts (eSpace + Core addresses)
+
+### @cfxdevkit/contracts
+
+- [Contract ABIs](/examples/swap-quote) — Explore bundled ERC-20/ERC-721/ERC-1155 ABIs and live-read a testnet token
+- [Deploy ERC-20](/examples/deploy-token) — Deploy a token using `erc20BaseAbi` + `erc20BaseBytecode` via `wallet.deployContract`

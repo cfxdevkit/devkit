@@ -1,131 +1,70 @@
 ---
-title: Swap Quote (Swappi)
-description: Get a live WCFX→USDT swap quote from Swappi DEX using EspaceClient.readContract.
+title: Contract ABIs
+description: Explore @cfxdevkit/contracts — standard ABIs, bootstrap bytecodes, and reading a deployed contract.
 ---
 
 import { Callout } from 'nextra/components'
 
-# Swap Quote (Swappi)
+# Contract ABIs
 
-Query Swappi (the main Uniswap V2-style DEX on Conflux eSpace) for a live WCFX → USDT swap quote. This is a pure read call — no wallet or signing required.
-
-<Callout type="warning">
-Swappi liquidity exists only on **Testnet**. Make sure the network toggle above is set to **Testnet** before running.
-</Callout>
+`@cfxdevkit/contracts` ships ABI constants, deployment bytecodes and on-chain addresses for all DevKit contracts — everything you need to read, write, and deploy without writing raw ABI JSON.
 
 <Playground
+  extraDeps={{ "@cfxdevkit/contracts": "^1.0.16" }}
   file="/index.ts"
   files={{
-    "/index.ts": `import { EspaceClient, formatUnits, parseUnits } from '@cfxdevkit/core'
-import { NETWORK } from './network-config'
+    "/index.ts": `import {
+  erc20Abi, erc721Abi, erc1155Abi,
+  erc20BaseAbi, erc20BaseBytecode,
+  automationManagerAbi, automationManagerAddress,
+} from '@cfxdevkit/contracts'
+import { EspaceClient, EVM_TESTNET, formatUnits } from '@cfxdevkit/core'
 
-// ── Swappi Router (same address on testnet and mainnet) ──────
-const SWAPPI_ROUTER = '0x62B0873055Bf896Dd869e172119871ac24aeA305'
+// 1. Standard ABIs shipped with the package
+console.log('-- Standard ABIs --')
+console.log('ERC-20   : ' + erc20Abi.length + ' entries')
+console.log('ERC-721  : ' + erc721Abi.length + ' entries')
+console.log('ERC-1155 : ' + erc1155Abi.length + ' entries')
+const fns = erc20Abi.filter(e => e.type === 'function').map(e => e.name)
+console.log('ERC-20 fns: ' + fns.join(', '))
 
-// ── Testnet token addresses ──────────────────────────────────
-const WCFX = '0x2ed3dddae5b2f321af0806181fbfa6d049be47d8'
-const USDT = '0x7d682e65efc5c13bf4e394b8f376c48e6bae0355'
+// 2. Bootstrap ERC-20 -- deployable bytecode + full ABI
+console.log('-- Bootstrap ERC-20 --')
+console.log('ABI entries : ' + erc20BaseAbi.length)
+console.log('Bytecode    : ' + erc20BaseBytecode.slice(0, 28) + '... (' + Math.floor(erc20BaseBytecode.length / 2) + ' bytes)')
 
-// ── Only the view functions needed from the Router ABI ───────
-// In production: SwapService from @cfxdevkit/services wraps this
-const ROUTER_ABI = [
-  {
-    name: 'getAmountsOut',
-    type: 'function',
-    stateMutability: 'view',
-    inputs:  [{ name: 'amountIn', type: 'uint256' }, { name: 'path', type: 'address[]' }],
-    outputs: [{ name: 'amounts',  type: 'uint256[]' }],
-  },
-  {
-    name: 'getAmountsIn',
-    type: 'function',
-    stateMutability: 'view',
-    inputs:  [{ name: 'amountOut', type: 'uint256' }, { name: 'path', type: 'address[]' }],
-    outputs: [{ name: 'amounts',   type: 'uint256[]' }],
-  },
-] as const
+// 3. Deployed DevKit contracts with on-chain addresses
+console.log('-- AutomationManager (deployed) --')
+console.log('Testnet : ' + automationManagerAddress[71])
+console.log('Mainnet : ' + automationManagerAddress[1030])
+console.log('ABI entries: ' + automationManagerAbi.length)
 
-const client = new EspaceClient({
-  chainId: NETWORK.chainId,
-  rpcUrl:  NETWORK.rpcUrl,
-})
+// 4. Live read using standard ABI -- WCFX on testnet
+const WCFX   = '0x2ed3dddae5b2f321af0806181fbfa6d049be47d8'
+const client = new EspaceClient({ chainId: EVM_TESTNET.id, rpcUrl: EVM_TESTNET.rpcUrls.default.http[0] })
 
-async function main() {
-  const amountIn = parseUnits('1', 18) // 1 WCFX
-  const path     = [WCFX, USDT]
+const [name, symbol, decimals, supply] = await Promise.all([
+  client.publicClient.readContract({ address: WCFX, abi: erc20Abi, functionName: 'name' }),
+  client.publicClient.readContract({ address: WCFX, abi: erc20Abi, functionName: 'symbol' }),
+  client.publicClient.readContract({ address: WCFX, abi: erc20Abi, functionName: 'decimals' }),
+  client.publicClient.readContract({ address: WCFX, abi: erc20Abi, functionName: 'totalSupply' }),
+])
 
-  console.log('Router: ', SWAPPI_ROUTER)
-  console.log('Network:', NETWORK.rpcUrl)
-  console.log()
-
-  // ── getAmountsOut: how much USDT do I get for 1 WCFX? ───────
-  console.log('Quote: 1 WCFX → ? USDT')
-  const amountsOut = await client.readContract({
-    address:      SWAPPI_ROUTER,
-    abi:          ROUTER_ABI,
-    functionName: 'getAmountsOut',
-    args: [amountIn, path],
-  }) as bigint[]
-
-  const usdtOut = formatUnits(amountsOut[1], 18)
-  console.log('  amountIn:  1 WCFX')
-  console.log('  amountOut:', usdtOut, 'USDT')
-  console.log()
-
-  // ── getAmountsIn: how much WCFX do I need for 10 USDT? ──────
-  const wantOut = parseUnits('10', 18) // 10 USDT
-  console.log('Quote: ? WCFX → 10 USDT')
-  const amountsIn = await client.readContract({
-    address:      SWAPPI_ROUTER,
-    abi:          ROUTER_ABI,
-    functionName: 'getAmountsIn',
-    args: [wantOut, path],
-  }) as bigint[]
-
-  const wcfxIn = formatUnits(amountsIn[0], 18)
-  console.log('  amountIn: ', wcfxIn, 'WCFX')
-  console.log('  amountOut: 10 USDT')
-  console.log()
-
-  // ── Effective rate ───────────────────────────────────────────
-  const rate = parseFloat(usdtOut)
-  console.log('Effective rate:  1 WCFX =', rate.toFixed(4), 'USDT')
-  console.log()
-  console.log('\\u2713 Done')
-}
-
-main().catch(console.error)
+console.log('-- WCFX live data --')
+console.log('Name   : ' + name)
+console.log('Symbol : ' + symbol)
+console.log('Supply : ' + formatUnits(supply, decimals) + ' ' + symbol)
 `
   }}
-  showConsole
 />
 
 ---
 
 ## How it works
 
-1. `EspaceClient.readContract()` calls any view function — here we call Swappi Router's `getAmountsOut` and `getAmountsIn`.
-2. `getAmountsOut(amountIn, path)` → returns `[amountIn, amountOut]` — how much output you get for a given input.
-3. `getAmountsIn(amountOut, path)` → returns `[amountIn, amountOut]` — how much input you need to get a desired output.
+1. `@cfxdevkit/contracts` is a zero-dependency package of ABI and bytecode constants — no `node:` imports, browser-safe.
+2. **Standard ABIs** (`erc20Abi`, `erc721Abi`, `erc1155Abi`) — use with any compliant token on any EVM chain.
+3. **Bootstrap bytecodes** (`erc20BaseBytecode`, `erc721BaseBytecode`, ...) — deploy production-ready contracts from code.
+4. **DevKit configs** (`automationManagerConfig`, `swappiPriceAdapterConfig`) — ABIs + testnet/mainnet addresses bundled together.
+5. Pass any ABI to `client.publicClient.readContract` for live on-chain data.
 
-### Using `@cfxdevkit/services` in production
-
-`SwapService` wraps this contract interaction and handles token lookups by symbol:
-
-```typescript
-import { ClientManager, EVM_TESTNET } from '@cfxdevkit/core'
-import { SwapService } from '@cfxdevkit/services'
-
-const manager = new ClientManager({ evm: { chain: EVM_TESTNET } })
-await manager.connect()
-
-const swap = new SwapService(manager.evm.publicClient, 'testnet')
-const quote = await swap.getQuote({
-  tokenIn:     '0x2ed3dddae5b2f321af0806181fbfa6d049be47d8', // WCFX
-  tokenOut:    '0x7d682e65efc5c13bf4e394b8f376c48e6bae0355', // USDT
-  amountIn:    '1',
-  slippage:    50, // 0.5% in basis points
-})
-console.log('Expected out:', quote.amountOut, 'USDT')
-console.log('Minimum out: ', quote.amountOutMin, 'USDT')
-```

@@ -1,92 +1,69 @@
 ---
-title: Send CFX
-description: Construct and sign a native CFX transfer on Conflux eSpace.
+title: HD Wallet / Mnemonic
+description: Generate BIP-39 mnemonics and derive HD wallet accounts for Conflux eSpace and Core Space.
 ---
 
 import { Callout } from 'nextra/components'
 
-# Send CFX
+# HD Wallet / Mnemonic
 
-Construct, sign and broadcast a native CFX transfer on Conflux eSpace.
-
-<Callout type="warning">
-This example uses a well-known **test private key** (Hardhat account 0). Replace it with your own **testnet wallet** before sending real transactions.
-</Callout>
+Generate BIP-39 mnemonics and derive hierarchical-deterministic accounts for both Conflux eSpace and Core Space. All crypto happens in-browser via `@scure/bip39` and `@scure/bip32`.
 
 <Playground
   file="/index.ts"
   files={{
-    "/index.ts": `import { EspaceWalletClient, parseUnits } from '@cfxdevkit/core'
-import { NETWORK } from './network-config'
+    "/index.ts": `import { generateMnemonic, validateMnemonic, deriveAccounts, deriveAccount } from '@cfxdevkit/core'
 
-// ── Config ─────────────────────────────────────────────────
-// ⚠️  TESTNET key only — never use mainnet keys in browser code
-const PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
-const RECIPIENT   = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
-const AMOUNT_CFX  = '0.001'
+// 1. Generate BIP-39 mnemonic phrases
+const mnemonic   = generateMnemonic()      // 12 words (128-bit entropy)
+const mnemonic24 = generateMnemonic(256)   // 24 words (256-bit entropy)
 
-// ── Create cfxdevkit wallet client ─────────────────────────
-const wallet = new EspaceWalletClient({
-  chainId:    NETWORK.chainId,
-  rpcUrl:     NETWORK.rpcUrl,
-  privateKey: PRIVATE_KEY,
-})
+console.log('-- 12-word mnemonic --')
+console.log(mnemonic)
+console.log('-- 24-word mnemonic --')
+console.log(mnemonic24)
 
-async function main() {
-  console.log('Network:  ', NETWORK.rpcUrl)
-  console.log('Chain ID: ', NETWORK.chainId)
-  console.log('From:     ', wallet.getAddress())
-  console.log('To:       ', RECIPIENT)
-  console.log('Amount:   ', AMOUNT_CFX, 'CFX')
-  console.log()
+// 2. Validate a mnemonic
+const v = validateMnemonic(mnemonic)
+console.log('-- Validation --')
+console.log('valid  : ' + v.valid)
+console.log('words  : ' + v.wordCount)
 
-  // getBalance() returns formatted CFX string
-  const balance = await wallet.getBalance(wallet.getAddress())
-  console.log('Sender balance:', balance, 'CFX')
+const bad = validateMnemonic('this is not a valid bip39 phrase at all')
+console.log('bad    : valid=' + bad.valid + '  words=' + bad.wordCount)
 
-  if (parseFloat(balance) < parseFloat(AMOUNT_CFX)) {
-    console.log('⚠  Insufficient balance — skipping send')
-    console.log('   Fund at: https://faucet.confluxnetwork.org/')
-    return
-  }
-
-  const value = parseUnits(AMOUNT_CFX, 18)
-
-  // Estimate gas via the base EspaceClient method
-  const gas = await wallet.estimateGas({ to: RECIPIENT, value })
-  console.log('Estimated gas:', gas.toString())
-
-  // Send — EspaceWalletClient handles signing internally
-  const hash = await wallet.sendTransaction({ to: RECIPIENT, value })
-
-  console.log()
-  console.log('✓ Transaction sent!')
-  console.log('  Hash:', hash)
-
-  // waitForTransaction wraps viem's waitForTransactionReceipt
-  const receipt = await wallet.waitForTransaction(hash)
-  console.log('  Block:    ', receipt.blockNumber.toString())
-  console.log('  Gas used: ', receipt.gasUsed.toString())
-  console.log('  Status:   ', receipt.status)
+// 3. Derive multiple HD wallet accounts
+// Each account has both an eSpace (EVM) and Core Space address
+const accounts = deriveAccounts(mnemonic, { count: 3 })
+console.log('-- Derived Accounts (first 3) --')
+for (const a of accounts) {
+  console.log('[' + a.index + '] eSpace : ' + a.evmAddress)
+  console.log('    Core   : ' + a.coreAddress)
 }
 
-main().catch(console.error)
+// 4. Single account at a specific index
+const acc5 = deriveAccount(mnemonic, 5)
+console.log('-- Account at index 5 --')
+console.log('eSpace path : ' + acc5.paths.evm)
+console.log('Core   path : ' + acc5.paths.core)
+console.log('eSpace addr : ' + acc5.evmAddress)
+console.log('Core   addr : ' + acc5.coreAddress)
 `
   }}
-  showConsole
 />
 
 ---
 
-## Testnet faucet
-
-To fund a testnet address, visit **https://faucet.confluxnetwork.org/** and enter your address.
-
 ## How it works
 
-1. `EspaceWalletClient` extends `EspaceClient` with signing — pass your `privateKey` alongside `chainId` + `rpcUrl`.
-2. `wallet.getAddress()` returns the derived account address.
-3. `wallet.getBalance(address)` returns a formatted CFX string — no raw wei arithmetic needed.
-4. `wallet.estimateGas({ to, value })` delegates to the underlying viem `PublicClient`.
-5. `wallet.sendTransaction({ to, value })` signs and broadcasts; returns the tx hash.
-6. `wallet.waitForTransaction(hash)` returns a unified `TransactionReceipt` with `blockNumber`, `gasUsed`, `status`.
+1. `generateMnemonic()` uses `@scure/bip39` — browser-safe, audited BIP-39 library.
+2. `validateMnemonic(phrase)` checks word count (12 or 24) and BIP-39 checksum validity.
+3. `deriveAccounts(mnemonic, { count })` follows BIP-44: eSpace coin type 60 (Ethereum path), Core Space coin type 503 (Conflux path).
+4. Both addresses come from the **same mnemonic** but different derivation paths — they are cryptographically linked.
+5. Private keys (`a.evmPrivateKey`, `a.corePrivateKey`) are available on each account for signing.
+
+```typescript
+// @cfxdevkit/wallet is a focused re-export from @cfxdevkit/core
+import { generateMnemonic, deriveAccounts } from '@cfxdevkit/wallet'
+```
+

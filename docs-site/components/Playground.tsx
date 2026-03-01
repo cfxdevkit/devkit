@@ -24,16 +24,6 @@ const T = {
   runDisabledText: '#666',
 } as const
 
-// ── Conflux network configs ──────────────────────────────────────────────────
-const NETWORKS = {
-  testnet: {
-    label: 'Testnet',
-    chainId: 71,
-    rpcUrl: 'https://evmtestnet.confluxrpc.com',
-    blockExplorer: 'https://evmtestnet.confluxscan.io',
-  },
-} as const
-
 // ── Run button — must be inside SandpackProvider ─────────────────────────────
 function RunButton() {
   const { sandpack } = useSandpack()
@@ -69,7 +59,6 @@ function RunButton() {
 
 // ── Network label ─────────────────────────────────────────────────────────────
 function NetworkLabel() {
-  const cfg = NETWORKS.testnet
   return (
     <div
       style={{
@@ -92,10 +81,10 @@ function NetworkLabel() {
           whiteSpace: 'nowrap',
         }}
       >
-        {cfg.label}
+        Testnet
       </span>
       <span style={{ fontSize: '10px', whiteSpace: 'nowrap' }}>
-        · chain {cfg.chainId}
+        · chain 71
       </span>
     </div>
   )
@@ -112,7 +101,7 @@ interface PlaygroundProps {
 
 const DEFAULT_DEPS: Record<string, string> = {
   viem: '^2.0.0',
-  '@cfxdevkit/core': '^1.0.15',
+  '@cfxdevkit/core': '^1.0.16',
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -123,12 +112,7 @@ export function Playground({
   extraDeps = {},
   file = 'index.ts',
 }: PlaygroundProps) {
-  const networkConfig = NETWORKS.testnet
-
-  const networkFile = `// Auto-generated network config\nexport const NETWORK = {\n  chainId: ${networkConfig.chainId},\n  rpcUrl: '${networkConfig.rpcUrl}',\n  blockExplorer: '${networkConfig.blockExplorer}',\n} as const\n`
-
   const mergedFiles = {
-    '/network-config.ts': { code: networkFile, readOnly: true },
     ...Object.fromEntries(
       Object.entries(files).map(([name, code]) => [
         name.startsWith('/') ? name : `/${name}`,

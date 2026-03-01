@@ -1,9 +1,9 @@
 export default {
   index: 'Overview',
-  'espace-block-number': 'Block Number',
-  'read-balance': 'Read Balance',
-  'erc20-info': 'ERC-20 Token Info',
-  'swap-quote': 'Swap Quote',
-  'send-cfx': 'Send CFX',
-  'deploy-token': 'Deploy ERC-20',
+  'espace-block-number': '@core · EspaceClient',
+  'read-balance': '@core · Balances',
+  'erc20-info': '@core · ERC-20 Info',
+  'send-cfx': '@wallet · Mnemonic',
+  'swap-quote': '@contracts · ABIs',
+  'deploy-token': '@contracts · Deploy',
 }

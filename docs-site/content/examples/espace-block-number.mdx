@@ -3,53 +3,47 @@ title: Block Number & Chain Info
 description: Connect EspaceClient, read block number, gas price, and latest block header.
 ---
 
-# Block Number & Chain Info
+# EspaceClient
 
-The simplest interaction with Conflux eSpace: connect `EspaceClient`, verify the connection, and inspect the latest block.
+Explore the full `EspaceClient` read API. `EVM_TESTNET` ships with `@cfxdevkit/core` — no separate network config file needed.
 
 <Playground
   file="/index.ts"
   files={{
-    "/index.ts": `import { EspaceClient } from '@cfxdevkit/core'
-import { NETWORK } from './network-config'
+    "/index.ts": `import { EspaceClient, EVM_TESTNET, formatUnits } from '@cfxdevkit/core'
 
-// ── Create cfxdevkit eSpace client ─────────────────────────
-const client = new EspaceClient({
-  chainId: NETWORK.chainId,
-  rpcUrl:  NETWORK.rpcUrl,
-})
+// EVM_TESTNET ships with @cfxdevkit/core: id 71, RPC URL, explorer — no config file needed
+const rpcUrl  = EVM_TESTNET.rpcUrls.default.http[0]
+const chainId = EVM_TESTNET.id
 
-async function main() {
-  // 1. Connection check
-  const connected = await client.isConnected()
-  console.log('Connected:', connected)
-  console.log('RPC:      ', NETWORK.rpcUrl)
-  console.log()
+console.log('-- Network: ' + EVM_TESTNET.name + ' --')
+console.log('Chain ID : ' + chainId)
+console.log('RPC      : ' + rpcUrl)
+console.log('Explorer : ' + EVM_TESTNET.blockExplorers?.default.url)
 
-  // 2. Basic chain info
-  const chainId     = await client.getChainId()
-  const blockNumber = await client.getBlockNumber()
-  const gasPrice    = await client.getGasPrice()
+const client = new EspaceClient({ chainId, rpcUrl })
 
-  console.log('Chain ID:  ', chainId)
-  console.log('Block #:   ', blockNumber.toString())
-  console.log('Gas price: ', gasPrice.toString(), 'wei')
-  console.log('Gas price: ', (Number(gasPrice) / 1e9).toFixed(4), 'Gwei')
-  console.log()
+// Run all read queries in parallel
+const [connected, blockNumber, onChainId, gasPrice] = await Promise.all([
+  client.isConnected(),
+  client.getBlockNumber(),
+  client.getChainId(),
+  client.getGasPrice(),
+])
 
-  // 3. Latest block details via the internal viem publicClient
-  const block = await client.publicClient.getBlock({ blockTag: 'latest' })
-  console.log('Latest block')
-  console.log('  hash:      ', block.hash)
-  console.log('  timestamp: ', new Date(Number(block.timestamp) * 1000).toISOString())
-  console.log('  txns:      ', block.transactions.length)
-  console.log('  gasUsed:   ', block.gasUsed.toString())
-  console.log('  gasLimit:  ', block.gasLimit.toString())
-  console.log()
-  console.log('\\u2713 Done')
-}
+console.log('-- Live Chain Data --')
+console.log('Connected : ' + connected)
+console.log('Block #   : ' + blockNumber.toString())
+console.log('Chain ID  : ' + onChainId)
+console.log('Gas Price : ' + formatUnits(gasPrice, 9) + ' Gwei')
 
-main().catch(console.error)
+// client.publicClient is the raw viem PublicClient
+const block = await client.publicClient.getBlock({ blockTag: 'latest' })
+console.log('-- Latest Block --')
+console.log('Hash      : ' + (block.hash?.slice(0, 20) ?? 'n/a') + '...')
+console.log('Txns      : ' + block.transactions.length)
+console.log('Gas Used  : ' + block.gasUsed.toString())
+console.log('Timestamp : ' + new Date(Number(block.timestamp) * 1000).toUTCString())
 `
   }}
   showConsole
@@ -59,15 +53,16 @@ main().catch(console.error)
 
 ## How it works
 
-1. `new EspaceClient({ chainId, rpcUrl })` configures a viem `PublicClient` for Conflux eSpace — no separate chain-definition boilerplate.
-2. `isConnected()` makes a lightweight `getBlockNumber` probe to confirm the RPC is reachable.
-3. `getChainId()`, `getBlockNumber()`, `getGasPrice()` are direct cfxdevkit helpers.
-4. `client.publicClient` exposes the underlying viem `PublicClient` for anything not wrapped by cfxdevkit, like `getBlock()`.
+1. `EVM_TESTNET` is exported by `@cfxdevkit/core` — `{ id: 71, rpcUrls, blockExplorers }`. No config file needed.
+2. `new EspaceClient({ chainId, rpcUrl })` wraps viem's `PublicClient` with a simpler typed API.
+3. `isConnected`, `getBlockNumber`, `getChainId`, `getGasPrice` all run in parallel via `Promise.all`.
+4. `client.publicClient` gives raw viem access for `getBlock`, `getLogs`, `simulateContract`, and anything else not wrapped.
 
 ```typescript
-// Production import
-import { EspaceClient } from '@cfxdevkit/core'
+import { EspaceClient, EVM_TESTNET } from '@cfxdevkit/core'
 
-const client = new EspaceClient({ chainId: 71, rpcUrl: 'https://evmtestnet.confluxrpc.com' })
-const block = await client.getBlockNumber()
+const client = new EspaceClient({
+  chainId: EVM_TESTNET.id,
+  rpcUrl:  EVM_TESTNET.rpcUrls.default.http[0],
+})
 ```

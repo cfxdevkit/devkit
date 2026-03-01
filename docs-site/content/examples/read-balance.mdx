@@ -7,7 +7,7 @@ import { Callout } from 'nextra/components'
 
 # Read Balance
 
-Query the native CFX balance and any ERC-20 token balance for an address.
+Query native CFX and ERC-20 token balances using `EspaceClient`, `ERC20_ABI`, and `EVM_TESTNET` from `@cfxdevkit/core`.
 
 <Callout type="tip">
 Edit the `address` constant to check any wallet.
@@ -16,47 +16,45 @@ Edit the `address` constant to check any wallet.
 <Playground
   file="/index.ts"
   files={{
-    "/index.ts": `import { EspaceClient, formatUnits } from '@cfxdevkit/core'
-import { NETWORK } from './network-config'
+    "/index.ts": `import { EspaceClient, EVM_TESTNET, ERC20_ABI, formatUnits } from '@cfxdevkit/core'
 
-// ── Config ─────────────────────────────────────────────────
-const ADDRESS = '0x0000000000000000000000000000000000000001'
-// Well-known ERC-20: Wrapped CFX on testnet
-const WCFX_TESTNET = '0x2ed3dddae5b2f321af0806181fbfa6d049be47d8'
-
-// ── Create cfxdevkit eSpace client ─────────────────────────
 const client = new EspaceClient({
-  chainId: NETWORK.chainId,
-  rpcUrl:  NETWORK.rpcUrl,
+  chainId: EVM_TESTNET.id,
+  rpcUrl:  EVM_TESTNET.rpcUrls.default.http[0],
 })
 
-async function main() {
-  console.log('Network: ', NETWORK.rpcUrl)
-  console.log('Chain ID:', NETWORK.chainId)
+// ── Native CFX balances ──────────────────────────────────────────────────────
+// getBalance() calls eth_getBalance and returns a formatted CFX string
+const ADDRS = [
+  '0x85d80245Dc02f5a89589e1f19C5c718E405B56Aa',
+  '0x0000000000000000000000000000000000000000',
+]
 
-  const block = await client.getBlockNumber()
-  console.log('Block #: ', block.toString())
-  console.log()
-
-  // getBalance() returns a formatted CFX string (not raw wei)
-  const cfx = await client.getBalance(ADDRESS as \`0x\${string}\`)
-  console.log('Native balance:', cfx, 'CFX')
-
-  // getTokenBalance() returns raw BigInt as string; formatUnits converts it
-  try {
-    const raw = await client.getTokenBalance(ADDRESS, WCFX_TESTNET)
-    const wcfx = formatUnits(BigInt(raw), 18)
-    console.log('WCFX balance:  ', wcfx, 'WCFX')
-  } catch {
-    console.log('WCFX: (not available on local network)')
-  }
-
-  console.log()
-  console.log('✓ Done')
+console.log('-- CFX Balances --')
+for (const addr of ADDRS) {
+  const cfx = await client.getBalance(addr)
+  console.log(addr.slice(0, 12) + '...  ' + Number(cfx).toFixed(6) + ' CFX')
 }
 
-main().catch(console.error)
+// ── ERC-20 token balance ─────────────────────────────────────────────────────
+// WCFX (Wrapped CFX) on Conflux eSpace testnet
+const WCFX   = '0x2ed3dddae5b2f321af0806181fbfa6d049be47d8'
+const HOLDER = '0x85d80245Dc02f5a89589e1f19C5c718E405B56Aa'
+
+// Batch-read token metadata and holder balance in one round-trip
+const [name, symbol, decimals, raw] = await Promise.all([
+  client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'name' }),
+  client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'symbol' }),
+  client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'decimals' }),
+  client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'balanceOf', args: [HOLDER] }),
+])
+
+console.log('-- Token Balance --')
+console.log('Token   : ' + name + ' (' + symbol + ')')
+console.log('Decimals: ' + decimals)
+console.log('Balance : ' + formatUnits(raw, decimals) + ' ' + symbol)
 `
+
   }}
   showConsole
 />
@@ -65,9 +63,7 @@ main().catch(console.error)
 
 ## How it works
 
-1. `EspaceClient` from `@cfxdevkit/core` wraps viem's `PublicClient` — pass `chainId` + `rpcUrl` and it configures the chain automatically.
-2. `client.getBalance(address)` returns a **formatted CFX string** (not raw wei), so no manual `formatEther` is needed.
-3. `client.getTokenBalance(address, tokenAddress)` calls `balanceOf` under the hood and returns the raw BigInt as a string — use `formatUnits` to convert.
-4. `getBlockNumber()` returns a `bigint` — call `.toString()` before printing.
-
-The `network-config.ts` file is auto-generated when you toggle the network above.
+1. `getBalance(address)` calls `eth_getBalance` and returns an already-formatted CFX string.
+2. `ERC20_ABI` from `@cfxdevkit/core` covers all standard ERC-20 functions.
+3. `client.publicClient.readContract(...)` is the underlying viem call for any view function.
+4. Batch multiple reads with `Promise.all` to cut round-trips.
