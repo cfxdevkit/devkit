@@ -17,7 +17,7 @@
 
 FROM --platform=linux/amd64 node:22-slim
 
-LABEL org.opencontainers.image.title="conflux-devkit" \
+LABEL org.opencontainers.image.title="devkit" \
       org.opencontainers.image.description="Conflux local development environment" \
       org.opencontainers.image.source="https://github.com/cfxdevkit/devkit"
 
@@ -25,7 +25,7 @@ LABEL org.opencontainers.image.title="conflux-devkit" \
 # Pin to the exact version that was current when this Dockerfile was written;
 # change the version to upgrade. Use --os=linux and --cpu=x64 so npm selects
 # the correct @xcfx/node optional dependency even when building on macOS/ARM.
-ARG DEVKIT_VERSION=0.1.0
+ARG DEVKIT_VERSION=1.0.10
 RUN npm install -g \
       --os=linux --cpu=x64 \
       conflux-devkit@${DEVKIT_VERSION} \

@@ -33,7 +33,7 @@ const navbar = (
         cfxdevkit
       </span>
     }
-    projectLink="https://github.com/cfxdevkit/conflux-devkit"
+    projectLink="https://github.com/cfxdevkit/devkit"
   />
 )
 
@@ -61,7 +61,7 @@ export default async function RootLayout({
           navbar={navbar}
           footer={footer}
           pageMap={await getPageMap()}
-          docsRepositoryBase="https://github.com/cfxdevkit/conflux-devkit/tree/main/docs-site"
+          docsRepositoryBase="https://github.com/cfxdevkit/devkit/tree/main/docs-site"
           editLink="Edit this page on GitHub"
           feedback={{ content: 'Question? Give us feedback' }}
           sidebar={{ defaultMenuCollapseLevel: 1 }}

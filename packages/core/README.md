@@ -5,7 +5,7 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
 
-Foundation layer of the Conflux DevKit SDK — chain clients, contract utilities, HD wallet derivation, and automation primitives. Extracted from [conflux-devkit](https://github.com/cfxdevkit/conflux-devkit).
+Foundation layer of the Conflux DevKit SDK — chain clients, contract utilities, HD wallet derivation, and automation primitives. Extracted from [devkit](https://github.com/cfxdevkit/devkit).
 
 For swap services and keystore management see [`@cfxdevkit/services`](../services).
 
@@ -251,6 +251,6 @@ Apache-2.0 — see [LICENSE](LICENSE)
 
 ## Relation to conflux-devkit
 
-This library was extracted from the [conflux-devkit](https://github.com/cfxdevkit/conflux-devkit) monorepo.  
+This library was extracted from the [devkit](https://github.com/cfxdevkit/devkit) monorepo.  
 It contains only production-usable, framework-agnostic code.  
 The DevNode management CLI, MCP server, and dashboard are **not** included.
