@@ -1,0 +1,66 @@
+---
+title: "@cfxdevkit/compiler"
+description: Solidity compilation wrapper with ABI and bytecode extraction.
+---
+
+# @cfxdevkit/compiler
+
+> Solidity compilation wrapper — compile `.sol` files and extract ABIs, bytecodes, and type definitions.
+
+```bash
+pnpm add @cfxdevkit/compiler
+```
+
+---
+
+## Compile a Solidity file
+
+```typescript
+import { SolidityCompiler } from '@cfxdevkit/compiler'
+
+const compiler = new SolidityCompiler()
+
+const result = await compiler.compile('./contracts/MyToken.sol')
+
+console.log('ABI:', result.abi)
+console.log('Bytecode:', result.bytecode)
+console.log('Contract name:', result.contractName)
+```
+
+---
+
+## Compile from source string
+
+```typescript
+const source = `
+pragma solidity ^0.8.20;
+contract Counter {
+    uint256 public count;
+    function increment() external { count++; }
+}
+`
+
+const result = await compiler.compileSource(source, 'Counter')
+```
+
+---
+
+## Multiple contracts
+
+```typescript
+const results = await compiler.compileDirectory('./contracts')
+
+for (const [name, artifact] of Object.entries(results)) {
+  console.log(`${name}: ${artifact.abi.length} functions`)
+}
+```
+
+---
+
+## Generate TypeScript types
+
+```typescript
+const types = await compiler.generateTypes('./contracts/MyToken.sol', {
+  outDir: './typechain-types',
+})
+```

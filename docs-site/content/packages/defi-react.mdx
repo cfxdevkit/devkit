@@ -1,0 +1,99 @@
+---
+title: "@cfxdevkit/defi-react"
+description: React hooks for Swappi DEX swap quotes, token prices and pool data.
+---
+
+# @cfxdevkit/defi-react
+
+> React hooks for Conflux DeFi data — Swappi DEX swap quotes, token prices, and liquidity pool information.
+
+```bash
+pnpm add @cfxdevkit/defi-react
+```
+
+Peer dependencies: `react@^18 || ^19`, `@cfxdevkit/core`, `@cfxdevkit/services`
+
+---
+
+## useSwapQuote
+
+```tsx
+import { useSwapQuote } from '@cfxdevkit/defi-react'
+import { parseEther } from 'viem'
+
+function SwapQuote() {
+  const { quote, isLoading } = useSwapQuote({
+    tokenIn: USDT_ADDRESS,
+    tokenOut: WCFX_ADDRESS,
+    amountIn: parseEther('100'),
+    network: 'mainnet',
+  })
+
+  if (isLoading) return <p>Fetching quote…</p>
+  return <p>You receive: {quote?.amountOut} WCFX</p>
+}
+```
+
+---
+
+## useTokenPrice
+
+```tsx
+import { useTokenPrice } from '@cfxdevkit/defi-react'
+
+function Price({ tokenAddress }: { tokenAddress: string }) {
+  const { priceUsd, change24h } = useTokenPrice({
+    address: tokenAddress,
+    network: 'mainnet',
+  })
+
+  return (
+    <p>
+      ${priceUsd?.toFixed(4)}{' '}
+      <span style={{ color: change24h >= 0 ? 'green' : 'red' }}>
+        {change24h?.toFixed(2)}%
+      </span>
+    </p>
+  )
+}
+```
+
+---
+
+## usePoolData
+
+```tsx
+import { usePoolData } from '@cfxdevkit/defi-react'
+
+function PoolInfo({ token0, token1 }) {
+  const { reserve0, reserve1, lpTotalSupply } = usePoolData({
+    token0,
+    token1,
+    network: 'mainnet',
+  })
+
+  return (
+    <ul>
+      <li>Reserve 0: {reserve0?.toString()}</li>
+      <li>Reserve 1: {reserve1?.toString()}</li>
+    </ul>
+  )
+}
+```
+
+---
+
+## useSwap
+
+```tsx
+import { useSwap } from '@cfxdevkit/defi-react'
+
+function SwapButton({ tokenIn, tokenOut, amountIn }) {
+  const { swap, isPending } = useSwap({ network: 'mainnet' })
+
+  const handleSwap = () =>
+    swap({ tokenIn, tokenOut, amountIn, slippageTolerance: 0.5 })
+
+  return <button onClick={handleSwap} disabled={isPending}>Swap</button>
+}
+```

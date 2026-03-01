@@ -1,0 +1,103 @@
+---
+title: Devkit API Reference
+description: Programmatic API for conflux-devkit via @cfxdevkit/devnode.
+---
+
+# Devkit API Reference
+
+The conflux-devkit dashboard is powered by [`@cfxdevkit/devnode`](/packages/devnode), which exposes a full programmatic API for use in tests and scripts.
+
+---
+
+## ServerManager
+
+```typescript
+import { ServerManager } from '@cfxdevkit/devnode'
+
+const node = new ServerManager(config?)
+```
+
+### Constructor options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `port` | `number` | `7748` | Dashboard port |
+| `evmPort` | `number` | `8545` | eSpace RPC port |
+| `corePort` | `number` | `12537` | Core Space RPC port |
+| `accounts` | `number` | `10` | Pre-funded accounts |
+| `mnemonic` | `string` | random | Genesis wallet mnemonic |
+| `blockTime` | `number` | `0` | Auto-mine interval (0 = manual) |
+
+---
+
+## Methods
+
+### `start()`
+```typescript
+await node.start(): Promise<void>
+```
+Starts the local Conflux node and (optionally) the dashboard.
+
+### `stop()`
+```typescript
+await node.stop(): Promise<void>
+```
+Stops the node and frees all ports.
+
+### `getAccounts()`
+```typescript
+node.getAccounts(): Account[]
+```
+Returns the pre-funded genesis accounts with addresses and private keys.
+
+### `getEndpoint()`
+```typescript
+node.getEndpoint(): { evm: string; core: string }
+```
+Returns the RPC endpoints.
+
+### `mine(blocks?)`
+```typescript
+await node.mine(blocks?: number): Promise<void>
+```
+Mine `blocks` blocks instantly (default: 1).
+
+### `snapshot()`
+```typescript
+const id = await node.snapshot(): Promise<string>
+```
+Take a state snapshot. Returns snapshot ID.
+
+### `revert(snapshotId)`
+```typescript
+await node.revert(id: string): Promise<void>
+```
+Restore to a previous snapshot.
+
+### `setBalance(address, value)`
+```typescript
+await node.setBalance('0xAddr', parseEther('1000')): Promise<void>
+```
+Forcibly set the CFX balance of any address.
+
+### `impersonate(address)`
+```typescript
+await node.impersonate('0xAddr'): Promise<void>
+```
+Allow sending transactions from `address` without the private key.
+
+---
+
+## REST API (dashboard)
+
+The dashboard exposes a REST API at `http://localhost:7748/api`:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/accounts` | List genesis accounts |
+| `GET` | `/api/blocks/latest` | Latest block info |
+| `POST` | `/api/mine` | Mine N blocks |
+| `POST` | `/api/snapshot` | Create snapshot |
+| `POST` | `/api/revert/:id` | Revert to snapshot |
+| `POST` | `/api/compile` | Compile Solidity source |
+| `POST` | `/api/deploy` | Deploy a contract from the bootstrap library |

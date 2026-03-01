@@ -1,0 +1,79 @@
+---
+title: "@cfxdevkit/services"
+description: Swappi DEX integration, encrypted keystore, and encryption primitives.
+---
+
+# @cfxdevkit/services
+
+> Conflux SDK services layer — AES-256-GCM encrypted keystore, Swappi DEX integration, and low-level encryption primitives.
+
+```bash
+pnpm add @cfxdevkit/services
+```
+
+---
+
+## What's included
+
+| Export | Description |
+|--------|-------------|
+| `KeystoreService` | File-backed HD wallet keystore encrypted with AES-256-GCM + PBKDF2 |
+| `SwapService` | Swappi DEX router — getPrice, swap, getTokenInfo, pool listing |
+| `EncryptionService` | Low-level AES-256-GCM encrypt/decrypt primitives |
+
+---
+
+## Encrypted keystore
+
+```typescript
+import { KeystoreService } from '@cfxdevkit/services'
+
+const keystore = new KeystoreService('./my-wallet.json')
+
+// Create new wallet
+const { mnemonic, address } = await keystore.create('my-strong-password')
+
+// Unlock existing
+const wallet = await keystore.unlock('my-strong-password')
+console.log('eSpace address:', wallet.evmAddress)
+```
+
+---
+
+## Swappi DEX integration
+
+```typescript
+import { SwapService } from '@cfxdevkit/services'
+import { ClientManager } from '@cfxdevkit/core'
+
+const client = new ClientManager({ network: 'mainnet' })
+const swap = new SwapService(client)
+
+// Get price quote
+const quote = await swap.getPrice({
+  tokenIn: '0xCFX_TOKEN_ADDRESS',
+  tokenOut: '0xUSDT_ADDRESS',
+  amountIn: parseEther('10'),
+})
+
+// Execute swap
+const hash = await swap.swap({
+  tokenIn: '0xCFX_TOKEN_ADDRESS',
+  tokenOut: '0xUSDT_ADDRESS',
+  amountIn: parseEther('10'),
+  slippageTolerance: 0.5, // 0.5%
+  walletClient,
+})
+```
+
+---
+
+## Encryption primitives
+
+```typescript
+import { EncryptionService } from '@cfxdevkit/services'
+
+const enc = new EncryptionService()
+const { ciphertext, iv, salt } = await enc.encrypt('secret data', 'password')
+const plaintext = await enc.decrypt(ciphertext, iv, salt, 'password')
+```

@@ -1,0 +1,95 @@
+---
+title: "@cfxdevkit/contracts"
+description: Auto-generated ABIs, bytecodes and deployment addresses for Conflux eSpace.
+---
+
+# @cfxdevkit/contracts
+
+> Auto-generated, type-safe ABIs and deployment artifacts for Conflux DevKit on-chain contracts, plus canonical token ABIs and a bootstrap library of deployable contract templates.
+
+```bash
+pnpm add @cfxdevkit/contracts
+```
+
+---
+
+## DevKit contracts
+
+| Export | Description |
+|--------|-------------|
+| `automationManagerAbi` | ABI for `AutomationManager` |
+| `automationManagerAddress` | Deployed addresses by chain ID (`1030`, `71`) |
+| `automationManagerConfig` | Combined `{ abi, address }` for wagmi/viem |
+| `permitHandlerAbi` | ABI for `PermitHandler` |
+| `permitHandlerAddress` | Deployed addresses by chain ID |
+| `swappiPriceAdapterAbi` | ABI for `SwappiPriceAdapter` |
+| `swappiPriceAdapterAddress` | Deployed addresses by chain ID |
+
+Each contract is exported both as `camelCase` (wagmi/viem idiomatic) and `UPPER_CASE`.
+
+---
+
+## Standard token ABIs
+
+| Export | Standard | Description |
+|--------|----------|-------------|
+| `erc20Abi` | ERC-20 | Base ERC-20 interface |
+| `erc20ExtendedAbi` | ERC-20 | Base + mint, burn, pause, permit |
+| `erc721Abi` | ERC-721 | Base ERC-721 interface |
+| `erc721ExtendedAbi` | ERC-721 | Base + mint, burn, royalties |
+| `erc1155Abi` | ERC-1155 | Base ERC-1155 interface |
+| `erc2612Abi` | EIP-2612 | Permit extension |
+| `erc4626Abi` | ERC-4626 | Tokenised vault |
+
+---
+
+## Bootstrap library
+
+Production-ready contracts with ABI + bytecode:
+
+| Contract | Category | Description |
+|----------|----------|-------------|
+| `erc20BaseAbi` / `erc20BaseBytecode` | Tokens | Capped, burnable, pausable ERC-20 with ERC-2612 permit |
+| `erc721BaseAbi` / `erc721BaseBytecode` | Tokens | Full-featured ERC-721 with ERC-2981 royalties |
+| `erc1155BaseAbi` / `erc1155BaseBytecode` | Tokens | Full-featured ERC-1155 multi-token |
+| `wrappedCfxAbi` / `wrappedCfxBytecode` | Tokens | Canonical WCFX — WETH9-identical native wrapper |
+| `stakingRewardsAbi` / `stakingRewardsBytecode` | DeFi | Synthetix-style staking with reward streaming |
+| `vestingScheduleAbi` / `vestingScheduleBytecode` | DeFi | Multi-beneficiary cliff + linear vesting |
+| `merkleAirdropAbi` / `merkleAirdropBytecode` | DeFi | Pull-based Merkle proof airdrop |
+| `multiSigWalletAbi` / `multiSigWalletBytecode` | Governance | Enhanced M-of-N multisig with expiry |
+| `paymentSplitterAbi` / `paymentSplitterBytecode` | Utils | Proportional revenue splitter |
+| `mockPriceOracleAbi` / `mockPriceOracleBytecode` | Mocks | Chainlink AggregatorV3 mock |
+
+---
+
+## Deploy a bootstrap contract
+
+```typescript
+import { erc20BaseAbi, erc20BaseBytecode } from '@cfxdevkit/contracts'
+import { parseEther } from 'viem'
+
+const hash = await walletClient.deployContract({
+  abi: erc20BaseAbi,
+  bytecode: erc20BaseBytecode,
+  args: [
+    'My Token',       // name
+    'MTK',            // symbol
+    parseEther('1000000'), // initial supply
+    ownerAddress,      // owner
+  ],
+})
+```
+
+---
+
+## Use with wagmi
+
+```typescript
+import { automationManagerConfig } from '@cfxdevkit/contracts'
+import { useReadContract } from 'wagmi'
+
+const { data } = useReadContract({
+  ...automationManagerConfig,
+  functionName: 'getActiveJobs',
+})
+```

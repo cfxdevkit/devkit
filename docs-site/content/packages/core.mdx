@@ -1,0 +1,130 @@
+---
+title: "@cfxdevkit/core"
+description: Foundation layer — chain clients, HD wallet, contract utilities, automation.
+---
+
+import { Callout } from 'nextra/components'
+
+# @cfxdevkit/core
+
+> Foundation layer of the cfxdevkit SDK: chain clients, HD wallet derivation, contract read/write utilities, and automation primitives.
+
+```bash
+pnpm add @cfxdevkit/core
+```
+
+---
+
+## Subpath exports
+
+| Import | Contents |
+|--------|----------|
+| `@cfxdevkit/core` | Full barrel — everything |
+| `@cfxdevkit/core/clients` | `ClientManager`, `CoreClient`, `EspaceClient` |
+| `@cfxdevkit/core/config` | Chain definitions for Core + eSpace networks |
+| `@cfxdevkit/core/types` | Shared TypeScript types |
+| `@cfxdevkit/core/utils` | Logger |
+| `@cfxdevkit/core/wallet` | HD derivation, session keys, batching, embedded wallets |
+| `@cfxdevkit/core/contracts` | `ContractDeployer`, `ContractReader`, `ContractWriter`, ERC ABIs |
+| `@cfxdevkit/core/automation` | `SafetyGuard`, `RetryQueue`, `PriceChecker`, `KeeperClient` |
+
+---
+
+## ClientManager
+
+```typescript
+import { ClientManager, EVM_MAINNET, EVM_TESTNET } from '@cfxdevkit/core'
+
+// Testnet
+const client = new ClientManager({ network: 'testnet' })
+await client.connect()
+const block = await client.evm.publicClient.getBlockNumber()
+
+// Mainnet
+const mainnet = new ClientManager({
+  evm: { chain: EVM_MAINNET },
+})
+await mainnet.connect()
+```
+
+---
+
+## HD Wallet
+
+```typescript
+import { generateMnemonic, deriveAccounts } from '@cfxdevkit/core/wallet'
+
+const mnemonic = generateMnemonic()
+const accounts = deriveAccounts(mnemonic, { count: 5 })
+
+for (const acc of accounts) {
+  console.log(`[${acc.index}]`)
+  console.log('  eSpace:', acc.evmAddress)
+  console.log('  Core:  ', acc.coreAddress)
+}
+```
+
+---
+
+## ContractReader
+
+```typescript
+import { ContractReader, ERC20_ABI } from '@cfxdevkit/core/contracts'
+
+const reader = new ContractReader(client)
+const balance = await reader.read({
+  address: '0xTokenAddress',
+  abi: ERC20_ABI,
+  functionName: 'balanceOf',
+  args: ['0xYourAddress'],
+  chain: 'evm',
+})
+```
+
+---
+
+## ContractWriter
+
+```typescript
+import { ContractWriter } from '@cfxdevkit/core/contracts'
+
+const writer = new ContractWriter(client, walletClient)
+const hash = await writer.write({
+  address: '0xTokenAddress',
+  abi: ERC20_ABI,
+  functionName: 'transfer',
+  args: ['0xRecipient', 1_000_000n],
+  chain: 'evm',
+})
+```
+
+---
+
+## ContractDeployer
+
+```typescript
+import { ContractDeployer } from '@cfxdevkit/core/contracts'
+import { erc20BaseAbi, erc20BaseBytecode } from '@cfxdevkit/contracts'
+import { parseEther } from 'viem'
+
+const deployer = new ContractDeployer(client, walletClient)
+const { address, hash } = await deployer.deploy({
+  abi: erc20BaseAbi,
+  bytecode: erc20BaseBytecode,
+  args: ['My Token', 'MTK', parseEther('1000000'), ownerAddress],
+  chain: 'evm',
+})
+```
+
+---
+
+## Supported networks
+
+| Constant | Chain ID | RPC |
+|----------|----------|-----|
+| `EVM_MAINNET` | 1030 | `https://evm.confluxrpc.com` |
+| `EVM_TESTNET` | 71 | `https://evmtestnet.confluxrpc.com` |
+| `EVM_LOCAL` | 2030 | `http://localhost:8545` |
+| `CORE_MAINNET` | 1029 | `https://main.confluxrpc.com` |
+| `CORE_TESTNET` | 1 | `https://test.confluxrpc.com` |
+| `CORE_LOCAL` | 2029 | `http://localhost:12537` |

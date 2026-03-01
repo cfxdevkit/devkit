@@ -1,0 +1,42 @@
+---
+title: Packages Overview
+description: All published @cfxdevkit packages.
+---
+
+import { Cards } from 'nextra/components'
+
+# Packages
+
+cfxdevkit is a monorepo of focused packages. Install only what you need.
+
+<Cards>
+  <Cards.Card title="@cfxdevkit/core" href="/packages/core" description="Chain clients, HD wallet, contract utilities, automation" />
+  <Cards.Card title="@cfxdevkit/contracts" href="/packages/contracts" description="ABIs, bytecodes and deployment addresses" />
+  <Cards.Card title="@cfxdevkit/services" href="/packages/services" description="Swappi DEX swap, keystore encryption" />
+  <Cards.Card title="@cfxdevkit/protocol" href="/packages/protocol" description="Cross-space bridge, automation, permits" />
+  <Cards.Card title="@cfxdevkit/executor" href="/packages/executor" description="Safe multi-step transaction sequencer" />
+  <Cards.Card title="@cfxdevkit/wallet" href="/packages/wallet" description="HD wallet derivation and signing" />
+  <Cards.Card title="@cfxdevkit/compiler" href="/packages/compiler" description="Solidity compilation wrapper" />
+  <Cards.Card title="@cfxdevkit/devnode" href="/packages/devnode" description="Programmatic local Conflux node" />
+  <Cards.Card title="@cfxdevkit/react" href="/packages/react" description="React hooks for balances and tokens" />
+  <Cards.Card title="@cfxdevkit/defi-react" href="/packages/defi-react" description="React hooks for DeFi data (swaps, prices)" />
+  <Cards.Card title="@cfxdevkit/wallet-connect" href="/packages/wallet-connect" description="ConnectKit wagmi integration for React apps" />
+</Cards>
+
+---
+
+## Dependency tree
+
+```
+@cfxdevkit/core          ← foundation
+    ├── @cfxdevkit/contracts
+    ├── @cfxdevkit/wallet
+    ├── @cfxdevkit/executor
+    ├── @cfxdevkit/services  (→ core)
+    ├── @cfxdevkit/protocol  (→ core, services)
+    ├── @cfxdevkit/compiler
+    ├── @cfxdevkit/devnode
+    ├── @cfxdevkit/react     (→ core, React)
+    ├── @cfxdevkit/defi-react(→ core, services, React)
+    └── @cfxdevkit/wallet-connect (→ wagmi, ConnectKit)
+```

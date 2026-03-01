@@ -1,0 +1,78 @@
+---
+title: "@cfxdevkit/executor"
+description: Safe multi-step transaction sequencer with rollback and retry support.
+---
+
+# @cfxdevkit/executor
+
+> Safe multi-step transaction sequencer — execute chains of contract calls with built-in retry, safety checks, and atomic rollback.
+
+```bash
+pnpm add @cfxdevkit/executor
+```
+
+---
+
+## TransactionExecutor
+
+The `TransactionExecutor` wraps a sequence of operations and ensures they succeed or roll back cleanly.
+
+```typescript
+import { TransactionExecutor } from '@cfxdevkit/executor'
+import { ClientManager } from '@cfxdevkit/core'
+
+const client = new ClientManager({ network: 'testnet' })
+const executor = new TransactionExecutor(client, walletClient)
+
+const result = await executor.execute([
+  {
+    label: 'Approve USDT',
+    address: USDT_ADDRESS,
+    abi: erc20Abi,
+    functionName: 'approve',
+    args: [SPENDER, parseEther('100')],
+  },
+  {
+    label: 'Swap USDT → WCFX',
+    address: ROUTER_ADDRESS,
+    abi: routerAbi,
+    functionName: 'swapExactTokensForTokens',
+    args: [parseEther('100'), minOut, path, recipient, deadline],
+  },
+])
+
+console.log('Steps completed:', result.steps)
+```
+
+---
+
+## Safety guards
+
+```typescript
+import { SafetyGuard } from '@cfxdevkit/executor'
+
+const guard = new SafetyGuard({
+  maxGasPrice: parseGwei('50'),   // abort if gas > 50 gwei
+  minBalance: parseEther('0.1'),  // abort if ETH balance too low
+})
+
+const executor = new TransactionExecutor(client, walletClient, { guard })
+```
+
+---
+
+## RetryQueue
+
+```typescript
+import { RetryQueue } from '@cfxdevkit/executor'
+
+const queue = new RetryQueue({
+  maxAttempts: 3,
+  backoff: 'exponential',
+  initialDelay: 1000,
+})
+
+const hash = await queue.submit(async () =>
+  walletClient.sendTransaction({ to, value, data })
+)
+```

@@ -1,0 +1,83 @@
+---
+title: "@cfxdevkit/wallet"
+description: HD wallet derivation and signing for Conflux Core Space and eSpace.
+---
+
+# @cfxdevkit/wallet
+
+> HD wallet derivation (BIP-39/44) and signing utilities for both Conflux Core Space and eSpace.
+
+```bash
+pnpm add @cfxdevkit/wallet
+```
+
+---
+
+## Generate a new wallet
+
+```typescript
+import { generateMnemonic, deriveAccounts, deriveWalletClient } from '@cfxdevkit/wallet'
+
+// Generate a fresh BIP-39 mnemonic
+const mnemonic = generateMnemonic()
+
+// Derive multiple accounts
+const accounts = deriveAccounts(mnemonic, { count: 5 })
+
+for (const acc of accounts) {
+  console.log(`[${acc.index}]`)
+  console.log('  eSpace address: ', acc.evmAddress)
+  console.log('  Core address:   ', acc.coreAddress)
+  console.log('  Private key:    ', acc.privateKey)
+}
+```
+
+---
+
+## Derive a viem WalletClient
+
+```typescript
+import { deriveWalletClient } from '@cfxdevkit/wallet'
+import { EVM_TESTNET } from '@cfxdevkit/core'
+
+const walletClient = deriveWalletClient(mnemonic, {
+  index: 0,
+  chain: EVM_TESTNET,
+})
+
+const hash = await walletClient.sendTransaction({
+  to: '0xRecipient',
+  value: parseEther('1'),
+})
+```
+
+---
+
+## Session key management
+
+```typescript
+import { SessionKeyManager } from '@cfxdevkit/wallet'
+
+const manager = new SessionKeyManager()
+
+// Create a short-lived session key with limited permissions
+const sessionKey = await manager.create({
+  parentMnemonic: mnemonic,
+  ttl: 3600,          // expires in 1 hour
+  permissions: ['transfer', 'approve'],
+})
+```
+
+---
+
+## Embedded wallet (browser)
+
+```typescript
+import { EmbeddedWallet } from '@cfxdevkit/wallet'
+
+const wallet = new EmbeddedWallet()
+await wallet.init()   // generates key pair in browser secure storage
+
+const address = wallet.getAddress()
+const sig = await wallet.signMessage('hello')
+```

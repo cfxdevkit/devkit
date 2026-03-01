@@ -1,0 +1,103 @@
+---
+title: "@cfxdevkit/wallet-connect"
+description: ConnectKit + wagmi integration for React apps on Conflux eSpace.
+---
+
+# @cfxdevkit/wallet-connect
+
+> ConnectKit and wagmi integration for React apps on Conflux eSpace — pre-configured chains, auth state, and a drop-in connect button.
+
+```bash
+pnpm add @cfxdevkit/wallet-connect wagmi viem connectkit @tanstack/react-query
+```
+
+---
+
+## Wrap your app
+
+```tsx
+import { AuthProvider, wagmiConfig } from '@cfxdevkit/wallet-connect'
+import { WagmiProvider } from 'wagmi'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+const queryClient = new QueryClient()
+
+export function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <WagmiProvider config={wagmiConfig}>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
+  )
+}
+```
+
+---
+
+## Add a connect button
+
+```tsx
+import { WalletConnect } from '@cfxdevkit/wallet-connect'
+
+export function NavBar() {
+  return (
+    <nav>
+      <span>My dApp</span>
+      <WalletConnect />
+    </nav>
+  )
+}
+```
+
+---
+
+## Access auth state
+
+```tsx
+import { useAuthContext } from '@cfxdevkit/wallet-connect'
+
+export function UserInfo() {
+  const { address, isAuthenticated, signIn, signOut, chainId } = useAuthContext()
+
+  if (!isAuthenticated) {
+    return <button onClick={signIn}>Sign in with wallet</button>
+  }
+
+  return (
+    <div>
+      <p>Address: {address}</p>
+      <p>Chain ID: {chainId}</p>
+      <button onClick={signOut}>Sign out</button>
+    </div>
+  )
+}
+```
+
+---
+
+## Pre-configured chains
+
+`wagmiConfig` includes all Conflux eSpace networks out of the box:
+
+| Chain | Chain ID |
+|-------|----------|
+| eSpace Mainnet | 1030 |
+| eSpace Testnet | 71 |
+
+---
+
+## Custom wagmi config
+
+```tsx
+import { createConfig } from 'wagmi'
+import { EVM_MAINNET, EVM_TESTNET } from '@cfxdevkit/core'
+import { getConnectors } from '@cfxdevkit/wallet-connect'
+
+const config = createConfig({
+  chains: [EVM_MAINNET, EVM_TESTNET],
+  connectors: getConnectors(),
+})
+```

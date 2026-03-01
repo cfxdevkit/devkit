@@ -1,0 +1,91 @@
+---
+title: "@cfxdevkit/devnode"
+description: Programmatic local Conflux node for integration testing and development.
+---
+
+# @cfxdevkit/devnode
+
+> Start, control and query a local Conflux node programmatically — perfect for integration tests and local development without external dependencies.
+
+```bash
+pnpm add @cfxdevkit/devnode
+```
+
+---
+
+## Start a local node
+
+```typescript
+import { ServerManager } from '@cfxdevkit/devnode'
+import { ClientManager } from '@cfxdevkit/core'
+
+const node = new ServerManager()
+await node.start()
+
+const client = new ClientManager({ network: 'local' })
+const accounts = node.getAccounts()  // pre-funded genesis accounts
+
+console.log('Node running at', node.getEndpoint())
+console.log('Funded accounts:', accounts.map(a => a.address))
+```
+
+---
+
+## Mine blocks
+
+```typescript
+// Advance N blocks instantly
+await node.mine(10)
+
+// Wait for a specific block
+await node.waitForBlock(50)
+```
+
+---
+
+## Reset state
+
+```typescript
+// Snapshot the current state
+const snapshotId = await node.snapshot()
+
+// ... run tests ...
+
+// Restore snapshot
+await node.revert(snapshotId)
+```
+
+---
+
+## Use in vitest / jest
+
+```typescript
+import { ServerManager } from '@cfxdevkit/devnode'
+import { ClientManager } from '@cfxdevkit/core'
+
+let node: ServerManager
+let client: ClientManager
+
+beforeAll(async () => {
+  node = new ServerManager()
+  await node.start()
+  client = new ClientManager({ network: 'local' })
+})
+
+afterAll(async () => {
+  await node.stop()
+})
+
+test('transfers CFX', async () => {
+  const [sender, receiver] = node.getAccounts()
+  // ... test logic
+})
+```
+
+---
+
+## Stop the node
+
+```typescript
+await node.stop()
+```

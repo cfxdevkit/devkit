@@ -1,0 +1,50 @@
+---
+title: cfxdevkit — Conflux eSpace Developer Toolkit
+description: A modular TypeScript SDK and local development environment for building on Conflux eSpace.
+---
+
+import { Cards } from 'nextra/components'
+
+# cfxdevkit
+
+**A modular TypeScript SDK and local development environment for building on Conflux eSpace.**
+
+cfxdevkit is a zero-config toolkit that gives you everything from wallet management and contract interaction to a local blockchain node and a live browser dashboard — all tuned for the Conflux network.
+
+```bash
+# Start coding in 30 seconds
+npx conflux-devkit
+```
+
+---
+
+## What's included
+
+<Cards>
+  <Cards.Card title="@cfxdevkit/core" href="/packages/core" description="Clients, wallets, contract reads/writes, multi-chain support" />
+  <Cards.Card title="@cfxdevkit/contracts" href="/packages/contracts" description="ABIs, bytecodes and deployment addresses for Conflux eSpace" />
+  <Cards.Card title="@cfxdevkit/services" href="/packages/services" description="Token swap via Swappi DEX, keystore encryption" />
+  <Cards.Card title="@cfxdevkit/protocol" href="/packages/protocol" description="Cross-space bridge, automation, permit transfers" />
+  <Cards.Card title="@cfxdevkit/executor" href="/packages/executor" description="Safe multi-step transaction sequencer" />
+  <Cards.Card title="@cfxdevkit/wallet" href="/packages/wallet" description="HD wallet derivation and signing for both spaces" />
+  <Cards.Card title="@cfxdevkit/wallet-connect" href="/packages/wallet-connect" description="React wagmi-based ConnectKit integration" />
+  <Cards.Card title="@cfxdevkit/react / defi-react" href="/packages/react" description="React hooks for balances, swaps and DeFi data" />
+  <Cards.Card title="@cfxdevkit/devnode" href="/packages/devnode" description="Programmatic local Conflux node for testing" />
+  <Cards.Card title="@cfxdevkit/compiler" href="/packages/compiler" description="Solidity compilation and ABI extraction" />
+  <Cards.Card title="conflux-devkit CLI" href="/devkit" description="Local node + browser dashboard for development" />
+</Cards>
+
+---
+
+## Quick example
+
+```typescript
+import { ClientManager } from '@cfxdevkit/core'
+
+const client = new ClientManager({ network: 'testnet' })
+const block = await client.evm.publicClient.getBlockNumber()
+console.log('Testnet block:', block)
+```
+
+→ [Full Quick Start guide](/quickstart)  
+→ [Live Playground](/examples)

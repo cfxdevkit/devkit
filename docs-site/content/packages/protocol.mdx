@@ -1,0 +1,92 @@
+---
+title: "@cfxdevkit/protocol"
+description: Cross-space bridge, automation, and permit transfers for Conflux.
+---
+
+# @cfxdevkit/protocol
+
+> Higher-level protocol operations for Conflux — cross-space bridge, automation scheduling, and ERC-2612 permit transfers.
+
+```bash
+pnpm add @cfxdevkit/protocol
+```
+
+---
+
+## What's included
+
+| Export | Description |
+|--------|-------------|
+| `BridgeManager` | Core ↔ eSpace cross-space asset and CFX bridging |
+| `AutomationManager` | Register and manage on-chain keeper jobs |
+| `PermitManager` | ERC-2612 permit-based gasless token transfers |
+
+---
+
+## Cross-space bridge
+
+```typescript
+import { BridgeManager } from '@cfxdevkit/protocol'
+import { ClientManager } from '@cfxdevkit/core'
+
+const client = new ClientManager({ network: 'mainnet' })
+const bridge = new BridgeManager(client)
+
+// Transfer CFX from Core Space to eSpace
+const hash = await bridge.transferToEspace({
+  amount: parseEther('10'),
+  toAddress: '0xEvmAddress',
+  walletClient,
+})
+
+// Transfer ERC-20 from eSpace to Core Space
+const hash2 = await bridge.transferToCore({
+  tokenAddress: '0xTokenAddress',
+  amount: parseEther('100'),
+  toCoreAddress: 'cfx:...',
+  walletClient,
+})
+```
+
+---
+
+## AutomationManager
+
+```typescript
+import { AutomationManager } from '@cfxdevkit/protocol'
+
+const automation = new AutomationManager(client, walletClient)
+
+// Register a keeper job
+const jobId = await automation.registerJob({
+  target: '0xContractAddress',
+  calldata: encodedCalldata,
+  interval: 3600, // seconds
+  maxGasPrice: parseGwei('20'),
+})
+
+// Cancel job
+await automation.cancelJob(jobId)
+```
+
+---
+
+## Permit transfers (ERC-2612)
+
+```typescript
+import { PermitManager } from '@cfxdevkit/protocol'
+
+const permit = new PermitManager(client)
+
+// Sign a permit (no ETH needed for approval)
+const signature = await permit.sign({
+  token: '0xERC20Address',
+  spender: '0xSpenderAddress',
+  value: parseEther('50'),
+  deadline: Math.floor(Date.now() / 1000) + 3600,
+  walletClient,
+})
+
+// Execute transfer using the permit
+await permit.transferWithPermit({ ...signature, walletClient })
+```

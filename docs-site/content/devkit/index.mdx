@@ -1,0 +1,104 @@
+---
+title: Devkit CLI
+description: Local Conflux node and browser dashboard for development.
+---
+
+import { Callout } from 'nextra/components'
+
+# conflux-devkit CLI
+
+> A local Conflux development environment — start a node, open a browser dashboard, compile and deploy contracts, and run the Bootstrap catalog — all from one command.
+
+---
+
+## Getting started
+
+```bash
+npx conflux-devkit
+```
+
+Or install globally:
+
+```bash
+npm install -g conflux-devkit
+conflux-devkit
+```
+
+<Callout type="info">
+Opens **http://localhost:7748** automatically and starts both a Conflux eSpace node (port `8545`) and a Core Space node (port `12537`).
+</Callout>
+
+---
+
+## Docker
+
+```bash
+docker run -p 7748:7748 -p 8545:8545 -p 12537:12537 cfxdevkit/devkit
+```
+
+---
+
+## What's in the dashboard
+
+| Section | Description |
+|---------|-------------|
+| **Accounts** | Pre-funded genesis accounts with private keys |
+| **Bootstrap** | Deploy pre-built contract templates (ERC-20, ERC-721, staking, etc.) |
+| **Compiler** | Upload and compile `.sol` files in-browser |
+| **Wallet** | Set up a local HD wallet |
+| **Logs** | Live node logs and transaction history |
+
+---
+
+## Configuration
+
+Create a `devkit.config.json` in your project root:
+
+```json
+{
+  "port": 7748,
+  "evmPort": 8545,
+  "corePort": 12537,
+  "accounts": 10,
+  "mnemonic": "test test test test test test test test test test test junk",
+  "blockTime": 0
+}
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `port` | `7748` | Dashboard HTTP port |
+| `evmPort` | `8545` | Conflux eSpace RPC port |
+| `corePort` | `12537` | Conflux Core Space RPC port |
+| `accounts` | `10` | Number of pre-funded genesis accounts |
+| `mnemonic` | random | BIP-39 mnemonic for genesis accounts |
+| `blockTime` | `0` | Block time in seconds (`0` = on-demand mining) |
+
+---
+
+## Connect your wallet (MetaMask)
+
+Add a custom network in MetaMask:
+
+| Field | Value |
+|-------|-------|
+| Network name | `Conflux eSpace Local` |
+| RPC URL | `http://localhost:8545` |
+| Chain ID | `2030` |
+| Symbol | `CFX` |
+
+---
+
+## Use with the SDK
+
+```typescript
+import { ClientManager } from '@cfxdevkit/core'
+
+const client = new ClientManager({ network: 'local' })
+
+// eSpace local → http://localhost:8545
+const block = await client.evm.publicClient.getBlockNumber()
+
+// Core Space local → http://localhost:12537
+const epoch = await client.core.publicClient.getEpochNumber()
+```

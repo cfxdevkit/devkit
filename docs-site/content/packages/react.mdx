@@ -1,0 +1,99 @@
+---
+title: "@cfxdevkit/react"
+description: React hooks for Conflux balances, tokens and contract interactions.
+---
+
+# @cfxdevkit/react
+
+> React hooks for Conflux eSpace — balances, ERC-20/721 tokens, contract reads and writes.
+
+```bash
+pnpm add @cfxdevkit/react
+```
+
+Peer dependencies: `react@^18 || ^19`, `@cfxdevkit/core`
+
+---
+
+## useBalance
+
+```tsx
+import { useBalance } from '@cfxdevkit/react'
+
+function WalletBalance({ address }: { address: string }) {
+  const { balance, isLoading, error } = useBalance({
+    address,
+    network: 'testnet',
+  })
+
+  if (isLoading) return <p>Loading…</p>
+  return <p>Balance: {balance?.formatted} CFX</p>
+}
+```
+
+---
+
+## useERC20
+
+```tsx
+import { useERC20 } from '@cfxdevkit/react'
+
+function TokenInfo({ tokenAddress }: { tokenAddress: string }) {
+  const { name, symbol, decimals, totalSupply } = useERC20({
+    address: tokenAddress,
+    network: 'testnet',
+  })
+
+  return (
+    <dl>
+      <dt>Name</dt><dd>{name}</dd>
+      <dt>Symbol</dt><dd>{symbol}</dd>
+      <dt>Decimals</dt><dd>{decimals}</dd>
+    </dl>
+  )
+}
+```
+
+---
+
+## useContractRead
+
+```tsx
+import { useContractRead } from '@cfxdevkit/react'
+import { erc20Abi } from '@cfxdevkit/contracts'
+
+function Allowance({ token, owner, spender }) {
+  const { data } = useContractRead({
+    address: token,
+    abi: erc20Abi,
+    functionName: 'allowance',
+    args: [owner, spender],
+    network: 'testnet',
+  })
+
+  return <p>Allowance: {data?.toString()}</p>
+}
+```
+
+---
+
+## useContractWrite
+
+```tsx
+import { useContractWrite } from '@cfxdevkit/react'
+import { erc20Abi } from '@cfxdevkit/contracts'
+
+function ApproveButton({ token, spender, amount }) {
+  const { write, isPending, hash } = useContractWrite({
+    address: token,
+    abi: erc20Abi,
+    functionName: 'approve',
+  })
+
+  return (
+    <button onClick={() => write({ args: [spender, amount] })} disabled={isPending}>
+      {isPending ? 'Approving…' : 'Approve'}
+    </button>
+  )
+}
+```
