@@ -24,35 +24,37 @@ const client = new EspaceClient({
 })
 
 // ── Native CFX balances ──────────────────────────────────────────────────────
-// getBalance() calls eth_getBalance and returns a formatted CFX string
 const ADDRS = [
   '0x85d80245Dc02f5a89589e1f19C5c718E405B56Aa',
   '0x0000000000000000000000000000000000000000',
 ]
-
-console.log('-- CFX Balances --')
-for (const addr of ADDRS) {
-  const cfx = await client.getBalance(addr)
-  console.log(addr.slice(0, 12) + '...  ' + Number(cfx).toFixed(6) + ' CFX')
-}
 
 // ── ERC-20 token balance ─────────────────────────────────────────────────────
 // WCFX (Wrapped CFX) on Conflux eSpace testnet
 const WCFX   = '0x2ed3dddae5b2f321af0806181fbfa6d049be47d8'
 const HOLDER = '0x85d80245Dc02f5a89589e1f19C5c718E405B56Aa'
 
-// Batch-read token metadata and holder balance in one round-trip
-const [name, symbol, decimals, raw] = await Promise.all([
-  client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'name' }),
-  client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'symbol' }),
-  client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'decimals' }),
-  client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'balanceOf', args: [HOLDER] }),
-])
+;(async () => {
+  // getBalance() calls eth_getBalance and returns a formatted CFX string
+  console.log('-- CFX Balances --')
+  for (const addr of ADDRS) {
+    const cfx = await client.getBalance(addr)
+    console.log(addr.slice(0, 12) + '...  ' + Number(cfx).toFixed(6) + ' CFX')
+  }
 
-console.log('-- Token Balance --')
-console.log('Token   : ' + name + ' (' + symbol + ')')
-console.log('Decimals: ' + decimals)
-console.log('Balance : ' + formatUnits(raw, decimals) + ' ' + symbol)
+  // Batch-read token metadata and holder balance in one round-trip
+  const [name, symbol, decimals, raw] = await Promise.all([
+    client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'name' }),
+    client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'symbol' }),
+    client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'decimals' }),
+    client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'balanceOf', args: [HOLDER] }),
+  ])
+
+  console.log('-- Token Balance --')
+  console.log('Token   : ' + name + ' (' + symbol + ')')
+  console.log('Decimals: ' + decimals)
+  console.log('Balance : ' + formatUnits(raw, decimals) + ' ' + symbol)
+})().catch(console.error)
 `
 
   }}

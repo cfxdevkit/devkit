@@ -21,6 +21,7 @@ Change `TOKEN` to any ERC-20 address on testnet. The default is **WCFX** (Wrappe
 // WCFX (Wrapped CFX) — always-live ERC-20 on Conflux eSpace testnet
 const TOKEN  = '0x2ed3dddae5b2f321af0806181fbfa6d049be47d8'
 const HOLDER = '0x85d80245Dc02f5a89589e1f19C5c718E405B56Aa'
+const SPENDER = '0x33e5E5B262e5d8eBC443E1c6c9F14215b020554d' // AutomationManager testnet
 
 const client = new EspaceClient({
   chainId: EVM_TESTNET.id,
@@ -29,30 +30,31 @@ const client = new EspaceClient({
 
 console.log('-- Token: ' + TOKEN + ' --')
 
-// Batch-read all standard ERC-20 metadata in one round-trip
-const [name, symbol, decimals, totalSupply] = await Promise.all([
-  client.publicClient.readContract({ address: TOKEN, abi: ERC20_ABI, functionName: 'name' }),
-  client.publicClient.readContract({ address: TOKEN, abi: ERC20_ABI, functionName: 'symbol' }),
-  client.publicClient.readContract({ address: TOKEN, abi: ERC20_ABI, functionName: 'decimals' }),
-  client.publicClient.readContract({ address: TOKEN, abi: ERC20_ABI, functionName: 'totalSupply' }),
-])
+;(async () => {
+  // Batch-read all standard ERC-20 metadata in one round-trip
+  const [name, symbol, decimals, totalSupply] = await Promise.all([
+    client.publicClient.readContract({ address: TOKEN, abi: ERC20_ABI, functionName: 'name' }),
+    client.publicClient.readContract({ address: TOKEN, abi: ERC20_ABI, functionName: 'symbol' }),
+    client.publicClient.readContract({ address: TOKEN, abi: ERC20_ABI, functionName: 'decimals' }),
+    client.publicClient.readContract({ address: TOKEN, abi: ERC20_ABI, functionName: 'totalSupply' }),
+  ])
 
-console.log('-- Metadata --')
-console.log('Name         : ' + name)
-console.log('Symbol       : ' + symbol)
-console.log('Decimals     : ' + decimals)
-console.log('Total Supply : ' + formatUnits(totalSupply, decimals) + ' ' + symbol)
+  console.log('-- Metadata --')
+  console.log('Name         : ' + name)
+  console.log('Symbol       : ' + symbol)
+  console.log('Decimals     : ' + decimals)
+  console.log('Total Supply : ' + formatUnits(totalSupply, decimals) + ' ' + symbol)
 
-// Read holder balance and allowance
-const SPENDER = '0x33e5E5B262e5d8eBC443E1c6c9F14215b020554d' // AutomationManager testnet
-const [balance, allowance] = await Promise.all([
-  client.publicClient.readContract({ address: TOKEN, abi: ERC20_ABI, functionName: 'balanceOf', args: [HOLDER] }),
-  client.publicClient.readContract({ address: TOKEN, abi: ERC20_ABI, functionName: 'allowance', args: [HOLDER, SPENDER] }),
-])
+  // Read holder balance and allowance
+  const [balance, allowance] = await Promise.all([
+    client.publicClient.readContract({ address: TOKEN, abi: ERC20_ABI, functionName: 'balanceOf', args: [HOLDER] }),
+    client.publicClient.readContract({ address: TOKEN, abi: ERC20_ABI, functionName: 'allowance', args: [HOLDER, SPENDER] }),
+  ])
 
-console.log('-- Holder ' + HOLDER.slice(0,10) + '... --')
-console.log('Balance   : ' + formatUnits(balance, decimals) + ' ' + symbol)
-console.log('Allowance : ' + formatUnits(allowance, decimals) + ' ' + symbol + ' (for AutomationManager)')
+  console.log('-- Holder ' + HOLDER.slice(0,10) + '... --')
+  console.log('Balance   : ' + formatUnits(balance, decimals) + ' ' + symbol)
+  console.log('Allowance : ' + formatUnits(allowance, decimals) + ' ' + symbol + ' (for AutomationManager)')
+})().catch(console.error)
 `
   }}
   showConsole

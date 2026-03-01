@@ -23,27 +23,29 @@ console.log('Explorer : ' + EVM_TESTNET.blockExplorers?.default.url)
 
 const client = new EspaceClient({ chainId, rpcUrl })
 
-// Run all read queries in parallel
-const [connected, blockNumber, onChainId, gasPrice] = await Promise.all([
-  client.isConnected(),
-  client.getBlockNumber(),
-  client.getChainId(),
-  client.getGasPrice(),
-])
+;(async () => {
+  // Run all read queries in parallel
+  const [connected, blockNumber, onChainId, gasPrice] = await Promise.all([
+    client.isConnected(),
+    client.getBlockNumber(),
+    client.getChainId(),
+    client.getGasPrice(),
+  ])
 
-console.log('-- Live Chain Data --')
-console.log('Connected : ' + connected)
-console.log('Block #   : ' + blockNumber.toString())
-console.log('Chain ID  : ' + onChainId)
-console.log('Gas Price : ' + formatUnits(gasPrice, 9) + ' Gwei')
+  console.log('-- Live Chain Data --')
+  console.log('Connected : ' + connected)
+  console.log('Block #   : ' + blockNumber.toString())
+  console.log('Chain ID  : ' + onChainId)
+  console.log('Gas Price : ' + formatUnits(gasPrice, 9) + ' Gwei')
 
-// client.publicClient is the raw viem PublicClient
-const block = await client.publicClient.getBlock({ blockTag: 'latest' })
-console.log('-- Latest Block --')
-console.log('Hash      : ' + (block.hash?.slice(0, 20) ?? 'n/a') + '...')
-console.log('Txns      : ' + block.transactions.length)
-console.log('Gas Used  : ' + block.gasUsed.toString())
-console.log('Timestamp : ' + new Date(Number(block.timestamp) * 1000).toUTCString())
+  // client.publicClient is the raw viem PublicClient
+  const block = await client.publicClient.getBlock({ blockTag: 'latest' })
+  console.log('-- Latest Block --')
+  console.log('Hash      : ' + (block.hash?.slice(0, 20) ?? 'n/a') + '...')
+  console.log('Txns      : ' + block.transactions.length)
+  console.log('Gas Used  : ' + block.gasUsed.toString())
+  console.log('Timestamp : ' + new Date(Number(block.timestamp) * 1000).toUTCString())
+})().catch(console.error)
 `
   }}
   showConsole

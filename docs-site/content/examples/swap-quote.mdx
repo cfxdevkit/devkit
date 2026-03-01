@@ -43,17 +43,19 @@ console.log('ABI entries: ' + automationManagerAbi.length)
 const WCFX   = '0x2ed3dddae5b2f321af0806181fbfa6d049be47d8'
 const client = new EspaceClient({ chainId: EVM_TESTNET.id, rpcUrl: EVM_TESTNET.rpcUrls.default.http[0] })
 
-const [name, symbol, decimals, supply] = await Promise.all([
-  client.publicClient.readContract({ address: WCFX, abi: erc20Abi, functionName: 'name' }),
-  client.publicClient.readContract({ address: WCFX, abi: erc20Abi, functionName: 'symbol' }),
-  client.publicClient.readContract({ address: WCFX, abi: erc20Abi, functionName: 'decimals' }),
-  client.publicClient.readContract({ address: WCFX, abi: erc20Abi, functionName: 'totalSupply' }),
-])
+;(async () => {
+  const [name, symbol, decimals, supply] = await Promise.all([
+    client.publicClient.readContract({ address: WCFX, abi: erc20Abi, functionName: 'name' }),
+    client.publicClient.readContract({ address: WCFX, abi: erc20Abi, functionName: 'symbol' }),
+    client.publicClient.readContract({ address: WCFX, abi: erc20Abi, functionName: 'decimals' }),
+    client.publicClient.readContract({ address: WCFX, abi: erc20Abi, functionName: 'totalSupply' }),
+  ])
 
-console.log('-- WCFX live data --')
-console.log('Name   : ' + name)
-console.log('Symbol : ' + symbol)
-console.log('Supply : ' + formatUnits(supply, decimals) + ' ' + symbol)
+  console.log('-- WCFX live data --')
+  console.log('Name   : ' + name)
+  console.log('Symbol : ' + symbol)
+  console.log('Supply : ' + formatUnits(supply, decimals) + ' ' + symbol)
+})().catch(console.error)
 `
   }}
 />
