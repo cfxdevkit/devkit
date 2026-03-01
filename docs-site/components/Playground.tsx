@@ -8,6 +8,7 @@ import {
   SandpackConsole,
   SandpackPreview,
   useSandpack,
+  useSandpackNavigation,
 } from '@codesandbox/sandpack-react'
 
 // Hard-coded dark toolbar colors — CSS vars are only scoped inside SandpackLayout
@@ -46,13 +47,12 @@ type Network = keyof typeof NETWORKS
 // ── Run button — must be inside SandpackProvider ─────────────────────────────
 function RunButton() {
   const { sandpack } = useSandpack()
-  const busy =
-    sandpack.status === 'initial' ||
-    sandpack.status === 'timeout'
+  const { refresh } = useSandpackNavigation()
+  const busy = sandpack.status === 'initial' || sandpack.status === 'timeout'
 
   return (
     <button
-      onClick={() => sandpack.runSandpack()}
+      onClick={refresh}
       disabled={busy}
       style={{
         display: 'flex',
@@ -193,6 +193,8 @@ export function Playground({
           autorun: true,
         }}
         customSetup={{
+          // Override the template's default entry (/src/index.ts) so our /index.ts is used
+          entry: '/index.ts',
           dependencies: { ...DEFAULT_DEPS, ...extraDeps },
         }}
       >
