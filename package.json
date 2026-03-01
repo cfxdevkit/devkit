@@ -1,7 +1,7 @@
 {
   "name": "@cfxdevkit/monorepo",
   "private": true,
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Conflux DevKit — reusable TypeScript SDK for building on Conflux eSpace and Core Space",
   "packageManager": "pnpm@10.11.0",
   "scripts": {
@@ -26,6 +26,10 @@
     "turbo": "^2.5.0"
   },
   "pnpm": {
+    "overrides": {
+      "@types/react": "^18.3.18",
+      "@types/react-dom": "^18.3.5"
+    },
     "onlyBuiltDependencies": [
       "better-sqlite3",
       "esbuild",
