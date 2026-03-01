@@ -121,11 +121,11 @@ jobs:
           npm config delete "//registry.npmjs.org/:_authToken" || true
 
       # ── 1. Publish all @cfxdevkit/* library packages ───────────────────────
-      # IMPORTANT: Use `npm publish` (not `pnpm publish`) so the npm CLI can
-      # automatically exchange the GitHub OIDC token for a short-lived npm
-      # credential. `pnpm publish` does NOT trigger the OIDC token exchange,
-      # which causes "Access token expired" + E404 even when trusted publishing
-      # is correctly configured on npmjs.com.
+      # Use `pnpm pack` to create the tarball — this normalises workspace:*
+      # dependency references (e.g. "@cfxdevkit/contracts": "workspace:*") to
+      # real semver before the tarball is created, so the published package.json
+      # is clean. Then hand the tarball to `npm publish` so the OIDC token
+      # exchange still happens via the npm CLI (pnpm publish does not trigger it).
       - name: Publish @cfxdevkit/* packages
         run: |
           set -e
@@ -133,10 +133,12 @@ jobs:
           for pkg_dir in packages/*/; do
             pkg_name=$(node -p "require('./${pkg_dir}package.json').name")
             echo "\n--- Publishing ${pkg_name} ---"
-            if ! npm publish "${pkg_dir}" --access public; then
+            tarball=$(pnpm pack -C "${pkg_dir}" --pack-destination "$PWD" 2>/dev/null | tail -1)
+            if ! npm publish "${tarball}" --access public; then
               echo "::error::Failed to publish ${pkg_name}"
               failed="${failed} ${pkg_name}"
             fi
+            rm -f "${tarball}"
           done
           if [ -n "$failed" ]; then
             echo "::error::The following packages failed to publish:${failed}"
