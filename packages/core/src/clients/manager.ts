@@ -17,7 +17,7 @@
 // Client Manager - Unified orchestration layer for Conflux DevKit Node
 // Manages both Core and EVM clients with health monitoring and network coordination
 
-import { EventEmitter } from 'node:events';
+import EventEmitter from 'eventemitter3';
 import { createCoreClient } from '../clients/core.js';
 import { createEspaceClient } from '../clients/evm.js';
 import {

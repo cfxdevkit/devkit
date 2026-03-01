@@ -1,0 +1,131 @@
+---
+title: Swap Quote (Swappi)
+description: Get a live WCFX→USDT swap quote from Swappi DEX using EspaceClient.readContract.
+---
+
+import { Callout } from 'nextra/components'
+
+# Swap Quote (Swappi)
+
+Query Swappi (the main Uniswap V2-style DEX on Conflux eSpace) for a live WCFX → USDT swap quote. This is a pure read call — no wallet or signing required.
+
+<Callout type="warning">
+Swappi liquidity exists only on **Testnet**. Make sure the network toggle above is set to **Testnet** before running.
+</Callout>
+
+<Playground
+  file="/index.ts"
+  files={{
+    "/index.ts": `import { EspaceClient, formatUnits, parseUnits } from './cfxdevkit'
+import { NETWORK } from './network-config'
+
+// ── Swappi Router (same address on testnet and mainnet) ──────
+const SWAPPI_ROUTER = '0x62B0873055Bf896Dd869e172119871ac24aeA305'
+
+// ── Testnet token addresses ──────────────────────────────────
+const WCFX = '0x2ed3dddae5b2f321af0806181fbfa6d049be47d8'
+const USDT = '0x7d682e65efc5c13bf4e394b8f376c48e6bae0355'
+
+// ── Only the view functions needed from the Router ABI ───────
+// In production: SwapService from @cfxdevkit/services wraps this
+const ROUTER_ABI = [
+  {
+    name: 'getAmountsOut',
+    type: 'function',
+    stateMutability: 'view',
+    inputs:  [{ name: 'amountIn', type: 'uint256' }, { name: 'path', type: 'address[]' }],
+    outputs: [{ name: 'amounts',  type: 'uint256[]' }],
+  },
+  {
+    name: 'getAmountsIn',
+    type: 'function',
+    stateMutability: 'view',
+    inputs:  [{ name: 'amountOut', type: 'uint256' }, { name: 'path', type: 'address[]' }],
+    outputs: [{ name: 'amounts',   type: 'uint256[]' }],
+  },
+] as const
+
+const client = new EspaceClient({
+  chainId: NETWORK.chainId,
+  rpcUrl:  NETWORK.rpcUrl,
+})
+
+async function main() {
+  const amountIn = parseUnits('1', 18) // 1 WCFX
+  const path     = [WCFX, USDT]
+
+  console.log('Router: ', SWAPPI_ROUTER)
+  console.log('Network:', NETWORK.rpcUrl)
+  console.log()
+
+  // ── getAmountsOut: how much USDT do I get for 1 WCFX? ───────
+  console.log('Quote: 1 WCFX → ? USDT')
+  const amountsOut = await client.readContract({
+    address:      SWAPPI_ROUTER,
+    abi:          ROUTER_ABI,
+    functionName: 'getAmountsOut',
+    args: [amountIn, path],
+  }) as bigint[]
+
+  const usdtOut = formatUnits(amountsOut[1], 18)
+  console.log('  amountIn:  1 WCFX')
+  console.log('  amountOut:', usdtOut, 'USDT')
+  console.log()
+
+  // ── getAmountsIn: how much WCFX do I need for 10 USDT? ──────
+  const wantOut = parseUnits('10', 18) // 10 USDT
+  console.log('Quote: ? WCFX → 10 USDT')
+  const amountsIn = await client.readContract({
+    address:      SWAPPI_ROUTER,
+    abi:          ROUTER_ABI,
+    functionName: 'getAmountsIn',
+    args: [wantOut, path],
+  }) as bigint[]
+
+  const wcfxIn = formatUnits(amountsIn[0], 18)
+  console.log('  amountIn: ', wcfxIn, 'WCFX')
+  console.log('  amountOut: 10 USDT')
+  console.log()
+
+  // ── Effective rate ───────────────────────────────────────────
+  const rate = parseFloat(usdtOut)
+  console.log('Effective rate:  1 WCFX =', rate.toFixed(4), 'USDT')
+  console.log()
+  console.log('\\u2713 Done')
+}
+
+main().catch(console.error)
+`
+  }}
+  showConsole
+/>
+
+---
+
+## How it works
+
+1. `EspaceClient.readContract()` calls any view function — here we call Swappi Router's `getAmountsOut` and `getAmountsIn`.
+2. `getAmountsOut(amountIn, path)` → returns `[amountIn, amountOut]` — how much output you get for a given input.
+3. `getAmountsIn(amountOut, path)` → returns `[amountIn, amountOut]` — how much input you need to get a desired output.
+
+### Using `@cfxdevkit/services` in production
+
+`SwapService` wraps this contract interaction and handles token lookups by symbol:
+
+```typescript
+import { ClientManager, EVM_TESTNET } from '@cfxdevkit/core'
+import { SwapService } from '@cfxdevkit/services'
+
+const manager = new ClientManager({ evm: { chain: EVM_TESTNET } })
+await manager.connect()
+
+const swap = new SwapService(manager.evm.publicClient, 'testnet')
+const quote = await swap.getQuote({
+  tokenIn:     '0x2ed3dddae5b2f321af0806181fbfa6d049be47d8', // WCFX
+  tokenOut:    '0x7d682e65efc5c13bf4e394b8f376c48e6bae0355', // USDT
+  amountIn:    '1',
+  slippage:    50, // 0.5% in basis points
+})
+console.log('Expected out:', quote.amountOut, 'USDT')
+console.log('Minimum out: ', quote.amountOutMin, 'USDT')
+```

@@ -1,0 +1,73 @@
+---
+title: Block Number & Chain Info
+description: Connect EspaceClient, read block number, gas price, and latest block header.
+---
+
+# Block Number & Chain Info
+
+The simplest interaction with Conflux eSpace: connect `EspaceClient`, verify the connection, and inspect the latest block.
+
+<Playground
+  file="/index.ts"
+  files={{
+    "/index.ts": `import { EspaceClient } from './cfxdevkit'
+import { NETWORK } from './network-config'
+
+// ── Create cfxdevkit eSpace client ─────────────────────────
+const client = new EspaceClient({
+  chainId: NETWORK.chainId,
+  rpcUrl:  NETWORK.rpcUrl,
+})
+
+async function main() {
+  // 1. Connection check
+  const connected = await client.isConnected()
+  console.log('Connected:', connected)
+  console.log('RPC:      ', NETWORK.rpcUrl)
+  console.log()
+
+  // 2. Basic chain info
+  const chainId     = await client.getChainId()
+  const blockNumber = await client.getBlockNumber()
+  const gasPrice    = await client.getGasPrice()
+
+  console.log('Chain ID:  ', chainId)
+  console.log('Block #:   ', blockNumber.toString())
+  console.log('Gas price: ', gasPrice.toString(), 'wei')
+  console.log('Gas price: ', (Number(gasPrice) / 1e9).toFixed(4), 'Gwei')
+  console.log()
+
+  // 3. Latest block details via the internal viem publicClient
+  const block = await client.publicClient.getBlock({ blockTag: 'latest' })
+  console.log('Latest block')
+  console.log('  hash:      ', block.hash)
+  console.log('  timestamp: ', new Date(Number(block.timestamp) * 1000).toISOString())
+  console.log('  txns:      ', block.transactions.length)
+  console.log('  gasUsed:   ', block.gasUsed.toString())
+  console.log('  gasLimit:  ', block.gasLimit.toString())
+  console.log()
+  console.log('\\u2713 Done')
+}
+
+main().catch(console.error)
+`
+  }}
+  showConsole
+/>
+
+---
+
+## How it works
+
+1. `new EspaceClient({ chainId, rpcUrl })` configures a viem `PublicClient` for Conflux eSpace — no separate chain-definition boilerplate.
+2. `isConnected()` makes a lightweight `getBlockNumber` probe to confirm the RPC is reachable.
+3. `getChainId()`, `getBlockNumber()`, `getGasPrice()` are direct cfxdevkit helpers.
+4. `client.publicClient` exposes the underlying viem `PublicClient` for anything not wrapped by cfxdevkit, like `getBlock()`.
+
+```typescript
+// Production import
+import { EspaceClient } from '@cfxdevkit/core'
+
+const client = new EspaceClient({ chainId: 71, rpcUrl: 'https://evmtestnet.confluxrpc.com' })
+const block = await client.getBlockNumber()
+```

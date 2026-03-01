@@ -1,6 +1,6 @@
 ---
 title: Live Playground
-description: Run @cfxdevkit code examples live against Conflux testnet or local node.
+description: Run @cfxdevkit code examples live against Conflux testnet.
 ---
 
 import { Callout } from 'nextra/components'
@@ -10,13 +10,21 @@ import { Callout } from 'nextra/components'
 Interactive code examples you can edit and run directly in your browser.
 
 <Callout type="info">
-Examples run against **Conflux eSpace Testnet** by default. Use the network toggle to switch to a local node (`localhost:8545`).
+Examples run against **Conflux eSpace Testnet** (`chainId: 71`). Sandpack runs inside a remote sandbox and cannot reach `localhost`, so only public RPC endpoints are supported.
 </Callout>
 
 ---
 
 ## Available examples
 
+### @cfxdevkit/core · eSpace client
+
+- [Block Number](/examples/espace-block-number) — Connect `EspaceClient`, read block number, gas price, and latest block header
 - [Read Balance](/examples/read-balance) — Query native CFX and ERC-20 balances
-- [Deploy ERC-20](/examples/deploy-token) — Deploy a full-featured token from the bootstrap library
-- [Send CFX](/examples/send-cfx) — Construct and sign a native transfer
+- [ERC-20 Token Info](/examples/erc20-info) — Batch-read token metadata with `ERC20_ABI` and `readContract`
+- [Send CFX](/examples/send-cfx) — Sign and broadcast a native transfer with `EspaceWalletClient`
+- [Deploy ERC-20](/examples/deploy-token) — Deploy a token contract using `deployContract`
+
+### @cfxdevkit/services
+
+- [Swap Quote](/examples/swap-quote) — Get a live WCFX → USDT quote from Swappi DEX

@@ -1,9 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import {
   SandpackProvider,
-  SandpackLayout,
   SandpackCodeEditor,
   SandpackConsole,
   SandpackPreview,
@@ -34,15 +32,7 @@ const NETWORKS = {
     rpcUrl: 'https://evmtestnet.confluxrpc.com',
     blockExplorer: 'https://evmtestnet.confluxscan.io',
   },
-  local: {
-    label: 'Local (localhost:8545)',
-    chainId: 2030,
-    rpcUrl: 'http://localhost:8545',
-    blockExplorer: '',
-  },
 } as const
-
-type Network = keyof typeof NETWORKS
 
 // ── Run button — must be inside SandpackProvider ─────────────────────────────
 function RunButton() {
@@ -52,6 +42,7 @@ function RunButton() {
 
   return (
     <button
+      type="button"
       onClick={refresh}
       disabled={busy}
       style={{
@@ -76,14 +67,9 @@ function RunButton() {
   )
 }
 
-// ── Network toggle ────────────────────────────────────────────────────────────
-function NetworkToggle({
-  network,
-  onChange,
-}: {
-  network: Network
-  onChange: (n: Network) => void
-}) {
+// ── Network label ─────────────────────────────────────────────────────────────
+function NetworkLabel() {
+  const cfg = NETWORKS.testnet
   return (
     <div
       style={{
@@ -93,38 +79,23 @@ function NetworkToggle({
         fontSize: '12px',
         fontFamily: 'ui-monospace, monospace',
         color: T.muted,
-        minWidth: 0,
-        overflow: 'hidden',
       }}
     >
       <span style={{ whiteSpace: 'nowrap' }}>network:</span>
-      {(Object.keys(NETWORKS) as Network[]).map((key) => (
-        <button
-          key={key}
-          onClick={() => onChange(key)}
-          style={{
-            padding: '2px 9px',
-            borderRadius: '4px',
-            border: 'none',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            fontSize: '11px',
-            whiteSpace: 'nowrap',
-            background: network === key ? T.activeBg : T.pillBg,
-            color: network === key ? T.activeText : T.text,
-          }}
-        >
-          {NETWORKS[key].label}
-        </button>
-      ))}
       <span
         style={{
-          color: T.muted,
-          fontSize: '10px',
+          padding: '2px 9px',
+          borderRadius: '4px',
+          background: T.activeBg,
+          color: T.activeText,
+          fontSize: '11px',
           whiteSpace: 'nowrap',
         }}
       >
-        · chain {NETWORKS[network].chainId}
+        {cfg.label}
+      </span>
+      <span style={{ fontSize: '10px', whiteSpace: 'nowrap' }}>
+        · chain {cfg.chainId}
       </span>
     </div>
   )
@@ -141,8 +112,129 @@ interface PlaygroundProps {
 
 const DEFAULT_DEPS: Record<string, string> = {
   viem: '^2.0.0',
-  // @cfxdevkit/* packages omitted — not yet on npm; examples use viem directly
 }
+
+// ── Browser-compatible shim ────────────────────────────────────────────────
+// @cfxdevkit/core uses node:events (via ClientManager) which Sandpack's bundler
+// cannot polyfill. This shim re-implements the same public API surface using
+// viem directly. In a real project you import from '@cfxdevkit/core'.
+const CFXDEVKIT_SHIM = `// cfxdevkit.ts — browser shim for @cfxdevkit/core
+// Real project: replace './cfxdevkit' with '@cfxdevkit/core'
+import {
+  createPublicClient, createWalletClient, http,
+  formatEther, formatUnits, parseEther, parseUnits, defineChain,
+} from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
+
+export { formatEther, formatUnits, parseEther, parseUnits } from 'viem'
+
+export const ERC20_ABI = [
+  { name: 'name',        type: 'function', stateMutability: 'view',        inputs: [],                                                                                outputs: [{ type: 'string'  }] },
+  { name: 'symbol',      type: 'function', stateMutability: 'view',        inputs: [],                                                                                outputs: [{ type: 'string'  }] },
+  { name: 'decimals',    type: 'function', stateMutability: 'view',        inputs: [],                                                                                outputs: [{ type: 'uint8'   }] },
+  { name: 'totalSupply', type: 'function', stateMutability: 'view',        inputs: [],                                                                                outputs: [{ type: 'uint256' }] },
+  { name: 'balanceOf',   type: 'function', stateMutability: 'view',        inputs: [{ name: 'account', type: 'address' }],                                            outputs: [{ type: 'uint256' }] },
+  { name: 'allowance',   type: 'function', stateMutability: 'view',        inputs: [{ name: 'owner',   type: 'address' }, { name: 'spender', type: 'address' }],      outputs: [{ type: 'uint256' }] },
+  { name: 'transfer',    type: 'function', stateMutability: 'nonpayable',   inputs: [{ name: 'to',      type: 'address' }, { name: 'amount',  type: 'uint256' }],      outputs: [{ type: 'bool'    }] },
+  { name: 'approve',     type: 'function', stateMutability: 'nonpayable',   inputs: [{ name: 'spender', type: 'address' }, { name: 'amount',  type: 'uint256' }],      outputs: [{ type: 'bool'    }] },
+  { name: 'transferFrom',type: 'function', stateMutability: 'nonpayable',   inputs: [{ name: 'from',    type: 'address' }, { name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ type: 'bool' }] },
+] as const
+
+function makeChain(chainId, rpcUrl) {
+  const names = { 71: 'Conflux eSpace Testnet', 1030: 'Conflux eSpace' }
+  return defineChain({
+    id: chainId,
+    name: names[chainId] || 'Conflux eSpace (' + chainId + ')',
+    nativeCurrency: { name: 'Conflux', symbol: 'CFX', decimals: 18 },
+    rpcUrls: { default: { http: [rpcUrl] } },
+  })
+}
+
+export class EspaceClient {
+  public publicClient
+  public chainId
+  public rpcUrl
+  public address = ''
+
+  constructor({ chainId, rpcUrl }) {
+    this.chainId = chainId
+    this.rpcUrl  = rpcUrl
+    this.publicClient = createPublicClient({
+      chain:     makeChain(chainId, rpcUrl),
+      transport: http(rpcUrl),
+    })
+  }
+
+  async getBlockNumber()    { return this.publicClient.getBlockNumber() }
+  async getChainId()        { return this.publicClient.getChainId() }
+  async getGasPrice()       { return this.publicClient.getGasPrice() }
+  async isConnected()       { try { await this.publicClient.getBlockNumber(); return true } catch { return false } }
+
+  async getBalance(address) {
+    const wei = await this.publicClient.getBalance({ address })
+    return formatEther(wei)
+  }
+
+  async getTokenBalance(address, tokenAddress) {
+    const bal = await this.publicClient.readContract({
+      address: tokenAddress, abi: ERC20_ABI, functionName: 'balanceOf', args: [address],
+    })
+    return String(bal)
+  }
+
+  async readContract({ address, abi, functionName, args = [] }) {
+    return this.publicClient.readContract({ address, abi, functionName, args })
+  }
+
+  async estimateGas({ to, value, data }) {
+    return this.publicClient.estimateGas({ to, value, data })
+  }
+
+  async waitForTransaction(hash) {
+    const r = await this.publicClient.waitForTransactionReceipt({ hash })
+    return {
+      hash: r.transactionHash, blockNumber: r.blockNumber,
+      gasUsed: r.gasUsed, status: r.status, contractAddress: r.contractAddress ?? undefined,
+    }
+  }
+}
+
+export class EspaceWalletClient extends EspaceClient {
+  _account
+  _walletClient
+
+  constructor({ chainId, rpcUrl, privateKey }) {
+    super({ chainId, rpcUrl })
+    this._account     = privateKeyToAccount(privateKey)
+    this.address      = this._account.address
+    this._walletClient = createWalletClient({
+      account: this._account, chain: makeChain(chainId, rpcUrl), transport: http(rpcUrl),
+    })
+  }
+
+  getAddress() { return this.address }
+
+  async sendTransaction({ to, value, data }) {
+    return this._walletClient.sendTransaction({
+      account: this._account, chain: makeChain(this.chainId, this.rpcUrl),
+      to, value, data,
+    })
+  }
+
+  async signMessage(message) {
+    return this._walletClient.signMessage({ account: this._account, message })
+  }
+
+  async deployContract(abi, bytecode, args = []) {
+    const hash = await this._walletClient.deployContract({
+      account: this._account, chain: makeChain(this.chainId, this.rpcUrl),
+      abi, bytecode, args,
+    })
+    const r = await this.waitForTransaction(hash)
+    return r.contractAddress
+  }
+}
+`
 
 // ── Main component ────────────────────────────────────────────────────────────
 export function Playground({
@@ -152,13 +244,12 @@ export function Playground({
   extraDeps = {},
   file = 'index.ts',
 }: PlaygroundProps) {
-  const [network, setNetwork] = useState<Network>('testnet')
+  const networkConfig = NETWORKS.testnet
 
-  const networkConfig = NETWORKS[network]
-
-  const networkFile = `// Auto-generated — changes when you toggle network\nexport const NETWORK = {\n  chainId: ${networkConfig.chainId},\n  rpcUrl: '${networkConfig.rpcUrl}',\n  blockExplorer: '${networkConfig.blockExplorer}',\n} as const\n`
+  const networkFile = `// Auto-generated network config\nexport const NETWORK = {\n  chainId: ${networkConfig.chainId},\n  rpcUrl: '${networkConfig.rpcUrl}',\n  blockExplorer: '${networkConfig.blockExplorer}',\n} as const\n`
 
   const mergedFiles = {
+    '/cfxdevkit.ts': { code: CFXDEVKIT_SHIM, hidden: true, readOnly: true },
     '/network-config.ts': { code: networkFile, readOnly: true },
     ...Object.fromEntries(
       Object.entries(files).map(([name, code]) => [
@@ -180,13 +271,14 @@ export function Playground({
       }}
     >
       <SandpackProvider
-        key={network}
         template={template}
         theme="dark"
         files={mergedFiles}
         options={{
           activeFile,
-          visibleFiles: Object.keys(mergedFiles),
+          visibleFiles: Object.entries(mergedFiles)
+            .filter(([, v]) => !(v as { hidden?: boolean }).hidden)
+            .map(([k]) => k),
           recompileMode: 'delayed',
           recompileDelay: 600,
           autorun: true,
@@ -209,23 +301,38 @@ export function Playground({
             gap: '8px',
           }}
         >
-          <NetworkToggle network={network} onChange={setNetwork} />
+          <NetworkLabel />
           <RunButton />
         </div>
 
-        <SandpackLayout>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            background: T.bg,
+          }}
+        >
           <SandpackCodeEditor
             showLineNumbers
             showInlineErrors
             wrapContent
-            style={{ height: 380 }}
+            style={{ height: 340, minWidth: 0 }}
           />
+          <div style={{ height: 1, background: T.border }} />
           {showConsole ? (
-            <SandpackConsole showHeader style={{ height: 380 }} />
+            <SandpackConsole showHeader style={{ height: 260, minWidth: 0 }} />
           ) : (
-            <SandpackPreview style={{ height: 380 }} showNavigator={false} />
+            <SandpackPreview style={{ height: 260, minWidth: 0 }} showNavigator={false} />
           )}
-        </SandpackLayout>
+        </div>
+
+        {/* SandpackConsole needs a running iframe (SandpackPreview) to execute code.
+            When only the console is shown, render a hidden preview to provide that client. */}
+        {showConsole && (
+          <div aria-hidden="true" style={{ height: 0, overflow: 'hidden' }}>
+            <SandpackPreview />
+          </div>
+        )}
       </SandpackProvider>
     </div>
   )

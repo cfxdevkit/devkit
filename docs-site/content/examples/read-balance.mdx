@@ -10,55 +10,45 @@ import { Callout } from 'nextra/components'
 Query the native CFX balance and any ERC-20 token balance for an address.
 
 <Callout type="tip">
-Edit the `address` constant to check any wallet. Toggle the network above the editor to switch between testnet and local.
+Edit the `address` constant to check any wallet.
 </Callout>
 
 <Playground
   file="/index.ts"
   files={{
-    "/index.ts": `import { createPublicClient, http, formatEther, formatUnits } from 'viem'
+    "/index.ts": `import { EspaceClient, formatUnits } from './cfxdevkit'
 import { NETWORK } from './network-config'
 
 // ── Config ─────────────────────────────────────────────────
 const ADDRESS = '0x0000000000000000000000000000000000000001'
-
-// Well-known testnet ERC-20 (Wrapped CFX on testnet)
+// Well-known ERC-20: Wrapped CFX on testnet
 const WCFX_TESTNET = '0x2ed3dddae5b2f321af0806181fbfa6d049be47d8'
 
-const ERC20_BALANCE_OF = [{
-  name: 'balanceOf',
-  type: 'function',
-  stateMutability: 'view',
-  inputs: [{ name: 'owner', type: 'address' }],
-  outputs: [{ name: '', type: 'uint256' }],
-}] as const
-
-// ── Client ─────────────────────────────────────────────────
-const client = createPublicClient({
-  transport: http(NETWORK.rpcUrl),
+// ── Create cfxdevkit eSpace client ─────────────────────────
+const client = new EspaceClient({
+  chainId: NETWORK.chainId,
+  rpcUrl:  NETWORK.rpcUrl,
 })
 
-// ── Read native balance ─────────────────────────────────────
 async function main() {
-  console.log('Network:', NETWORK.rpcUrl)
+  console.log('Network: ', NETWORK.rpcUrl)
   console.log('Chain ID:', NETWORK.chainId)
+
+  const block = await client.getBlockNumber()
+  console.log('Block #: ', block.toString())
   console.log()
 
-  // Native CFX balance
-  const wei = await client.getBalance({ address: ADDRESS as \`0x\${string}\` })
-  console.log('Native balance:', formatEther(wei), 'CFX')
+  // getBalance() returns a formatted CFX string (not raw wei)
+  const cfx = await client.getBalance(ADDRESS as \`0x\${string}\`)
+  console.log('Native balance:', cfx, 'CFX')
 
-  // ERC-20 token balance (WCFX on testnet)
+  // getTokenBalance() returns raw BigInt as string; formatUnits converts it
   try {
-    const tokenBal = await client.readContract({
-      address: WCFX_TESTNET as \`0x\${string}\`,
-      abi: ERC20_BALANCE_OF,
-      functionName: 'balanceOf',
-      args: [ADDRESS as \`0x\${string}\`],
-    })
-    console.log('WCFX balance:', formatEther(tokenBal), 'WCFX')
-  } catch (e) {
-    console.log('(WCFX not available on local network)')
+    const raw = await client.getTokenBalance(ADDRESS, WCFX_TESTNET)
+    const wcfx = formatUnits(BigInt(raw), 18)
+    console.log('WCFX balance:  ', wcfx, 'WCFX')
+  } catch {
+    console.log('WCFX: (not available on local network)')
   }
 
   console.log()
@@ -75,8 +65,9 @@ main().catch(console.error)
 
 ## How it works
 
-1. `createPublicClient` from `viem` connects to the RPC from the network toggle
-2. `getBalance` returns the native CFX balance in wei — we format it with `formatEther`
-3. `readContract` calls `balanceOf` on the WCFX token contract
+1. `EspaceClient` from `@cfxdevkit/core` wraps viem's `PublicClient` — pass `chainId` + `rpcUrl` and it configures the chain automatically.
+2. `client.getBalance(address)` returns a **formatted CFX string** (not raw wei), so no manual `formatEther` is needed.
+3. `client.getTokenBalance(address, tokenAddress)` calls `balanceOf` under the hood and returns the raw BigInt as a string — use `formatUnits` to convert.
+4. `getBlockNumber()` returns a `bigint` — call `.toString()` before printing.
 
 The `network-config.ts` file is auto-generated when you toggle the network above.

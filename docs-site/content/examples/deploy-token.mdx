@@ -16,69 +16,55 @@ This example **simulates** the deploy calldata and gas estimate. To actually sen
 <Playground
   file="/index.ts"
   files={{
-    "/erc20Base.ts": `// Minimal ABI + bytecode stub for demonstration
-// In production: import { erc20BaseAbi, erc20BaseBytecode } from '@cfxdevkit/contracts'
-export const erc20BaseAbi = [
-  {
-    type: 'constructor',
-    inputs: [
-      { name: 'name',            type: 'string'  },
-      { name: 'symbol',          type: 'string'  },
-      { name: 'initialSupply',   type: 'uint256' },
-      { name: 'owner',           type: 'address' },
-    ],
-  },
-  { name: 'name',        type: 'function', stateMutability: 'view', inputs: [], outputs: [{ type: 'string' }] },
-  { name: 'symbol',      type: 'function', stateMutability: 'view', inputs: [], outputs: [{ type: 'string' }] },
-  { name: 'totalSupply', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
-] as const
-`,
-    "/index.ts": `import {
-  createPublicClient,
-  createWalletClient,
-  http,
-  parseEther,
-  encodeDeployData,
-  formatEther,
-  privateKeyToAccount,
-} from 'viem'
+    "/index.ts": `import { EspaceWalletClient, ERC20_ABI, parseUnits, formatUnits } from './cfxdevkit'
 import { NETWORK } from './network-config'
-import { erc20BaseAbi } from './erc20Base'
 
 // ── Config ─────────────────────────────────────────────────
-const TOKEN_NAME    = 'My Demo Token'
-const TOKEN_SYMBOL  = 'DEMO'
-const INITIAL_SUPPLY = parseEther('1_000_000') // 1 million tokens
+// ⚠️  TESTNET key only — replace before sending real transactions
+const PRIVATE_KEY    = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
+const TOKEN_NAME     = 'Demo Token'
+const TOKEN_SYMBOL   = 'DEMO'
+const INITIAL_SUPPLY = parseUnits('1000000', 18) // 1 000 000 DEMO
 
-// ⚠️  Replace with a TESTNET private key to actually deploy
-const PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
-
-// ── Client ─────────────────────────────────────────────────
-const account = privateKeyToAccount(PRIVATE_KEY as \`0x\${string}\`)
-const publicClient = createPublicClient({ transport: http(NETWORK.rpcUrl) })
+// ── Create cfxdevkit wallet client ─────────────────────────
+const wallet = new EspaceWalletClient({
+  chainId:    NETWORK.chainId,
+  rpcUrl:     NETWORK.rpcUrl,
+  privateKey: PRIVATE_KEY,
+})
 
 async function main() {
-  console.log('Network:', NETWORK.rpcUrl)
-  console.log('Deployer:', account.address)
+  console.log('Network: ', NETWORK.rpcUrl)
+  console.log('Deployer:', wallet.getAddress())
   console.log()
-
-  // Estimate gas
-  const calldata = encodeDeployData({
-    abi: erc20BaseAbi,
-    bytecode: '0x60806040',  // stub — use real bytecode from @cfxdevkit/contracts
-    args: [TOKEN_NAME, TOKEN_SYMBOL, INITIAL_SUPPLY, account.address],
-  })
 
   console.log('Token name:    ', TOKEN_NAME)
   console.log('Token symbol:  ', TOKEN_SYMBOL)
-  console.log('Initial supply:', formatEther(INITIAL_SUPPLY), TOKEN_SYMBOL)
+  console.log('Initial supply:', formatUnits(INITIAL_SUPPLY, 18), TOKEN_SYMBOL)
   console.log()
-  console.log('Deploy calldata (first 66 chars):')
-  console.log(calldata.slice(0, 66) + '...')
+
+  // ERC20_ABI is exported directly from @cfxdevkit/core
+  const fns = (ERC20_ABI as any[]).filter(e => e.type === 'function')
+  console.log('ERC20_ABI has', fns.length, 'functions:')
+  fns.slice(0, 8).forEach((f: any) => {
+    console.log('  •', f.name, '(' + f.stateMutability + ')')
+  })
+  console.log('  ...')
   console.log()
-  console.log('✓ To deploy, use:')
-  console.log('  import { erc20BaseAbi, erc20BaseBytecode } from "@cfxdevkit/contracts"')
-  console.log('  walletClient.deployContract({ abi, bytecode, args: [...] })')
+
+  // Constructor args for an ERC-20 (name, symbol, initialSupply, owner)
+  const ctorArgs = [TOKEN_NAME, TOKEN_SYMBOL, INITIAL_SUPPLY, wallet.getAddress()]
+  console.log('Constructor args:')
+  ctorArgs.forEach((a, i) =>
+    console.log(' [' + i + ']', typeof a === 'bigint' ? a.toString() : a)
+  )
+  console.log()
+
+  // wallet.deployContract(abi, bytecode, args) handles signing + receipt
+  console.log('✓ To deploy:')
+  console.log('  import { erc20BaseBytecode } from \'@cfxdevkit/contracts\'')
+  console.log('  const addr = await wallet.deployContract(ERC20_ABI, erc20BaseBytecode, ctorArgs)')
+  console.log('  console.log(\'Deployed at:\', addr)')
 }
 
 main().catch(console.error)
@@ -92,20 +78,24 @@ main().catch(console.error)
 ## Using the real bytecode
 
 ```typescript
-import { erc20BaseAbi, erc20BaseBytecode } from '@cfxdevkit/contracts'
-import { parseEther } from 'viem'
+import { EspaceWalletClient, ERC20_ABI, parseUnits } from '@cfxdevkit/core'
+import { erc20BaseBytecode } from '@cfxdevkit/contracts'
 
-const hash = await walletClient.deployContract({
-  abi: erc20BaseAbi,
-  bytecode: erc20BaseBytecode,
-  args: [
-    'My Token',             // name
-    'MTK',                  // symbol
-    parseEther('1000000'),  // initialSupply
-    ownerAddress,           // owner
-  ],
-})
+const wallet = new EspaceWalletClient({ chainId: 71, rpcUrl: '...', privateKey: '0x...' })
 
-const receipt = await publicClient.waitForTransactionReceipt({ hash })
-console.log('Deployed at:', receipt.contractAddress)
+// deployContract returns the deployed contract address directly
+const contractAddress = await wallet.deployContract(
+  ERC20_ABI,
+  erc20BaseBytecode,
+  [
+    'My Token',              // name
+    'MTK',                   // symbol
+    parseUnits('1000000', 18), // initialSupply
+    wallet.getAddress(),     // owner
+  ]
+)
+
+console.log('Deployed at:', contractAddress)
 ```
+
+`wallet.deployContract()` internally calls `walletClient.deployContract` then `waitForTransactionReceipt` and returns the contract address — no manual receipt polling needed.
