@@ -7,11 +7,38 @@ import {
   SandpackCodeEditor,
   SandpackPreview,
   SandpackConsole,
-  useActiveCode,
   useSandpack,
 } from '@codesandbox/sandpack-react'
 // sandpackDark is bundled with sandpack-react
 const sandpackDark = 'dark' as const
+
+function RunButton() {
+  const { dispatch, sandpack } = useSandpack()
+  const isLoading = sandpack.status === 'initial' || sandpack.status === 'timeout'
+  return (
+    <button
+      onClick={() => dispatch({ type: 'refresh' })}
+      disabled={isLoading}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '4px 14px',
+        borderRadius: '4px',
+        border: 'none',
+        cursor: isLoading ? 'not-allowed' : 'pointer',
+        fontFamily: 'var(--sp-font-mono)',
+        fontSize: '12px',
+        fontWeight: 600,
+        background: isLoading ? 'var(--sp-colors-surface2)' : '#22c55e',
+        color: isLoading ? 'var(--sp-colors-fg-inactive)' : '#fff',
+        transition: 'background 0.15s',
+      }}
+    >
+      ▶ Run
+    </button>
+  )
+}
 
 // Conflux network configs
 const NETWORKS = {
@@ -58,18 +85,7 @@ function NetworkToggle({
   onChange: (n: Network) => void
 }) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '6px 12px',
-        borderBottom: '1px solid var(--sp-colors-surface2)',
-        background: 'var(--sp-colors-surface1)',
-        fontSize: '12px',
-        fontFamily: 'var(--sp-font-mono)',
-      }}
-    >
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontFamily: 'var(--sp-font-mono)' }}>
       <span style={{ color: 'var(--sp-colors-fg-inactive)' }}>network:</span>
       {(Object.keys(NETWORKS) as Network[]).map((key) => (
         <button
@@ -82,27 +98,15 @@ function NetworkToggle({
             cursor: 'pointer',
             fontFamily: 'inherit',
             fontSize: '11px',
-            background:
-              network === key
-                ? 'var(--sp-colors-accent)'
-                : 'var(--sp-colors-surface2)',
-            color:
-              network === key
-                ? '#fff'
-                : 'var(--sp-colors-fg-inactive)',
+            background: network === key ? 'var(--sp-colors-accent)' : 'var(--sp-colors-surface2)',
+            color: network === key ? '#fff' : 'var(--sp-colors-fg-inactive)',
           }}
         >
           {NETWORKS[key].label}
         </button>
       ))}
-      <span
-        style={{
-          marginLeft: 'auto',
-          color: 'var(--sp-colors-fg-inactive)',
-          fontSize: '10px',
-        }}
-      >
-        chainId: {NETWORKS[network].chainId} · {NETWORKS[network].rpcUrl}
+      <span style={{ color: 'var(--sp-colors-fg-inactive)', fontSize: '10px' }}>
+        · chain {NETWORKS[network].chainId}
       </span>
     </div>
   )
@@ -158,18 +162,35 @@ export const NETWORK = {
           },
         }}
       >
-        <NetworkToggle network={network} onChange={setNetwork} />
+        {/* Inner toolbar — inside Provider so RunButton can access sandpack context */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '6px 12px',
+            borderBottom: '1px solid var(--sp-colors-surface2)',
+            background: 'var(--sp-colors-surface1)',
+          }}
+        >
+          <NetworkToggle network={network} onChange={setNetwork} />
+          <RunButton />
+        </div>
         <SandpackLayout>
           <SandpackCodeEditor
             showLineNumbers
             showInlineErrors
             wrapContent
-            style={{ height: 400 }}
+            style={{ height: 380 }}
           />
           {showConsole ? (
-            <SandpackConsole style={{ height: 400 }} />
+            <SandpackConsole
+              showHeader
+              showResetConsoleButton
+              style={{ height: 380 }}
+            />
           ) : (
-            <SandpackPreview style={{ height: 400 }} />
+            <SandpackPreview style={{ height: 380 }} showNavigator={false} />
           )}
         </SandpackLayout>
       </SandpackProvider>
