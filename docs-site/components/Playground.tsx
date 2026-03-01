@@ -5,7 +5,7 @@ import {
   SandpackCodeEditor,
   SandpackConsole,
   SandpackPreview,
-  SandpackLoadingOverlay,
+  LoadingOverlay,
   useSandpack,
   useSandpackNavigation,
 } from '@codesandbox/sandpack-react'
@@ -176,7 +176,7 @@ export function Playground({
             position: 'relative',
           }}
         >
-          <SandpackLoadingOverlay />
+          <LoadingOverlay />
           <SandpackCodeEditor
             showLineNumbers
             showInlineErrors
