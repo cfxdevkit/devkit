@@ -1,6 +1,6 @@
 {
   "name": "@cfxdevkit/services",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "High-level services for Conflux SDK (Swap, Keystore, Encryption)",
   "type": "module",
   "main": "dist/index.js",
