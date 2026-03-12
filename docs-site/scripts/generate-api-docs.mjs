@@ -262,6 +262,23 @@ for (const pkg of PACKAGES) {
   // parent folder segment, producing /api/Class.Foo instead of /api/core/Class.Foo.
   fixDotSlugs(pkgOut);
 
+  // Fix overview page links: index.md is served at /api/<slug> (no trailing
+  // slash), so relative links like `Class-BatcherError` resolve one level up
+  // to /api/Class-BatcherError instead of /api/<slug>/Class-BatcherError.
+  // Prefix them with the slug so they always resolve correctly.
+  const indexPath = join(pkgOut, 'index.md');
+  if (existsSync(indexPath)) {
+    const TYPE_PREFIXES_RE =
+      'Class|Interface|TypeAlias|Function|Variable|Enumeration';
+    const OVERVIEW_LINK_RE = new RegExp(
+      `\\]\\(((?:${TYPE_PREFIXES_RE})-[^)]+)\\)`,
+      'g'
+    );
+    const src = readFileSync(indexPath, 'utf8');
+    const patched = src.replace(OVERVIEW_LINK_RE, `](${pkg.slug}/$1)`);
+    if (patched !== src) writeFileSync(indexPath, patched);
+  }
+
   writeMetaJs(pkgOut, buildMetaForPackage(pkgOut));
 
   apiMeta[pkg.slug] = pkg.name;
