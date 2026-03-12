@@ -7,7 +7,7 @@
 
 services:
   cas-backend:
-    image: ghcr.io/cfxdevkit/cfxdevkit/cas-backend:${TAG:-edge}
+    image: ghcr.io/cfxdevkit/devkit/cas-backend:${TAG:-edge}
     container_name: cas-backend
     restart: unless-stopped
     # Only accessible via Caddy — not exposed to the public internet.
