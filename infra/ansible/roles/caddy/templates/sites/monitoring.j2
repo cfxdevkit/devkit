@@ -1,0 +1,6 @@
+# Caddyfile snippet — Uptime Kuma monitoring dashboard
+# File: /etc/caddy/sites-enabled/monitoring.conf
+
+monitor.{{ base_domain }} {
+	reverse_proxy localhost:{{ app_ports.monitoring }}
+}

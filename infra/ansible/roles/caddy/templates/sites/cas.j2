@@ -1,0 +1,10 @@
+# Caddyfile snippet — CAS
+# File: /etc/caddy/sites-enabled/cas.conf
+# Managed by Ansible. Do not edit manually.
+#
+# Pattern for all apps: <app>.<domain> (frontend via Vercel CNAME)
+#                       api.<app>.<domain> (backend proxied here)
+
+api.cas.{{ base_domain }} {
+	reverse_proxy localhost:{{ app_ports.cas }}
+}

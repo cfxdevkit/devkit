@@ -1,0 +1,67 @@
+name: Build & push CAS backend image
+
+# Builds ghcr.io/<org>/<repo>/cas-backend on every push to main
+# and on semver tags (v1.2.3 → tag 1.2.3 + latest).
+# The deploy-cas.yml workflow triggers after this one completes.
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
+    paths:
+      - "apps/cas/backend/**"
+      - ".github/workflows/build-cas.yml"
+
+concurrency:
+  group: build-cas-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & push cas-backend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write   # required to push to GHCR
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/cas-backend
+          tags: |
+            # semver tag → 1.2.3 + latest
+            type=semver,pattern={{version}}
+            # main branch → edge
+            type=raw,value=edge,enable=${{ github.ref == 'refs/heads/main' }}
+            # latest on tags only
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') }}
+            # git sha (always)
+            type=sha,format=short
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/cas/backend/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

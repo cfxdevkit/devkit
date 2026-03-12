@@ -1,0 +1,11 @@
+---
+# Ansible Galaxy collection requirements for the cfxdevkit VPS playbook.
+#
+# Install with:
+#   ansible-galaxy collection install -r requirements.yml
+
+collections:
+  - name: community.general
+    # Used by: base role (community.general.timezone, locale_gen)
+  - name: community.docker
+    # Used by: monitoring role (community.docker.docker_compose_v2)

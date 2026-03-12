@@ -1,0 +1,75 @@
+name: Deploy CAS to VPS
+
+# Triggers:
+#   - Automatically after build-cas.yml succeeds on main (image tag: edge)
+#   - Manually via workflow_dispatch with a custom tag
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Docker image tag to deploy (default: edge)"
+        required: false
+        default: "edge"
+  workflow_run:
+    workflows: ["Build & push CAS backend image"]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: deploy-cas
+  cancel-in-progress: false # never cancel an in-flight deploy
+
+jobs:
+  deploy:
+    name: SSH deploy — CAS backend
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Determine image tag
+        id: tag
+        run: |
+          # workflow_dispatch: use the manually entered tag
+          # workflow_run from main: use 'edge'
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=edge" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: deploy
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: GHCR_TOKEN
+          script: |
+            set -euo pipefail
+            cd /opt/apps/cas
+
+            echo "Deploying cas-backend tag=${{ steps.tag.outputs.tag }}"
+
+            # Authenticate to GHCR (required if package is private).
+            # Set the GHCR_TOKEN repo secret to a PAT with read:packages scope.
+            # Leave it unset (or empty) if the package is public.
+            if [ -n "${GHCR_TOKEN:-}" ]; then
+              echo "$GHCR_TOKEN" | docker login ghcr.io -u cfxdevkit --password-stdin
+            fi
+
+            # Pull new image
+            TAG=${{ steps.tag.outputs.tag }} docker compose pull cas-backend
+
+            # Restart with zero-downtime (Compose handles old container removal)
+            TAG=${{ steps.tag.outputs.tag }} docker compose up -d --remove-orphans
+
+            # Clean up dangling images
+            docker image prune -f
+
+            # Verify health
+            sleep 5
+            docker compose ps cas-backend
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}

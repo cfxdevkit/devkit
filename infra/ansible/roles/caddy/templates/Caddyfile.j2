@@ -1,0 +1,13 @@
+# Caddyfile — cfxdevkit VPS
+# Managed by Ansible. Do not edit manually.
+#
+# Per-app snippets live in /etc/caddy/sites-enabled/*.conf
+# Add a new app: write a snippet there, then `systemctl reload caddy`.
+
+{
+	email {{ acme_email }}
+	# Automatic HTTPS via Let's Encrypt — no further config needed.
+}
+
+# Import all per-app site configurations.
+import /etc/caddy/sites-enabled/*.conf

@@ -1,0 +1,34 @@
+---
+# Role: cas
+# Idempotent infrastructure setup for the CAS backend:
+#   - creates /opt/apps/cas/
+#   - writes docker-compose.yml
+#   - writes .env (secrets injected from vars/local.yml)
+#
+# Image pull + container start are handled by the 'Deploy CAS to VPS' GitHub
+# Actions workflow (deploy-cas.yml), which runs after build-cas.yml succeeds.
+# Run this role whenever the directory or config needs to be (re-)created.
+
+- name: Create /opt/apps/cas directory
+  file:
+    path: /opt/apps/cas
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_group }}"
+    mode: "0750"
+
+- name: Write docker-compose.yml
+  copy:
+    src: "{{ playbook_dir }}/../../apps/cas/docker-compose.yml"
+    dest: /opt/apps/cas/docker-compose.yml
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_group }}"
+    mode: "0640"
+
+- name: Write .env from template
+  template:
+    src: env.j2
+    dest: /opt/apps/cas/.env
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_group }}"
+    mode: "0600"   # secrets — readable only by deploy user

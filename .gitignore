@@ -58,3 +58,7 @@ TODO.md
 
 # ── Internal planning docs (local only) ───────────────────────────────────────
 docs/CFXDEVKIT-ORG-PLAN.md
+
+# ── Ansible local overrides (contain real IPs + secrets — never commit) ───────
+infra/ansible/inventory.local.ini
+infra/ansible/vars/local.yml

@@ -1,0 +1,153 @@
+---
+# Role: base
+# Creates the deploy user, hardens SSH, configures ufw + fail2ban,
+# and enables unattended security upgrades.
+
+# ── 1. Locale & Timezone ─────────────────────────────────────────────────────
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ server_timezone }}"
+
+- name: Ensure locale is generated
+  locale_gen:
+    name: en_US.UTF-8
+    state: present
+
+# ── 2. Base packages ─────────────────────────────────────────────────────────
+- name: Install base packages
+  apt:
+    name:
+      - curl
+      - gnupg
+      - ca-certificates
+      - git
+      - htop
+      - ufw
+      - fail2ban
+      - unattended-upgrades
+      - apt-listchanges
+      - logrotate
+      - rsync
+    state: present
+    update_cache: true
+
+# ── 3. Deploy user ───────────────────────────────────────────────────────────
+- name: Create deploy group
+  group:
+    name: "{{ deploy_group }}"
+    state: present
+
+- name: Create deploy user
+  user:
+    name: "{{ deploy_user }}"
+    group: "{{ deploy_group }}"
+    shell: /bin/bash
+    create_home: true
+    state: present
+
+- name: Install deploy user SSH public key
+  authorized_key:
+    user: "{{ deploy_user }}"
+    key: "{{ deploy_pubkey }}"
+    state: present
+    exclusive: true
+
+- name: Allow deploy user passwordless sudo for docker only
+  copy:
+    dest: /etc/sudoers.d/deploy-docker
+    content: "{{ deploy_user }} ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker compose\n"
+    mode: "0440"
+    validate: "visudo -cf %s"
+
+# ── 4. SSH hardening ─────────────────────────────────────────────────────────
+- name: Harden SSH configuration
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+  loop:
+    - { regexp: "^#?PermitRootLogin",      line: "PermitRootLogin no" }
+    - { regexp: "^#?PasswordAuthentication", line: "PasswordAuthentication no" }
+    - { regexp: "^#?PubkeyAuthentication", line: "PubkeyAuthentication yes" }
+    - { regexp: "^#?X11Forwarding",        line: "X11Forwarding no" }
+    - { regexp: "^#?MaxAuthTries",         line: "MaxAuthTries 3" }
+    - { regexp: "^#?LoginGraceTime",       line: "LoginGraceTime 30" }
+    - { regexp: "^#?AllowUsers",           line: "AllowUsers {{ deploy_user }}" }
+  notify: Restart SSH
+
+# ── 5. ufw firewall ──────────────────────────────────────────────────────────
+- name: Set ufw default policies
+  ufw:
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
+  loop:
+    - { direction: incoming, policy: deny }
+    - { direction: outgoing, policy: allow }
+
+- name: Allow SSH
+  ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+
+- name: Allow HTTP
+  ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+
+- name: Allow HTTPS
+  ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+
+- name: Enable ufw
+  ufw:
+    state: enabled
+
+# ── 6. fail2ban ──────────────────────────────────────────────────────────────
+- name: Write fail2ban jail.local
+  copy:
+    dest: /etc/fail2ban/jail.local
+    content: |
+      [DEFAULT]
+      bantime  = 3600
+      findtime = 600
+      maxretry = 5
+
+      [sshd]
+      enabled  = true
+      port     = ssh
+      logpath  = %(sshd_log)s
+      backend  = %(sshd_backend)s
+    mode: "0644"
+  notify: Restart fail2ban
+
+- name: Enable and start fail2ban
+  service:
+    name: fail2ban
+    state: started
+    enabled: true
+
+# ── 7. Unattended upgrades ───────────────────────────────────────────────────
+- name: Configure unattended-upgrades (security only)
+  copy:
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    content: |
+      Unattended-Upgrade::Allowed-Origins {
+        "${distro_id}:${distro_codename}-security";
+      };
+      Unattended-Upgrade::Automatic-Reboot "true";
+      Unattended-Upgrade::Automatic-Reboot-Time "03:00";
+      Unattended-Upgrade::Remove-Unused-Dependencies "true";
+    mode: "0644"
+
+- name: Enable unattended-upgrades periodic timer
+  copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+    mode: "0644"

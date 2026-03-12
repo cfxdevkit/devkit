@@ -1,6 +1,8 @@
 packages:
   - "packages/*"
   - "devtools/*"
+  - "apps/*/backend"
+  - "apps/*/frontend"
   - "docs-site"
 ignoredBuiltDependencies:
   - keccak

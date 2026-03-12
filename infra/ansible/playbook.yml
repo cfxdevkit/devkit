@@ -1,0 +1,37 @@
+---
+# Main provisioning playbook for the cfxdevkit VPS
+#
+# Run (first time, as root):
+#   ansible-playbook playbook.yml -i inventory.local.ini -e @vars/local.yml
+#
+# Run (subsequent, as deploy user):
+#   ansible-playbook playbook.yml -i inventory.local.ini -e @vars/local.yml -u deploy
+#
+# Run a single role:
+#   ansible-playbook playbook.yml -i inventory.local.ini --tags caddy
+
+- name: Provision cfxdevkit VPS
+  hosts: vps
+  become: true
+
+  vars_files:
+    - vars/all.yml
+
+  roles:
+    - role: base
+      tags: [base, security]
+
+    - role: docker
+      tags: [docker]
+
+    - role: caddy
+      tags: [caddy]
+
+    - role: backups
+      tags: [backups]
+
+    - role: monitoring
+      tags: [monitoring]
+
+    - role: cas
+      tags: [cas]

@@ -22,6 +22,10 @@
       "cache": false,
       "outputs": []
     },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
     "clean": {
       "cache": false
     },

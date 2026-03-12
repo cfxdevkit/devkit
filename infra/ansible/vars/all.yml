@@ -1,0 +1,70 @@
+---
+# cfxdevkit VPS — Ansible variables
+#
+# This file is committed as a safe template (no real secrets).
+# ► Copy to vars/local.yml, fill in the TODOs, then run:
+#     ansible-playbook playbook.yml -i inventory.local.ini -e @vars/local.yml
+#
+# vars/local.yml is in .gitignore — never commit it.
+
+# ── Deploy user ──────────────────────────────────────────────────────────────
+deploy_user: deploy
+deploy_group: deploy
+
+# Public SSH key installed for the deploy user.
+# This key is also used by GitHub Actions (VPS_SSH_KEY secret holds the matching private key).
+# Current key: gh-actions-serp (ed25519)
+deploy_pubkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP7W5mU3ad4T2iUNBvnQP4ATGpmemtCM/pwsqu7UA1sK gh-actions-serp"
+
+# ── Timezone ─────────────────────────────────────────────────────────────────
+server_timezone: "UTC"
+
+# ── Caddy ────────────────────────────────────────────────────────────────────
+# Base domain — referenced by all Caddyfile snippet templates.
+base_domain: "cfxdevkit.org"
+
+# Email registered with Let's Encrypt for TLS cert expiry notifications.
+acme_email: "info@cfxdevkit.org"
+
+# Internal port map — each app backend listens on its port, bound to 127.0.0.1.
+# Caddy proxies the public subdomain to the matching port.
+# Convention: api.<app>.cfxdevkit.org → localhost:<port>
+app_ports:
+  monitoring: 3002   # Uptime Kuma (monitor.cfxdevkit.org)
+  cas: 3001          # CAS backend  (api.cas.cfxdevkit.org)
+  # next_app: 3003   # ← add future apps here
+
+# ── Backups (restic — local path on VPS) ─────────────────────────────────────
+# Snapshots are written to /opt/restic-repo on the VPS itself.
+# To migrate to off-site storage (B2, S3, SFTP) later, change restic_repository
+# to the appropriate URL and add the provider credentials below.
+#
+# Initialise the repo on first run:
+#   sudo RESTIC_PASSWORD='...' restic -r /opt/restic-repo init
+# (The backup.sh script handles this automatically via `restic snapshots || restic init`.)
+restic_repository: "/opt/restic-repo"
+
+# TODO: set a strong passphrase (≥32 random chars). Store a copy somewhere safe
+# (password manager) — losing it means losing access to all backups.
+# Generate with: openssl rand -base64 32
+restic_password: "TODO_set_strong_passphrase"
+
+# Off-site cloud credentials — leave empty when using a local path.
+b2_account_id: ""
+b2_application_key: ""
+
+# Directories included in every backup snapshot.
+backup_paths:
+  - /opt/apps        # all app data volumes
+  - /opt/monitoring  # Uptime Kuma data
+
+# ── CAS app ──────────────────────────────────────────────────────────────────
+# Generate with: openssl rand -hex 32
+# TODO: set in vars/local.yml — never leave the default value in production
+cas_api_key: "TODO_set_cas_api_key"
+cas_image_tag: "edge"   # docker image tag to deploy (edge = latest main build)
+
+# Snapshot retention (restic forget --prune)
+restic_keep_daily: 7
+restic_keep_weekly: 4
+restic_keep_monthly: 3
