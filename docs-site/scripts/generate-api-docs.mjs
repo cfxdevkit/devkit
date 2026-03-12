@@ -15,6 +15,7 @@ import { execSync } from 'child_process';
 import {
   existsSync,
   mkdirSync,
+  readFileSync,
   readdirSync,
   renameSync,
   writeFileSync,
@@ -101,6 +102,51 @@ const TYPEDOC_BIN = join(DOCS_SITE, 'node_modules', 'typedoc', 'bin', 'typedoc')
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+/**
+ * TypeDoc --flattenOutputFiles generates names like `Class.ClientManager.md`.
+ * Dots in Next.js App Router route segments cause Nextra to drop the parent
+ * folder segment, producing broken links like `/api/Class.ClientManager`
+ * instead of `/api/core/Class.ClientManager`.
+ *
+ * This function:
+ *  1. Rewrites cross-reference links in all .md files
+ *     `Type.Name.md`  → `Type-Name.md`
+ *     `README.md`     → `index.md`  (TypeDoc breadcrumb links)
+ *  2. Renames every `Type.Name.md` file → `Type-Name.md`
+ */
+function fixDotSlugs(pkgOut) {
+  const TYPE_PREFIXES =
+    'Class|Interface|TypeAlias|Function|Variable|Enumeration';
+  const LINK_RE = new RegExp(
+    `(${TYPE_PREFIXES})\\.([^)"\\s]+\\.md)`,
+    'g',
+  );
+
+  const files = readdirSync(pkgOut).filter((f) => f.endsWith('.md'));
+
+  // Step 1 — rewrite links inside every file before renaming
+  for (const file of files) {
+    const path = join(pkgOut, file);
+    const original = readFileSync(path, 'utf8');
+    let rewritten = original
+      // Type.Name.md → Type-Name.md
+      .replace(LINK_RE, (_, type, rest) => `${type}-${rest}`)
+      // README.md → index.md (TypeDoc breadcrumb links)
+      .replace(/\(README\.md\)/g, '(index.md)');
+    if (rewritten !== original) writeFileSync(path, rewritten);
+  }
+
+  // Step 2 — rename the files themselves
+  for (const file of files) {
+    const match = file.match(
+      new RegExp(`^(${TYPE_PREFIXES})\\.(.+\\.md)$`),
+    );
+    if (match) {
+      renameSync(join(pkgOut, file), join(pkgOut, `${match[1]}-${match[2]}`));
+    }
+  }
+}
+
 function run(cmd, opts = {}) {
   execSync(cmd, { cwd: ROOT, stdio: 'inherit', ...opts });
 }
@@ -118,8 +164,9 @@ function buildMetaForPackage(pkgOut) {
   const meta = { index: 'Overview' };
 
   for (const { prefix, title } of TYPE_SECTIONS) {
+    // Files are now named `Class-Foo.md` (hyphen separator, not dot)
     const members = files
-      .filter((f) => f.startsWith(`${prefix}.`))
+      .filter((f) => f.startsWith(`${prefix}-`))
       .sort((a, b) => a.localeCompare(b));
 
     if (members.length === 0) continue;
@@ -130,7 +177,7 @@ function buildMetaForPackage(pkgOut) {
     };
 
     for (const slug of members) {
-      const displayName = slug.replace(/^[^.]+\./, ''); // strip "Class." prefix
+      const displayName = slug.replace(/^[^-]+-/, ''); // strip "Class-" prefix
       meta[slug] = displayName;
     }
   }
@@ -201,6 +248,11 @@ for (const pkg of PACKAGES) {
   if (existsSync(readme)) {
     renameSync(readme, index);
   }
+
+  // Rename Type.Name.md → Type-Name.md and rewrite cross-links.
+  // Dots in Next.js App Router route segments cause Nextra to drop the
+  // parent folder segment, producing /api/Class.Foo instead of /api/core/Class.Foo.
+  fixDotSlugs(pkgOut);
 
   writeMetaJs(pkgOut, buildMetaForPackage(pkgOut));
 
