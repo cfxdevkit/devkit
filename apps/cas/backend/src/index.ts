@@ -30,8 +30,12 @@ await app.register(cors, {
 });
 
 // ── Auth hook ──────────────────────────────────────────────────────────────
-// All /api/* routes require a Bearer token matching CAS_API_KEY.
+// Public routes (no auth required): /health, /api/status
+// All other /api/* routes require a Bearer token matching CAS_API_KEY.
+const PUBLIC_PATHS = new Set(['/health', '/api/status']);
+
 app.addHook('onRequest', async (request, reply) => {
+  if (PUBLIC_PATHS.has(request.url)) return;
   if (!request.url.startsWith('/api/')) return;
   if (!API_KEY) return; // auth disabled when key is not set (dev mode)
 
