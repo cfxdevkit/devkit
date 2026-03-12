@@ -24,16 +24,16 @@
  * they require real network access (Conflux eSpace testnet).
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
+  deriveAccount,
+  deriveAccounts,
+  ERC20_ABI,
   EspaceClient,
   EVM_TESTNET,
-  ERC20_ABI,
   formatUnits,
   generateMnemonic,
   validateMnemonic,
-  deriveAccounts,
-  deriveAccount,
 } from '../index.js';
 
 // ── Shared client ─────────────────────────────────────────────────────────────
@@ -68,9 +68,12 @@ describe('playground: espace-block-number', () => {
     expect(typeof gasPrice).toBe('bigint');
 
     const block = await client.publicClient.getBlock({ blockTag: 'latest' });
-    console.log('Hash      :', (block.hash?.slice(0, 20) ?? 'n/a') + '...');
+    console.log('Hash      :', `${block.hash?.slice(0, 20) ?? 'n/a'}...`);
     console.log('Gas Used  :', block.gasUsed.toString());
-    console.log('Timestamp :', new Date(Number(block.timestamp) * 1000).toUTCString());
+    console.log(
+      'Timestamp :',
+      new Date(Number(block.timestamp) * 1000).toUTCString()
+    );
 
     expect(block.gasUsed).toBeGreaterThanOrEqual(0n);
     expect(block.timestamp).toBeGreaterThan(0n);
@@ -87,9 +90,21 @@ describe('playground: read-balance', () => {
 
   it('reads ERC-20 token balance via readContract', async () => {
     const [name, symbol, decimals, raw] = await Promise.all([
-      client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'name' }),
-      client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'symbol' }),
-      client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'decimals' }),
+      client.publicClient.readContract({
+        address: WCFX,
+        abi: ERC20_ABI,
+        functionName: 'name',
+      }),
+      client.publicClient.readContract({
+        address: WCFX,
+        abi: ERC20_ABI,
+        functionName: 'symbol',
+      }),
+      client.publicClient.readContract({
+        address: WCFX,
+        abi: ERC20_ABI,
+        functionName: 'decimals',
+      }),
       client.publicClient.readContract({
         address: WCFX,
         abi: ERC20_ABI,
@@ -117,10 +132,26 @@ describe('playground: erc20-info', () => {
     const SPENDER = '0x33e5E5B262e5d8eBC443E1c6c9F14215b020554d';
 
     const [name, symbol, decimals, totalSupply] = await Promise.all([
-      client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'name' }),
-      client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'symbol' }),
-      client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'decimals' }),
-      client.publicClient.readContract({ address: WCFX, abi: ERC20_ABI, functionName: 'totalSupply' }),
+      client.publicClient.readContract({
+        address: WCFX,
+        abi: ERC20_ABI,
+        functionName: 'name',
+      }),
+      client.publicClient.readContract({
+        address: WCFX,
+        abi: ERC20_ABI,
+        functionName: 'symbol',
+      }),
+      client.publicClient.readContract({
+        address: WCFX,
+        abi: ERC20_ABI,
+        functionName: 'decimals',
+      }),
+      client.publicClient.readContract({
+        address: WCFX,
+        abi: ERC20_ABI,
+        functionName: 'totalSupply',
+      }),
     ]);
 
     console.log('Name         :', name);
