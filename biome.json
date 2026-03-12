@@ -19,7 +19,8 @@
       "!pnpm-lock.yaml",
       "!**/generated.ts",
       "!conflux-contracts",
-      "!**/globals.css"
+      "!**/globals.css",
+      "!**/next-env.d.ts"
     ]
   },
   "formatter": {

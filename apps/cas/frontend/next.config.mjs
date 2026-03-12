@@ -6,7 +6,8 @@ const nextConfig = {
   //   Production:  https://api.cas.cfxdevkit.org
   //   Development: http://localhost:3001
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001',
+    NEXT_PUBLIC_API_URL:
+      process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001',
   },
 };
 

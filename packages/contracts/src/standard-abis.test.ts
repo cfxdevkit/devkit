@@ -66,7 +66,7 @@ describe('erc2612Abi', () => {
       (e) => e.type === 'function' && e.name === 'permit'
     ) as { inputs: { type: string }[] } | undefined;
     expect(permit).toBeDefined();
-    const types = permit!.inputs.map((i) => i.type);
+    const types = permit?.inputs.map((i) => i.type);
     expect(types).toEqual([
       'address',
       'address',
@@ -113,11 +113,11 @@ describe('erc20Abi', () => {
       (e) => e.type === 'event' && e.name === 'Transfer'
     ) as { inputs: { name: string; indexed: boolean }[] } | undefined;
     expect(ev).toBeDefined();
-    const names = ev!.inputs.map((i) => i.name);
+    const names = ev?.inputs.map((i) => i.name);
     expect(names).toEqual(['from', 'to', 'value']);
-    expect(ev!.inputs[0].indexed).toBe(true);
-    expect(ev!.inputs[1].indexed).toBe(true);
-    expect(ev!.inputs[2].indexed).toBe(false);
+    expect(ev?.inputs[0].indexed).toBe(true);
+    expect(ev?.inputs[1].indexed).toBe(true);
+    expect(ev?.inputs[2].indexed).toBe(false);
   });
 });
 
@@ -219,8 +219,8 @@ describe('erc721Abi', () => {
       (e) => e.type === 'event' && e.name === 'Transfer'
     ) as { inputs: { name: string; indexed: boolean }[] } | undefined;
     expect(ev).toBeDefined();
-    expect(ev!.inputs[2].name).toBe('tokenId');
-    expect(ev!.inputs[2].indexed).toBe(true);
+    expect(ev?.inputs[2].name).toBe('tokenId');
+    expect(ev?.inputs[2].indexed).toBe(true);
   });
 });
 
@@ -295,7 +295,7 @@ describe('erc1155Abi', () => {
       (e) => e.type === 'event' && e.name === 'TransferSingle'
     ) as { inputs: { name: string }[] } | undefined;
     expect(ev).toBeDefined();
-    expect(ev!.inputs.map((i) => i.name)).toEqual([
+    expect(ev?.inputs.map((i) => i.name)).toEqual([
       'operator',
       'from',
       'to',
@@ -369,7 +369,7 @@ describe('erc4626Abi', () => {
       (e) => e.type === 'event' && e.name === 'Withdraw'
     ) as { inputs: { name: string }[] } | undefined;
     expect(ev).toBeDefined();
-    expect(ev!.inputs.map((i) => i.name)).toEqual([
+    expect(ev?.inputs.map((i) => i.name)).toEqual([
       'sender',
       'receiver',
       'owner',
