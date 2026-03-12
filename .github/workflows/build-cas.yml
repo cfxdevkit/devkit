@@ -5,6 +5,7 @@ name: Build & push CAS backend image
 # The deploy-cas.yml workflow triggers after this one completes.
 
 on:
+  workflow_dispatch: {}
   push:
     branches: [main]
     tags:
