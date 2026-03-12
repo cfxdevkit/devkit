@@ -1,0 +1,40 @@
+---
+title: API Reference
+description: Full TypeDoc-generated API reference for all @cfxdevkit packages.
+---
+
+import { Cards } from 'nextra/components'
+
+# API Reference
+
+Auto-generated from TypeScript source via TypeDoc. Every exported class, interface, function, and type alias is documented here.
+
+> Regenerate with: `pnpm docs:api` from the repo root.
+
+---
+
+## Packages
+
+<Cards>
+  <Cards.Card title="@cfxdevkit/core" href="/api/core" arrow />
+  <Cards.Card title="@cfxdevkit/contracts" href="/api/contracts" arrow />
+  <Cards.Card title="@cfxdevkit/services" href="/api/services" arrow />
+  <Cards.Card title="@cfxdevkit/protocol" href="/api/protocol" arrow />
+  <Cards.Card title="@cfxdevkit/executor" href="/api/executor" arrow />
+  <Cards.Card title="@cfxdevkit/wallet" href="/api/wallet" arrow />
+  <Cards.Card title="@cfxdevkit/compiler" href="/api/compiler" arrow />
+  <Cards.Card title="@cfxdevkit/devnode" href="/api/devnode" arrow />
+  <Cards.Card title="@cfxdevkit/react" href="/api/react" arrow />
+  <Cards.Card title="@cfxdevkit/defi-react" href="/api/defi-react" arrow />
+  <Cards.Card title="@cfxdevkit/wallet-connect" href="/api/wallet-connect" arrow />
+</Cards>
+
+---
+
+## Layer overview
+
+| Layer | Packages | Depends on |
+|---|---|---|
+| **Layer 2** — React / UI | `react`, `defi-react`, `wallet-connect` | Layer 1 + peer deps (react, wagmi, viem) |
+| **Layer 1** — Domain | `services`, `wallet`, `compiler`, `devnode`, `contracts`, `protocol`, `executor` | `core` only |
+| **Layer 0** — Foundation | `core` | External only (viem, cive) |

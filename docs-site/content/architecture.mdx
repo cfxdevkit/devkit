@@ -1,0 +1,205 @@
+---
+title: Architecture
+description: Monorepo structure, layer dependencies, Conflux dual-space model, and CAS deployment overview.
+---
+
+import { Mermaid } from '../components/Mermaid'
+import { Callout } from 'nextra/components'
+
+# Architecture
+
+A visual guide to how the `@cfxdevkit` SDK is structured, how packages depend on each other, and how the full stack deploys.
+
+---
+
+## Package layers
+
+Packages are strictly layered — imports only flow **downward**, never sideways or upward.
+
+<Mermaid chart={`
+flowchart TD
+  subgraph L2["Layer 2 — React / UI"]
+    WC["@cfxdevkit/wallet-connect\nwagmi v2 + ConnectKit + SIWE"]
+    R["@cfxdevkit/react\nHeadless hooks & components"]
+    DR["@cfxdevkit/defi-react\nusePoolTokens, Swappi enrichment"]
+  end
+
+  subgraph L1["Layer 1 — Domain services"]
+    SVC["@cfxdevkit/services\nKeystore · Swap · Encryption"]
+    W["@cfxdevkit/wallet\nFacade over core/wallet"]
+    COMP["@cfxdevkit/compiler\nRuntime solc-js (EVM paris)"]
+    DN["@cfxdevkit/devnode\nServerManager / @xcfx/node"]
+    CON["@cfxdevkit/contracts\nGenerated ABIs · ERC standards"]
+    PROTO["@cfxdevkit/protocol\nPrecompile ABIs / addresses"]
+    EX["@cfxdevkit/executor\nExecutor · SafetyGuard · RetryQueue"]
+  end
+
+  subgraph L0["Layer 0 — Foundation"]
+    CORE["@cfxdevkit/core\nClientManager · HD wallet · Chain config"]
+  end
+
+  L2 --> L1
+  L1 --> L0
+  WC -->|"wagmi / viem"| CORE
+  R --> CORE
+  DR --> SVC
+  SVC --> CORE
+  W --> CORE
+  COMP --> CORE
+  DN --> CORE
+  CON --> CORE
+  EX --> CORE
+`} />
+
+---
+
+## Conflux dual-space model
+
+Every Conflux chain runs two parallel execution environments on the same underlying chain.
+
+<Mermaid chart={`
+flowchart LR
+  subgraph Conflux["Conflux Network (single chain)"]
+    direction TB
+    subgraph eSpace["eSpace — EVM-compatible"]
+      EP["Public RPC :8545\nWebSocket :8546"]
+      EAddr["0x… addresses\nChain IDs: 1030 / 71 / 2030"]
+      VIEM["viem client"]
+    end
+
+    subgraph Core["Core Space — native Conflux"]
+      CP["Public RPC :12537\nWebSocket :12535"]
+      CAddr["cfx:aaa… addresses (Base32)\nChain IDs: 1029 / 1 / 2029"]
+      CIVE["cive client"]
+    end
+
+    CROSS["CrossSpaceCall\n0x0888…0006\nSynchronous bridge"]
+  end
+
+  eSpace <-->|"cross-space calls"| CROSS
+  Core <-->|"cross-space calls"| CROSS
+
+  CM["ClientManager\n.evm (viem)\n.core (cive)"]
+  CM --> eSpace
+  CM --> Core
+`} />
+
+<Callout type="info">
+  Never construct raw `viem`/`cive` clients directly. Always use `ClientManager` from `@cfxdevkit/core`.
+</Callout>
+
+---
+
+## SDK data flow
+
+How a typical on-chain interaction flows through the SDK layers.
+
+<Mermaid chart={`
+sequenceDiagram
+  participant App as Your App
+  participant CM as ClientManager
+  participant eVM as viem (eSpace)
+  participant CIVE as cive (Core)
+  participant Chain as Conflux Node
+
+  App->>CM: new ClientManager({ network: 'testnet' })
+  CM->>Chain: health check (both spaces)
+  Chain-->>CM: ok
+  CM-->>App: emit manager:ready
+
+  App->>CM: client.evm.publicClient.readContract(...)
+  CM->>eVM: publicClient.readContract
+  eVM->>Chain: eth_call → eSpace RPC :8545
+  Chain-->>eVM: result
+  eVM-->>App: typed return value
+
+  App->>CM: client.core.walletClient.sendTransaction(...)
+  CM->>CIVE: walletClient.sendTransaction
+  CIVE->>Chain: cfx_sendRawTransaction → Core RPC :12537
+  Chain-->>CIVE: txHash
+  CIVE-->>App: Hash
+`} />
+
+---
+
+## CAS deployment architecture
+
+Conflux Automation Studio — how the frontend, backend, and infrastructure relate.
+
+<Mermaid chart={`
+flowchart TB
+  subgraph Vercel["Vercel (Serverless)"]
+    FE["cas.cfxdevkit.org\nNext.js 15 frontend"]
+  end
+
+  subgraph VPS["Hetzner CAX11 ARM64 — 89.167.88.124"]
+    subgraph Caddy["Caddy (TLS termination)"]
+      TLS["HTTPS :443\nauto Let's Encrypt"]
+    end
+    subgraph Docker["Docker Compose"]
+      BE["cas-backend :3001\nghcr.io/cfxdevkit/devkit/cas-backend:edge\nFastify 5 API"]
+      UK["Uptime Kuma :3002\nmonitor.cfxdevkit.org"]
+    end
+  end
+
+  subgraph GHCR["GitHub Container Registry"]
+    IMG["cas-backend image\n:edge (main) · :latest (tag)"]
+  end
+
+  subgraph CI["GitHub Actions"]
+    BUILD["build-cas.yml\nDocker buildx\nlinux/amd64 + arm64"]
+    DEPLOY["deploy-cas.yml\nSSH → docker compose up"]
+  end
+
+  User["Browser"] -->|"https"| FE
+  FE -->|"fetch /api/status\nhttps://api.cas.cfxdevkit.org"| TLS
+  TLS -->|"proxy :3001"| BE
+  CI --> BUILD --> IMG --> DEPLOY -->|"SSH pull + restart"| VPS
+  Push["git push main"] --> BUILD
+`} />
+
+---
+
+## Monorepo layout
+
+```
+packages/     @cfxdevkit/* published SDK packages
+apps/         Deployable full-stack apps (backend → VPS, frontend → Vercel)
+  cas/
+    backend/  Fastify API → Hetzner VPS via Docker
+    frontend/ Next.js UI → Vercel
+devtools/     Local-only dev tooling (Hardhat, CLI, dashboard)
+docs-site/    This site → cfxdevkit.org (Vercel)
+infra/
+  ansible/    VPS provisioning (5 roles: base · docker · caddy · backups · monitoring)
+docker/       conflux-devkit local dev stack (never deployed to VPS)
+scripts/      release.mjs, setup-npm-trust.mjs
+```
+
+---
+
+## Ansible provisioning roles
+
+<Mermaid chart={`
+flowchart LR
+  BASE["base\nDeploy user · UFW · fail2ban\nUnattended upgrades"] -->
+  DOCKER["docker\nDocker CE ARM64\ndeploy in docker group"] -->
+  CADDY["caddy\nTLS termination\nsites-enabled/*.conf"] -->
+  BACKUPS["backups\nRestic snapshots\nSystemd timer (daily)"] -->
+  MONITORING["monitoring\nUptime Kuma\nmonitor.cfxdevkit.org"]
+
+  CAS["cas\n/opt/apps/cas/\ndocker-compose.yml + .env"]
+  CADDY -->|"proxy :3001"| CAS
+`} />
+
+---
+
+## Security-sensitive areas
+
+| Component | Location | Key concern |
+|---|---|---|
+| `EncryptionService` | `packages/services/src/services/encryption.ts` | AES-256-GCM, PBKDF2 (100k iter) |
+| `KeystoreService` | `packages/services/src/services/keystore.ts` | Encrypted mnemonics, in-memory password only |
+| `SafetyGuard` | `packages/executor/src/safety-guard.ts` | Circuit-breaker, max $10k/swap |
+| `SessionKeyManager` | `packages/core/src/wallet/session-keys/` | Scoped permissions + expiry |
+| `PermitHandler` | `devtools/contracts/contracts/PermitHandler.sol` | ERC-2612 permit processing |

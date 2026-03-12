@@ -6,6 +6,11 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", "out/**", "ui/out/**", ".next/**"]
     },
+    "docs:api": {
+      "dependsOn": ["^build"],
+      "outputs": ["content/api/**"],
+      "cache": true
+    },
     "type-check": {
       "dependsOn": ["^build"],
       "outputs": []

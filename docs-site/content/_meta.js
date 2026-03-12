@@ -12,6 +12,14 @@ export default {
     title: 'Packages',
     type: 'page',
   },
+  architecture: {
+    title: 'Architecture',
+    type: 'page',
+  },
+  api: {
+    title: 'API Reference',
+    type: 'page',
+  },
   devkit: {
     title: 'Devkit CLI',
     type: 'page',
