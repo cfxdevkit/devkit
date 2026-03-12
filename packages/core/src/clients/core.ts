@@ -406,6 +406,7 @@ export class CoreClient implements ChainClient {
     return parseCFX(amount);
   }
 
+  /** @internal */
   getInternalClient(): PublicClient {
     return this.publicClient;
   }
@@ -509,6 +510,7 @@ export class CoreWalletClient implements UnifiedWalletClient {
     }
   }
 
+  /** @internal */
   getInternalClient(): WalletClient {
     return this.walletClient;
   }

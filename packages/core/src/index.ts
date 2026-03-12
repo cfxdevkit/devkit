@@ -29,7 +29,7 @@ export type {
   ClientManagerEvents,
   ClientManagerStatus,
 } from './clients/manager.js';
-export type { ChainConfig } from './config/chains.js';
+export type { ChainConfig, SupportedChainId } from './config/chains.js';
 // ── Chain Configuration ────────────────────────────────────────────────────
 export {
   CORE_LOCAL,
@@ -43,7 +43,23 @@ export {
   getCoreChains,
   getEvmChains,
   getMainnetChains,
+  NetworkSelector,
 } from './config/index.js';
+export type {
+  ContractInfo,
+  DeploymentOptions,
+  DeploymentResult,
+  ERC20TokenInfo,
+  ERC721TokenInfo,
+  EventFilter,
+  EventLog,
+  MultiChainDeploymentOptions,
+  MultiChainDeploymentResult,
+  NFTMetadata,
+  ReadOptions,
+  WriteOptions,
+  WriteResult,
+} from './contracts/index.js';
 // ── Contracts ──────────────────────────────────────────────────────────────
 export {
   ContractDeployer,
@@ -60,20 +76,41 @@ export {
 // ── Types ──────────────────────────────────────────────────────────────────
 export type {
   Address,
+  BaseTransaction,
+  BlockEvent,
+  ChainClient,
+  ChainStatus,
   ChainType,
+  ClientConfig,
   CoreAddress,
+  CoreClientInstance,
+  EspaceClientInstance,
+  EventCallback,
   EvmAddress,
   Hash,
+  HealthStatus,
+  Log,
+  TestClient,
+  TestConfig,
+  TransactionEvent,
+  TransactionReceipt,
   UnifiedAccount,
+  UnwatchFunction,
+  WalletClient,
+  WalletConfig,
 } from './types/index.js';
+export type { LogMessage } from './utils/index.js';
 // ── Utils ──────────────────────────────────────────────────────────────────
 export { logger } from './utils/index.js';
 export type {
   BatcherOptions,
   BatchResult,
   BatchTransaction,
+  DerivationOptions,
+  DerivedAccount,
   EmbeddedWallet,
   EmbeddedWalletOptions,
+  MnemonicValidation,
   SessionKey,
   SessionKeyOptions,
   SessionKeyPermissions,

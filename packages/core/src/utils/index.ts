@@ -17,4 +17,5 @@
 // @cfxdevkit/core - Utils module
 // Shared utilities: logger, formatting helpers
 
+export type { LogMessage } from './logger.js';
 export { logger } from './logger.js';

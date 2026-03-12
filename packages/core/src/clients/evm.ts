@@ -79,6 +79,7 @@ const espaceTestnet = defineChain({
 export class EspaceClient implements ChainClient {
   readonly chainId: number;
   readonly chainType = 'evm' as const;
+  /** @internal */
   readonly publicClient: PublicClient;
   protected readonly chain: Chain;
   public address: Address;
@@ -315,6 +316,7 @@ export class EspaceClient implements ChainClient {
     return () => {}; // Return a no-op unwatch function
   }
 
+  /** @internal */
   getInternalClient(): PublicClient | WalletClient {
     return this.publicClient;
   }
@@ -543,6 +545,7 @@ export class EspaceWalletClient
     }
   }
 
+  /** @internal */
   getInternalClient(): PublicClient | WalletClient {
     return this.walletClient;
   }

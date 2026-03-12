@@ -28,7 +28,7 @@ const colors = {
 };
 
 /** A structured log object or plain message string — mirrors the pino/winston dual-form API. */
-type LogMessage = string | Record<string, unknown>;
+export type LogMessage = string | Record<string, unknown>;
 
 function formatMessage(
   level: string,

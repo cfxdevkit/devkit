@@ -194,9 +194,9 @@ export class ContractDeployer {
   /**
    * Verify contract bytecode matches deployed contract
    *
-   * @param address - Contract address
-   * @param expectedBytecode - Expected bytecode
-   * @param chain - Chain type
+   * @param _address - Contract address
+   * @param _expectedBytecode - Expected bytecode
+   * @param _chain - Chain type
    * @returns true if verified
    */
   async verifyBytecode(

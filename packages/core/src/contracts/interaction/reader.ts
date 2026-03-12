@@ -120,8 +120,8 @@ export class ContractReader {
   /**
    * Check if address is a contract
    *
-   * @param address - Address to check
-   * @param chain - Chain type
+   * @param _address - Address to check
+   * @param _chain - Chain type
    * @returns true if contract exists
    */
   async isContract(_address: string, _chain: 'core' | 'evm'): Promise<boolean> {

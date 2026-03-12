@@ -157,7 +157,7 @@ export interface SwapResult {
  * Minimal interface for the devkit dependency used by SwapService.
  * Only the methods actually consumed by this service are listed.
  */
-interface SwapDevKit {
+export interface SwapDevKit {
   getAccounts(): Record<number, { privateKey: string; evmAddress: string }>;
 }
 

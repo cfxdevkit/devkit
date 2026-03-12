@@ -24,6 +24,7 @@ export type {
   ValidationResult,
 } from './keystore-types.js';
 export type {
+  SwapDevKit,
   SwapExecuteParams,
   SwapQuote,
   SwapQuoteParams,
