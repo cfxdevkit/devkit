@@ -15,8 +15,8 @@ import { execSync } from 'child_process';
 import {
   existsSync,
   mkdirSync,
-  readFileSync,
   readdirSync,
+  readFileSync,
   renameSync,
   writeFileSync,
 } from 'fs';
@@ -98,7 +98,13 @@ const TYPE_SECTIONS = [
   { prefix: 'Enumeration', title: 'Enumerations' },
 ];
 
-const TYPEDOC_BIN = join(DOCS_SITE, 'node_modules', 'typedoc', 'bin', 'typedoc');
+const TYPEDOC_BIN = join(
+  DOCS_SITE,
+  'node_modules',
+  'typedoc',
+  'bin',
+  'typedoc'
+);
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -108,19 +114,21 @@ const TYPEDOC_BIN = join(DOCS_SITE, 'node_modules', 'typedoc', 'bin', 'typedoc')
  * folder segment, producing broken links like `/api/Class.ClientManager`
  * instead of `/api/core/Class.ClientManager`.
  *
+ * Next.js also routes pages without file extensions, so any `href.md` in
+ * generated markdown link hrefs will 404 — they must be stripped to `href`.
+ *
  * This function:
- *  1. Rewrites cross-reference links in all .md files
- *     `Type.Name.md`  → `Type-Name.md`
- *     `README.md`     → `index.md`  (TypeDoc breadcrumb links)
- *  2. Renames every `Type.Name.md` file → `Type-Name.md`
+ *  1. Rewrites cross-reference links:  Type.Name.md  → Type-Name.md
+ *  2. Rewrites breadcrumb links:        README.md     → index.md
+ *  3. Strips .md extension from ALL relative link hrefs  ()(path.md) → (path)
+ *  4. Renames files:                    Type.Name.md  → Type-Name.md
  */
 function fixDotSlugs(pkgOut) {
   const TYPE_PREFIXES =
     'Class|Interface|TypeAlias|Function|Variable|Enumeration';
-  const LINK_RE = new RegExp(
-    `(${TYPE_PREFIXES})\\.([^)"\\s]+\\.md)`,
-    'g',
-  );
+  const LINK_RE = new RegExp(`(${TYPE_PREFIXES})\\.([^)"\\s]+\\.md)`, 'g');
+  // Strip .md from relative link hrefs — skip http(s) and anchor-only hrefs
+  const MD_EXT_RE = /(\]\()((?!https?:\/\/)(?!#)[^)]+)\.md\)/g;
 
   const files = readdirSync(pkgOut).filter((f) => f.endsWith('.md'));
 
@@ -128,19 +136,19 @@ function fixDotSlugs(pkgOut) {
   for (const file of files) {
     const path = join(pkgOut, file);
     const original = readFileSync(path, 'utf8');
-    let rewritten = original
-      // Type.Name.md → Type-Name.md
+    const rewritten = original
+      // Type.Name.md → Type-Name.md  (must run before MD_EXT_RE)
       .replace(LINK_RE, (_, type, rest) => `${type}-${rest}`)
       // README.md → index.md (TypeDoc breadcrumb links)
-      .replace(/\(README\.md\)/g, '(index.md)');
+      .replace(/\(README\.md\)/g, '(index.md)')
+      // Strip .md extension from all remaining relative link hrefs
+      .replace(MD_EXT_RE, (_, open, href) => `${open}${href})`);
     if (rewritten !== original) writeFileSync(path, rewritten);
   }
 
   // Step 2 — rename the files themselves
   for (const file of files) {
-    const match = file.match(
-      new RegExp(`^(${TYPE_PREFIXES})\\.(.+\\.md)$`),
-    );
+    const match = file.match(new RegExp(`^(${TYPE_PREFIXES})\\.(.+\\.md)$`));
     if (match) {
       renameSync(join(pkgOut, file), join(pkgOut, `${match[1]}-${match[2]}`));
     }
@@ -238,7 +246,7 @@ for (const pkg of PACKAGES) {
       'false',
       '--hidePageTitle',
       'false',
-    ].join(' '),
+    ].join(' ')
   );
 
   // TypeDoc outputs README.md as the overview page — rename to index.md
