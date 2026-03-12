@@ -101,7 +101,11 @@ interface PlaygroundProps {
 }
 
 const DEFAULT_DEPS: Record<string, string> = {
-  viem: '^2.0.0',
+  // Pin viem to the exact version the monorepo uses.
+  // Loose ranges resolve via esm.sh to the latest release, which may be
+  // compiled for older browsers (transpiling BigInt ** to Math.pow) and will
+  // throw "Cannot convert a BigInt value to a number".
+  viem: '2.46.2',
   '@cfxdevkit/core': '^1.0.16',
 }
 
