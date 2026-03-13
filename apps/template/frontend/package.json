@@ -5,6 +5,7 @@
   "description": "Conflux DevKit Template — frontend",
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:https": "next dev --turbopack --experimental-https",
     "build": "next build",
     "start": "next start",
     "type-check": "tsc --noEmit"
