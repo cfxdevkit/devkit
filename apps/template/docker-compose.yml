@@ -1,0 +1,37 @@
+# docker-compose.yml — Template production stack (VPS)
+#
+# Usage on VPS:
+#   cd /opt/apps/template
+#   cp .env.example .env && $EDITOR .env
+#   docker compose up -d
+
+services:
+  template-backend:
+    image: ghcr.io/cfxdevkit/devkit/template-backend:${TAG:-edge}
+    container_name: template-backend
+    restart: unless-stopped
+    # Only accessible via Caddy — not exposed to the public internet.
+    ports:
+      - "127.0.0.1:3002:3002"
+    environment:
+      NODE_ENV: production
+      PORT: "3002"
+      HOST: "0.0.0.0"
+      JWT_SECRET: "${JWT_SECRET}"
+      CORS_ORIGIN: "${CORS_ORIGIN:-https://template.cfxdevkit.org}"
+    volumes:
+      - template-data:/app/data
+    healthcheck:
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "require('http').get('http://localhost:3002/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  template-data:
+    driver: local
