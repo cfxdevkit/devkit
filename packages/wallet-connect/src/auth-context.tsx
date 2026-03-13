@@ -112,8 +112,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Guard: tracks the address that triggered the latest auto-signed attempt so
   // we don't fire login() repeatedly if the effect re-runs (e.g. StrictMode).
   const autoSignedForRef = useRef<string | null>(null);
+  // Counts auto-sign attempts for the current address (reset on address or
+  // chain change). We permit one automatic retry for transient failures but
+  // block indefinite looping.
+  const autoSignAttemptsRef = useRef(0);
+  // Set to true when the last login() failure was caused by an explicit user
+  // rejection (as opposed to a transient / timing error).
+  const lastLoginRejectedRef = useRef(false);
+  // Delayed readiness flag: prevents auto-sign from firing in the first 600 ms
+  // after mount. On page reload the wallet extension can take a moment to
+  // initialise, and calling signMessageAsync too early reliably causes a
+  // transient failure that the user then has to manually retry.
+  const [isAutoSignReady, setIsAutoSignReady] = useState(false);
   // Track the previous non-null address so we can detect a wallet switch.
   const prevAddressRef = useRef<string | null>(null);
+
+  // ── Delay before first auto-sign attempt ────────────────────────────────────
+  useEffect(() => {
+    const t = setTimeout(() => setIsAutoSignReady(true), 600);
+    return () => clearTimeout(t);
+  }, []);
+
+  // ── Reset auto-sign state when wallet lands on the correct chain ─────────────
+  // When a user switches to EXPECTED_CHAIN_ID (e.g. after clicking "Switch
+  // Network"), clear any stale error and reset the auto-sign guard so a fresh
+  // SIWE attempt runs automatically without requiring a manual retry click.
+  useEffect(() => {
+    if (chainId === EXPECTED_CHAIN_ID && !token) {
+      setError(null);
+      autoSignedForRef.current = null;
+      autoSignAttemptsRef.current = 0;
+      lastLoginRejectedRef.current = false;
+    }
+  }, [chainId, token]);
 
   // ── Clear token when the wallet SWITCHES to a different address ─────────────
   // We do NOT clear on address → undefined (transient disconnect / wagmi
@@ -134,6 +165,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(null);
         localStorage.removeItem(TOKEN_KEY);
         autoSignedForRef.current = null;
+        autoSignAttemptsRef.current = 0;
+        lastLoginRejectedRef.current = false;
       }
       prevAddressRef.current = address;
     }
@@ -195,17 +228,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Login failed';
+      // Classify rejection vs transient failure so the auto-sign retry logic
+      // can decide whether to attempt recovery automatically.
+      const isRejection =
+        msg.toLowerCase().includes('rejected') ||
+        msg.toLowerCase().includes('denied') ||
+        msg.toLowerCase().includes('cancelled');
+      lastLoginRejectedRef.current = isRejection;
       // Don't surface "User rejected" as a scary error — just show retry.
       if (msg.includes('getChainId is not a function')) {
         setError(
           'Wallet connection issue. Please reconnect your wallet or try a different provider.'
         );
       } else {
-        setError(
-          msg.toLowerCase().includes('rejected')
-            ? 'Signature rejected — try again.'
-            : msg
-        );
+        setError(isRejection ? 'Signature rejected — try again.' : msg);
       }
       return false;
     } finally {
@@ -219,42 +255,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // "getChainId is not a function" when the connected chain isn't in the
   // wagmi config.  By waiting for the correct chain ID, the auto-sign fires
   // naturally once the user switches networks — no manual retry needed.
+  //
+  // Retry logic:
+  //  - isAutoSignReady: 600 ms delay on mount so the wallet extension has time
+  //    to initialise before we call signMessageAsync.
+  //  - autoSignAttemptsRef: allows ONE automatic retry for transient errors.
+  //    On a second failure, or any user-rejection, the button stays visible so
+  //    the user can manually retry.
+  //  - The chain-change effect (above) resets all these guards whenever the
+  //    wallet lands on EXPECTED_CHAIN_ID, so switching network → auto-signs.
   useEffect(() => {
     if (
       isConnected &&
       address &&
-      chainId === EXPECTED_CHAIN_ID && // only sign on the correct chain
+      chainId === EXPECTED_CHAIN_ID &&
       !token &&
       !isLoading &&
-      !error && // don't auto-sign while an error is displayed (user sees retry button)
-      autoSignedForRef.current !== address // only once per address
+      isAutoSignReady &&
+      autoSignedForRef.current !== address // not locked for this address
     ) {
-      autoSignedForRef.current = address; // optimistic lock — prevent double-fire
+      autoSignedForRef.current = address; // optimistic lock
       void login().then((success) => {
         if (!success) {
-          // Reset the guard so that if the user clears the error and the
-          // relevant deps change (e.g. re-connect), auto-sign can try again.
-          autoSignedForRef.current = null;
+          if (
+            lastLoginRejectedRef.current ||
+            autoSignAttemptsRef.current >= 1
+          ) {
+            // User explicitly rejected, or we've already retried once — keep
+            // the lock so auto-sign doesn't fire again; show the retry button.
+          } else {
+            // Transient failure (e.g. extension not ready on page load).
+            // Allow one automatic retry by releasing the lock.
+            autoSignAttemptsRef.current += 1;
+            autoSignedForRef.current = null;
+          }
         }
       });
     }
-  }, [isConnected, address, chainId, token, isLoading, error, login]);
+  }, [isConnected, address, chainId, token, isLoading, isAutoSignReady, login]);
 
   // ── Refresh auth (re-sign with the same wallet — used on 401 responses) ──
   const refreshAuth = useCallback(() => {
     setToken(null);
     setError(null);
     localStorage.removeItem(TOKEN_KEY);
-    // Reset the guard so the auto-sign effect fires again for this address.
+    // Reset all auto-sign guards so the effect fires again for this address.
     autoSignedForRef.current = null;
+    autoSignAttemptsRef.current = 0;
+    lastLoginRejectedRef.current = false;
   }, []);
 
-  // ── Logout ────────────────────────────────────────────────────────────────
+  // ── Logout ──────────────────────────────────────────────────────
   const logout = useCallback(() => {
     setToken(null);
     setError(null);
     localStorage.removeItem(TOKEN_KEY);
     autoSignedForRef.current = null;
+    autoSignAttemptsRef.current = 0;
+    lastLoginRejectedRef.current = false;
     disconnect();
   }, [disconnect]);
 
