@@ -10,7 +10,7 @@ export default defineConfig({
   sourcemap: true,
   splitting: false,
   minify: false,
-  external: ['react', 'react-dom', 'viem'],
+  external: ['react', 'react-dom', 'viem', 'wagmi'],
   esbuildOptions: (options) => {
     options.jsx = 'automatic';
   },

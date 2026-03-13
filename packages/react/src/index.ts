@@ -34,12 +34,14 @@
 export type {
   AccountCardProps,
   AccountCardRenderProps,
+  AppNavBarProps,
   ConnectButtonProps,
   ConnectButtonRenderProps,
   ContractReaderProps,
   ContractReaderRenderProps,
   ContractWriterProps,
   ContractWriterRenderProps,
+  NavLink,
   SwapQuote,
   SwapWidgetProps,
   SwapWidgetRenderProps,
@@ -47,6 +49,7 @@ export type {
 // Components
 export {
   AccountCard,
+  AppNavBar,
   ConnectButton,
   ContractReader,
   ContractWriter,

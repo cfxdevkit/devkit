@@ -14,7 +14,27 @@
  * limitations under the License.
  */
 
+import {
+  cookieToInitialState,
+  getServerConfig,
+} from '@cfxdevkit/wallet-connect/server';
 import type { Metadata } from 'next';
+import { JetBrains_Mono, Outfit } from 'next/font/google';
+import { headers } from 'next/headers';
+import './globals.css';
+import { ClientRoot } from './client-root';
+
+const outfit = Outfit({
+  subsets: ['latin'],
+  variable: '--font-outfit',
+  display: 'swap',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: {
@@ -24,14 +44,22 @@ export const metadata: Metadata = {
   description: 'Conflux Automation Studio — on-chain strategy management UI.',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Extract the wagmi cookie written by cookieStorage on the client and use it
+  // to hydrate the WagmiProvider on the server.  This prevents the "flash of
+  // disconnected" state that happens when the cookie is read only after mount.
+  const cookie = (await headers()).get('cookie');
+  const initialState = cookieToInitialState(getServerConfig(), cookie);
+
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" className={`${outfit.variable} ${jetbrainsMono.variable}`}>
+      <body className="font-sans antialiased">
+        <ClientRoot initialState={initialState}>{children}</ClientRoot>
+      </body>
     </html>
   );
 }

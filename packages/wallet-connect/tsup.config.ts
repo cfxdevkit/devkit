@@ -3,6 +3,9 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: {
     index: 'src/index.ts',
+    // Server-safe subpath: wagmi-only, no connectkit/WalletConnect.
+    // Safe to import in Next.js Server Components and Edge runtime.
+    server: 'src/server.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,

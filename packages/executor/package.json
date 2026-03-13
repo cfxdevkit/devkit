@@ -20,6 +20,11 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
+    "./automation": {
+      "types": "./dist/automation.d.ts",
+      "import": "./dist/automation.js",
+      "require": "./dist/automation.cjs"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {

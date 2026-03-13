@@ -14,51 +14,60 @@
  * limitations under the License.
  */
 
-import cors from '@fastify/cors';
-import helmet from '@fastify/helmet';
-import Fastify from 'fastify';
+import 'dotenv/config';
+import cors from 'cors';
+import express, { type Express } from 'express';
+import helmet from 'helmet';
+import { migrate } from './db/migrate.js';
+import adminRouter from './routes/admin.js';
+import authRouter from './routes/auth.js';
+import jobsRouter from './routes/jobs.js';
+import poolsRouter from './routes/pools.js';
+import systemRouter from './routes/system.js';
+import sseRouter from './sse/events.js';
 
-const PORT = Number(process.env.PORT ?? 3001);
-const HOST = process.env.HOST ?? '0.0.0.0';
-const API_KEY = process.env.CAS_API_KEY ?? '';
+const PORT = parseInt(process.env.PORT ?? '3001', 10);
 
-const app = Fastify({ logger: true });
+// Run DB migrations on startup
+migrate();
 
-await app.register(helmet);
-await app.register(cors, {
-  origin: process.env.CORS_ORIGIN ?? false,
+const app: Express = express();
+
+// Build the allowed-origin list from env (comma-separated) or default to both
+// http and https localhost so `pnpm dev` and `pnpm dev:https` both work.
+const rawOrigins =
+  process.env.CORS_ORIGIN ?? 'http://localhost:3000,https://localhost:3000';
+const allowedOrigins = rawOrigins
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+app.use(helmet());
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      // Allow requests with no origin (curl, server-to-server, same-origin proxy)
+      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      cb(new Error(`CORS: origin ${origin} not allowed`));
+    },
+    credentials: true,
+  })
+);
+app.use(express.json());
+
+// ─── Routes ───────────────────────────────────────────────────────────────────
+app.use('/auth', authRouter);
+app.use('/jobs', jobsRouter);
+app.use('/admin', adminRouter);
+app.use('/pools', poolsRouter);
+app.use('/sse', sseRouter);
+app.use('/system', systemRouter);
+
+app.get('/health', (_req, res) => res.json({ status: 'ok', ts: Date.now() }));
+
+// ─── Start ────────────────────────────────────────────────────────────────────
+app.listen(PORT, () => {
+  console.log(`[backend] listening on http://localhost:${PORT}`);
 });
 
-// ── Auth hook ──────────────────────────────────────────────────────────────
-// Public routes (no auth required): /health, /api/status
-// All other /api/* routes require a Bearer token matching CAS_API_KEY.
-const PUBLIC_PATHS = new Set(['/health', '/api/status']);
-
-app.addHook('onRequest', async (request, reply) => {
-  if (PUBLIC_PATHS.has(request.url)) return;
-  if (!request.url.startsWith('/api/')) return;
-  if (!API_KEY) return; // auth disabled when key is not set (dev mode)
-
-  const auth = request.headers.authorization;
-  if (auth !== `Bearer ${API_KEY}`) {
-    await reply.code(401).send({ error: 'Unauthorized' });
-  }
-});
-
-// ── Health check (public) ──────────────────────────────────────────────────
-app.get('/health', async () => ({ status: 'ok', service: 'cas-backend' }));
-
-// ── API routes ─────────────────────────────────────────────────────────────
-app.get('/api/status', async () => ({
-  status: 'ok',
-  version: '0.1.0',
-  // TODO: add CAS-specific status fields here
-}));
-
-// ── Start ──────────────────────────────────────────────────────────────────
-try {
-  await app.listen({ port: PORT, host: HOST });
-} catch (err) {
-  app.log.error(err);
-  process.exit(1);
-}
+export { app };

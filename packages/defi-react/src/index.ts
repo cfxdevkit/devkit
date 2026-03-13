@@ -14,4 +14,6 @@
  */
 
 export * from './contracts.js';
+export * from './PoolsProvider.js';
 export * from './usePoolTokens.js';
+export * from './useTokenPrice.js';

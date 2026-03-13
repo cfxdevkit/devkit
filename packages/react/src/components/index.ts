@@ -37,6 +37,9 @@ export type {
   ContractWriterRenderProps,
 } from './contract/ContractWriter.js';
 export { ContractWriter } from './contract/ContractWriter.js';
+export type { AppNavBarProps, NavLink } from './nav/AppNavBar.js';
+// Navigation
+export { AppNavBar } from './nav/AppNavBar.js';
 export type {
   SwapQuote,
   SwapWidgetProps,
