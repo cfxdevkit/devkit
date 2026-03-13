@@ -30,6 +30,7 @@ import {
 } from 'react';
 import { SiweMessage } from 'siwe';
 import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
+import { EXPECTED_CHAIN_ID } from './useNetworkSwitch.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -210,11 +211,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [address, chainId, signMessageAsync]);
 
-  // ── Auto-sign on connect (fires once per address) ─────────────────────────
+  // ── Auto-sign on connect (fires once per address, only on correct chain) ────
+  // Guard against calling login() while on a wrong network: wagmi's
+  // signMessageAsync internally calls connector.getChainId() which throws
+  // "getChainId is not a function" when the connected chain isn't in the
+  // wagmi config.  By waiting for the correct chain ID, the auto-sign fires
+  // naturally once the user switches networks — no manual retry needed.
   useEffect(() => {
     if (
       isConnected &&
       address &&
+      chainId === EXPECTED_CHAIN_ID && // only sign on the correct chain
       !token &&
       !isLoading &&
       autoSignedForRef.current !== address // only once per address
@@ -222,7 +229,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       autoSignedForRef.current = address;
       void login();
     }
-  }, [isConnected, address, token, isLoading, login]);
+  }, [isConnected, address, chainId, token, isLoading, login]);
 
   // ── Refresh auth (re-sign with the same wallet — used on 401 responses) ──
   const refreshAuth = useCallback(() => {
