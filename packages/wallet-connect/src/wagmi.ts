@@ -33,8 +33,15 @@ export {
 } from './chains.js';
 
 /**
- * Returns a new Wagmi config for use in the browser (ConnectKit + WalletConnect
- * connectors included).
+ * Returns the browser-side Wagmi config (ConnectKit + WalletConnect connectors
+ * included). The instance is created lazily on the first call and then cached
+ * permanently — subsequent calls return the same object.
+ *
+ * Memoization is intentional: WalletConnect Core must only be initialized once
+ * per page lifecycle.  If `getConfig()` were called multiple times (e.g. from
+ * React 18 Strict Mode double-mount or multiple Provider renders) it would
+ * create duplicate WalletConnect Core instances and trigger the warning:
+ *   "WalletConnect Core is already initialized. Init() was called N times."
  *
  * For Next.js App Router SSR, call this only in Client Components.  In Server
  * Components (e.g. layout.tsx) use `getServerConfig` from
@@ -45,8 +52,20 @@ export {
  *   `ssr: true` — defers browser-store reads until after client-side mount.
  *   `cookieStorage` — persists connection state in cookies for server hydration.
  */
+
+// Lazily-initialised singleton — never recreated after first call.
+let _clientConfig: ReturnType<typeof createConfig> | undefined;
+
 export function getConfig() {
-  return createConfig({
+  if (_clientConfig) return _clientConfig;
+
+  // `appUrl` must match the actual page origin to avoid the WalletConnect
+  // warning: "configured metadata.url differs from the actual page url".
+  // Set NEXT_PUBLIC_APP_URL in .env.local (e.g. http://localhost:3000) for
+  // local dev and to the production URL (https://cas.cfxdevkit.org) in prod.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+
+  _clientConfig = createConfig({
     ...getDefaultConfig({
       // Chain and transport config is shared with getServerConfig() in server.ts.
       // Keep both in sync if you add or remove chains.
@@ -67,10 +86,11 @@ export function getConfig() {
       walletConnectProjectId:
         process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ??
         'conflux-devkit-local',
-      appName: 'Conflux DevKit',
-      appDescription: 'Development toolkit for Conflux blockchain',
-      appUrl: 'https://conflux-devkit.dev',
-      appIcon: 'https://conflux-devkit.dev/icon.png',
+      appName: 'Conflux Automation Studio',
+      appDescription:
+        'Non-custodial limit order and DCA automation on Conflux eSpace.',
+      appUrl,
+      appIcon: `${appUrl}/icon.png`,
     }),
     // ── SSR configuration ──────────────────────────────────────────────────
     // `ssr: true` prevents wagmi (and the WalletConnect connector) from
@@ -83,6 +103,8 @@ export function getConfig() {
     // the client hydrates without a visible "disconnected" flash.
     storage: createStorage({ storage: cookieStorage }),
   });
+
+  return _clientConfig;
 }
 
 /**
