@@ -20,9 +20,10 @@ import {
   useAuthContext,
   useNetworkSwitch,
 } from '@cfxdevkit/wallet-connect';
+import { useModal } from 'connectkit';
 import { Plus, RefreshCcw, ShieldCheck, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { injected, useAccount, useConnect } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { ApprovalWidget } from '../components/Dashboard/ApprovalWidget';
 import { Dashboard } from '../components/Dashboard/Dashboard';
 import { StrategyBuilder } from '../components/StrategyBuilder/StrategyBuilder';
@@ -98,7 +99,7 @@ function StrategyModal({
 
 export default function HomePage() {
   const { isConnected } = useAccount();
-  const { connect } = useConnect();
+  const { setOpen } = useModal();
   const { address, token, isLoading, error, login } = useAuthContext();
   const { isWrongNetwork, isSwitching, switchError, handleSwitchNetwork } =
     useNetworkSwitch();
@@ -137,7 +138,7 @@ export default function HomePage() {
         </div>
         <button
           type="button"
-          onClick={() => connect({ connector: injected() })}
+          onClick={() => setOpen(true)}
           className="group relative inline-flex items-center justify-center bg-conflux-600 hover:bg-conflux-500 text-white text-lg font-semibold py-4 px-10 rounded-2xl transition-all shadow-[0_0_40px_-10px_rgba(0,120,200,0.6)] hover:shadow-[0_0_60px_-15px_rgba(0,120,200,0.8)] overflow-hidden"
         >
           <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />

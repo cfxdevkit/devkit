@@ -1,5 +1,6 @@
 'use client';
 
+import { useModal } from 'connectkit';
 import {
   AlertTriangle,
   Check,
@@ -9,7 +10,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { useState } from 'react';
-import { injected, useAccount, useConnect } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { useAuthContext } from './auth-context.js';
 import { EXPECTED_CHAIN_NAME, useNetworkSwitch } from './useNetworkSwitch.js';
 
@@ -80,7 +81,7 @@ function AddressChip({
 
 export function WalletConnect() {
   const { isConnected } = useAccount();
-  const { connect } = useConnect();
+  const { setOpen } = useModal();
   const { address, token, isLoading, error, login, logout } = useAuthContext();
   const { isWrongNetwork, isSwitching, switchError, handleSwitchNetwork } =
     useNetworkSwitch();
@@ -89,7 +90,7 @@ export function WalletConnect() {
     return (
       <button
         type="button"
-        onClick={() => connect({ connector: injected() })}
+        onClick={() => setOpen(true)}
         className="group flex items-center gap-2 bg-conflux-600 hover:bg-conflux-500 text-white text-sm font-semibold py-2 px-4 rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(0,120,200,0.5)] hover:shadow-[0_0_25px_-5px_rgba(0,120,200,0.7)]"
       >
         <Wallet className="h-4 w-4 group-hover:scale-110 transition-transform" />

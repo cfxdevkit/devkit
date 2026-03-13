@@ -41,6 +41,11 @@ export function ClientShell({ children }: { children: ReactNode }) {
       options={{
         hideNoWalletCTA: false,
         walletConnectName: 'WalletConnect',
+        // Disable ConnectKit's automatic font injection (<link rel="preload">
+        // for Nunito/Inter). We manage fonts ourselves via next/font in
+        // layout.tsx, so ConnectKit's preloaded font resources were never
+        // consumed and triggered "preloaded but not used" browser warnings.
+        avoidLayoutShift: false,
       }}
     >
       <AuthProvider>
