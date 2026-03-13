@@ -28,7 +28,7 @@ const CHAIN_PARAMS = IS_MAINNET
 
 export function useNetworkSwitch() {
   const { isConnected, chainId } = useAccount();
-  const { switchChain, isPending: isSwitching } = useSwitchChain();
+  const { switchChainAsync, isPending: isSwitching } = useSwitchChain();
   const [switchError, setSwitchError] = useState<string | null>(null);
 
   const isWrongNetwork = isConnected && chainId !== EXPECTED_CHAIN_ID;
@@ -40,7 +40,7 @@ export function useNetworkSwitch() {
   const handleSwitchNetwork = useCallback(async () => {
     setSwitchError(null);
     try {
-      switchChain({ chainId: EXPECTED_CHAIN_ID });
+      await switchChainAsync({ chainId: EXPECTED_CHAIN_ID });
     } catch {
       // Fallback: manually add+switch via EIP-3085
       const provider = (
@@ -66,7 +66,7 @@ export function useNetworkSwitch() {
         }
       }
     }
-  }, [switchChain]);
+  }, [switchChainAsync]);
 
   return { isWrongNetwork, isSwitching, switchError, handleSwitchNetwork };
 }

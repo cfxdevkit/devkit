@@ -45,8 +45,8 @@ export interface AuthCtx {
   isAuthenticated: boolean;
   /** Last login error message (e.g. "User rejected request"). */
   error: string | null;
-  /** Manually trigger SIWE login (e.g. retry after rejection). */
-  login: () => Promise<void>;
+  /** Manually trigger SIWE login (e.g. retry after rejection). Returns true on success. */
+  login: () => Promise<boolean>;
   /** Clear JWT + disconnect wallet. */
   logout: () => void;
   /**
@@ -143,10 +143,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [address]);
 
   // ── Core login function ───────────────────────────────────────────────────
-  const login = useCallback(async () => {
+  const login = useCallback(async (): Promise<boolean> => {
     if (!address) {
       setError('No wallet connected');
-      return;
+      return false;
     }
 
     setIsLoading(true);
@@ -192,6 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(TOKEN_KEY, jwt);
       setToken(jwt);
       setError(null);
+      return true;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Login failed';
       // Don't surface "User rejected" as a scary error — just show retry.
@@ -206,6 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             : msg
         );
       }
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -224,12 +226,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       chainId === EXPECTED_CHAIN_ID && // only sign on the correct chain
       !token &&
       !isLoading &&
+      !error && // don't auto-sign while an error is displayed (user sees retry button)
       autoSignedForRef.current !== address // only once per address
     ) {
-      autoSignedForRef.current = address;
-      void login();
+      autoSignedForRef.current = address; // optimistic lock — prevent double-fire
+      void login().then((success) => {
+        if (!success) {
+          // Reset the guard so that if the user clears the error and the
+          // relevant deps change (e.g. re-connect), auto-sign can try again.
+          autoSignedForRef.current = null;
+        }
+      });
     }
-  }, [isConnected, address, chainId, token, isLoading, login]);
+  }, [isConnected, address, chainId, token, isLoading, error, login]);
 
   // ── Refresh auth (re-sign with the same wallet — used on 401 responses) ──
   const refreshAuth = useCallback(() => {
