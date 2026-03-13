@@ -37,38 +37,63 @@ function getProvider(): EthereumProvider | undefined {
 }
 
 export function useNetworkSwitch() {
-  const { isConnected, chainId: wagmiChainId } = useAccount();
+  const { isConnected } = useAccount();
 
-  // Track the actual wallet chain directly from window.ethereum events.
-  // wagmi's useAccount().chainId should also update reactively, but some
-  // wallet + SSR combinations cause it to lag or miss external chain switches.
-  // Seeding from the live provider event gives an instant, reliable signal.
+  // `liveChainId` is the only source of truth for the current wallet chain.
+  //
+  // Why NOT use useAccount().chainId:
+  //   wagmi initialises from SSR cookies which can contain a stale/wrong chain
+  //   (e.g. Ethereum mainnet from a previous session). That stale value causes
+  //   isWrongNetwork to fire true immediately on every page reload even when
+  //   the wallet is already on the correct chain.
+  //
+  // Strategy:
+  //   1. Start as `undefined` — meaning "chain not yet confirmed".
+  //   2. Query eth_chainId once as soon as we have a connected wallet.
+  //   3. Keep it current via the chainChanged event.
+  //   4. isWrongNetwork is ONLY true once liveChainId is known AND wrong.
+  //      While liveChainId is still undefined the banner stays hidden, which
+  //      prevents a flash-of-wrong-network on every page load.
   const [liveChainId, setLiveChainId] = useState<number | undefined>(undefined);
   const [switchError, setSwitchError] = useState<string | null>(null);
   const [isSwitching, setIsSwitching] = useState(false);
 
+  // Set up the chainChanged listener once and query the initial chain id
+  // whenever isConnected becomes true (covers both: wallet already connected
+  // on first mount, and wallet connected later without page reload).
   useEffect(() => {
     const provider = getProvider();
     if (!provider) return;
 
-    // Query current chain once to seed liveChainId on mount.
-    void provider
-      .request({ method: 'eth_chainId' })
-      .then((hex) => setLiveChainId(Number(hex as string)))
-      .catch(() => {
-        /* fall back to wagmiChainId */
-      });
-
+    // Register the event listener unconditionally so any external chain
+    // switch is always picked up, even before isConnected is true.
     const onChainChanged = (chainIdHex: unknown) => {
       setLiveChainId(Number(chainIdHex as string));
     };
     provider.on('chainChanged', onChainChanged);
-    return () => provider.removeListener('chainChanged', onChainChanged);
-  }, []);
 
-  // Prefer the live value seeded from wallet events; fall back to wagmi's store.
-  const effectiveChainId = liveChainId ?? wagmiChainId;
-  const isWrongNetwork = isConnected && effectiveChainId !== EXPECTED_CHAIN_ID;
+    // Query current chain immediately when connected.
+    if (isConnected) {
+      void provider
+        .request({ method: 'eth_chainId' })
+        .then((hex) => setLiveChainId(Number(hex as string)))
+        .catch(() => {
+          /* provider unresponsive — banner stays hidden */
+        });
+    } else {
+      // Wallet disconnected: reset so the banner doesn't linger.
+      setLiveChainId(undefined);
+    }
+
+    return () => provider.removeListener('chainChanged', onChainChanged);
+  }, [isConnected]);
+
+  // Banner is only shown once we have a confirmed chain AND it is wrong.
+  // Never show it while liveChainId is still undefined (querying / not connected).
+  const isWrongNetwork =
+    isConnected &&
+    liveChainId !== undefined &&
+    liveChainId !== EXPECTED_CHAIN_ID;
 
   useEffect(() => {
     if (!isWrongNetwork) setSwitchError(null);
