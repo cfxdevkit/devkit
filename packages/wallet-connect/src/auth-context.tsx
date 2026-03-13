@@ -88,9 +88,48 @@ function validToken(token: string | null): string | null {
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { address, isConnected, chainId } = useAccount();
+  const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
   const { disconnect } = useDisconnect();
+
+  // Read the actual wallet chain directly from window.ethereum.chainId
+  // (synchronous EIP-1193 property) instead of useAccount().chainId.
+  // wagmi initialises chainId from SSR cookies which can be stale from a
+  // previous session on a different chain, causing the SIWE auto-sign guard
+  // and the chain-change clearing effect to use the wrong chain ID.
+  const [walletChainId, setWalletChainId] = useState<number | undefined>(() => {
+    if (typeof window === 'undefined') return undefined;
+    const raw = (window as Window & { ethereum?: { chainId?: string } })
+      .ethereum?.chainId;
+    if (!raw) return undefined;
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  });
+
+  useEffect(() => {
+    const provider = (
+      window as Window & {
+        ethereum?: {
+          chainId?: string;
+          on: (e: string, l: (v: unknown) => void) => void;
+          removeListener: (e: string, l: (v: unknown) => void) => void;
+        };
+      }
+    ).ethereum;
+    if (!provider) return;
+    // Re-read in case the provider was injected after first render.
+    const raw = provider.chainId;
+    if (raw) {
+      const n = Number(raw);
+      if (Number.isFinite(n) && n > 0) setWalletChainId(n);
+    }
+    const onChainChanged = (hex: unknown) => {
+      const n = Number(hex as string);
+      if (Number.isFinite(n) && n > 0) setWalletChainId(n);
+    };
+    provider.on('chainChanged', onChainChanged);
+    return () => provider.removeListener('chainChanged', onChainChanged);
+  }, []);
 
   // Initialise synchronously from localStorage so there is no flash of
   // "unauthenticated" on page reload when a token already exists.
@@ -138,13 +177,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Network"), clear any stale error and reset the auto-sign guard so a fresh
   // SIWE attempt runs automatically without requiring a manual retry click.
   useEffect(() => {
-    if (chainId === EXPECTED_CHAIN_ID && !token) {
+    if (walletChainId === EXPECTED_CHAIN_ID && !token) {
       setError(null);
       autoSignedForRef.current = null;
       autoSignAttemptsRef.current = 0;
       lastLoginRejectedRef.current = false;
     }
-  }, [chainId, token]);
+  }, [walletChainId, token]);
 
   // ── Clear token when the wallet SWITCHES to a different address ─────────────
   // We do NOT clear on address → undefined (transient disconnect / wagmi
@@ -201,7 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         uri: window.location.origin,
         version: '1',
         chainId:
-          chainId ??
+          walletChainId ??
           (process.env.NEXT_PUBLIC_NETWORK === 'mainnet' ? 1030 : 71),
         nonce,
       });
@@ -247,7 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [address, chainId, signMessageAsync]);
+  }, [address, walletChainId, signMessageAsync]);
 
   // ── Auto-sign on connect (fires once per address, only on correct chain) ────
   // Guard against calling login() while on a wrong network: wagmi's
@@ -268,7 +307,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (
       isConnected &&
       address &&
-      chainId === EXPECTED_CHAIN_ID &&
+      walletChainId === EXPECTED_CHAIN_ID &&
       !token &&
       !isLoading &&
       isAutoSignReady &&
@@ -292,7 +331,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       });
     }
-  }, [isConnected, address, chainId, token, isLoading, isAutoSignReady, login]);
+  }, [
+    isConnected,
+    address,
+    walletChainId,
+    token,
+    isLoading,
+    isAutoSignReady,
+    login,
+  ]);
 
   // ── Refresh auth (re-sign with the same wallet — used on 401 responses) ──
   const refreshAuth = useCallback(() => {
