@@ -59,11 +59,22 @@ let _clientConfig: ReturnType<typeof createConfig> | undefined;
 export function getConfig() {
   if (_clientConfig) return _clientConfig;
 
-  // `appUrl` must match the actual page origin to avoid the WalletConnect
-  // warning: "configured metadata.url differs from the actual page url".
-  // Set NEXT_PUBLIC_APP_URL in .env.local (e.g. http://localhost:3000) for
-  // local dev and to the production URL (https://cas.cfxdevkit.org) in prod.
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  // `appUrl` must exactly match the actual page origin (scheme + host + port)
+  // so WalletConnect metadata and every SIWE `uri` are consistent.
+  //
+  // Use `window.location.origin` at runtime — it is always the true current
+  // origin (correct scheme, correct port) regardless of how the dev server was
+  // started (http vs https, port 3000 vs 3001, etc.).  This eliminates the
+  // "configured metadata.url differs from the actual page url" warning and the
+  // viem "X does not match current domain" SIWE error entirely.
+  //
+  // `getConfig()` is only ever called in browser context (see the
+  // `typeof window === 'undefined' ? getServerConfig() : getConfig()` guard in
+  // providers.tsx), so `window` is guaranteed to be defined here.
+  const appUrl =
+    typeof window !== 'undefined'
+      ? window.location.origin
+      : (process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000');
 
   _clientConfig = createConfig({
     ...getDefaultConfig({
