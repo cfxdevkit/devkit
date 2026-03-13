@@ -9,7 +9,7 @@ import {
   Power,
   Wallet,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { useAuthContext } from './auth-context.js';
 import { EXPECTED_CHAIN_NAME, useNetworkSwitch } from './useNetworkSwitch.js';
@@ -79,24 +79,55 @@ function AddressChip({
   );
 }
 
+// ─── ConnectButton subcomponent ─────────────────────────────────────────────
+// `useModal` from ConnectKit must be called inside <ConnectKitProvider>.
+// This component is only ever rendered:
+//   (a) on the client (the parent WalletConnect guards with mounted state), AND
+//   (b) after the ConnectKit dynamic import has resolved (inside ClientShell).
+// These two conditions guarantee ConnectKitProvider is in the React tree,
+// so calling useModal() here is always safe.
+function ConnectButton() {
+  const { setOpen } = useModal();
+  return (
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      className="group flex items-center gap-2 bg-conflux-600 hover:bg-conflux-500 text-white text-sm font-semibold py-2 px-4 rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(0,120,200,0.5)] hover:shadow-[0_0_25px_-5px_rgba(0,120,200,0.7)]"
+    >
+      <Wallet className="h-4 w-4 group-hover:scale-110 transition-transform" />
+      Connect Wallet
+    </button>
+  );
+}
+
 export function WalletConnect() {
   const { isConnected } = useAccount();
-  const { setOpen } = useModal();
+  // `mounted` is false on the server and on the first client paint (before
+  // useEffect runs). We use it to defer rendering ConnectButton until we are
+  // definitely inside ConnectKitProvider. Without this guard the server-side
+  // render (transpilePackages) would call useModal() without a provider and
+  // throw "ConnectKit Hook must be inside a Provider".
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const { address, token, isLoading, error, login, logout } = useAuthContext();
   const { isWrongNetwork, isSwitching, switchError, handleSwitchNetwork } =
     useNetworkSwitch();
 
   if (!isConnected) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="group flex items-center gap-2 bg-conflux-600 hover:bg-conflux-500 text-white text-sm font-semibold py-2 px-4 rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(0,120,200,0.5)] hover:shadow-[0_0_25px_-5px_rgba(0,120,200,0.7)]"
-      >
-        <Wallet className="h-4 w-4 group-hover:scale-110 transition-transform" />
-        Connect Wallet
-      </button>
-    );
+    // Render a static placeholder on the server / before hydration.
+    if (!mounted)
+      return (
+        <button
+          type="button"
+          disabled
+          className="flex items-center gap-2 bg-conflux-600/50 text-white text-sm font-semibold py-2 px-4 rounded-xl cursor-default"
+        >
+          <Wallet className="h-4 w-4" />
+          Connect Wallet
+        </button>
+      );
+    // Once mounted (client, ConnectKitProvider is live) use the real trigger.
+    return <ConnectButton />;
   }
 
   return (

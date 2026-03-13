@@ -29,6 +29,24 @@ import { Dashboard } from '../components/Dashboard/Dashboard';
 import { StrategyBuilder } from '../components/StrategyBuilder/StrategyBuilder';
 import { WcfxWrapModal } from '../components/StrategyBuilder/WcfxWrapModal';
 
+// ── Hero connect button (ConnectKit modal trigger) ───────────────────────────
+// Rendered only after mount (client-side) so useModal() is always inside the
+// ConnectKitProvider that ClientShell provides.  On the server / initial paint
+// the parent already guards with `if (!mounted)` and never renders this.
+function HeroConnectButton() {
+  const { setOpen } = useModal();
+  return (
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      className="group relative inline-flex items-center justify-center bg-conflux-600 hover:bg-conflux-500 text-white text-lg font-semibold py-4 px-10 rounded-2xl transition-all shadow-[0_0_40px_-10px_rgba(0,120,200,0.6)] hover:shadow-[0_0_60px_-15px_rgba(0,120,200,0.8)] overflow-hidden"
+    >
+      <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+      <span className="relative">Connect Wallet to Start</span>
+    </button>
+  );
+}
+
 // ── Strategy modal ────────────────────────────────────────────────────────────
 
 function StrategyModal({
@@ -99,7 +117,6 @@ function StrategyModal({
 
 export default function HomePage() {
   const { isConnected } = useAccount();
-  const { setOpen } = useModal();
   const { address, token, isLoading, error, login } = useAuthContext();
   const { isWrongNetwork, isSwitching, switchError, handleSwitchNetwork } =
     useNetworkSwitch();
@@ -136,14 +153,7 @@ export default function HomePage() {
             keepers.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="group relative inline-flex items-center justify-center bg-conflux-600 hover:bg-conflux-500 text-white text-lg font-semibold py-4 px-10 rounded-2xl transition-all shadow-[0_0_40px_-10px_rgba(0,120,200,0.6)] hover:shadow-[0_0_60px_-15px_rgba(0,120,200,0.8)] overflow-hidden"
-        >
-          <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
-          <span className="relative">Connect Wallet to Start</span>
-        </button>
+        <HeroConnectButton />
       </div>
     );
   }
