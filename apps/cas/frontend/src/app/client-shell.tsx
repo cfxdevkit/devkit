@@ -31,8 +31,22 @@
 
 import { PoolsProvider } from '@cfxdevkit/defi-react';
 import { AuthProvider, ConnectModalProvider } from '@cfxdevkit/wallet-connect';
-import { ConnectKitProvider } from 'connectkit';
+import { ConnectKitProvider, useModal } from 'connectkit';
 import type { ReactNode } from 'react';
+
+// Inner shell: rendered inside ConnectKitProvider so useModal() is safe here.
+// This is flat application code (not in transpilePackages), so it resolves
+// connectkit from the same module instance as ConnectKitProvider.
+function InnerShell({ children }: { children: ReactNode }) {
+  const { setOpen } = useModal();
+  return (
+    <ConnectModalProvider openModal={() => setOpen(true)}>
+      <AuthProvider>
+        <PoolsProvider>{children}</PoolsProvider>
+      </AuthProvider>
+    </ConnectModalProvider>
+  );
+}
 
 export function ClientShell({ children }: { children: ReactNode }) {
   return (
@@ -41,22 +55,10 @@ export function ClientShell({ children }: { children: ReactNode }) {
       options={{
         hideNoWalletCTA: false,
         walletConnectName: 'WalletConnect',
-        // Disable ConnectKit's automatic font injection (<link rel="preload">
-        // for Nunito/Inter). We manage fonts ourselves via next/font in
-        // layout.tsx, so ConnectKit's preloaded font resources were never
-        // consumed and triggered "preloaded but not used" browser warnings.
         avoidLayoutShift: false,
       }}
     >
-      {/* ConnectModalProvider MUST be inside ConnectKitProvider. It calls
-          useModal() here (safely) and exposes openModal() via React context
-          so WalletConnect and page-level connect buttons can trigger the CK
-          modal without themselves needing to be inside ConnectKitProvider. */}
-      <ConnectModalProvider>
-        <AuthProvider>
-          <PoolsProvider>{children}</PoolsProvider>
-        </AuthProvider>
-      </ConnectModalProvider>
+      <InnerShell>{children}</InnerShell>
     </ConnectKitProvider>
   );
 }

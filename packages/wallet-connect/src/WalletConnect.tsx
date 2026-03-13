@@ -1,6 +1,5 @@
 'use client';
 
-import { useModal } from 'connectkit';
 import {
   AlertTriangle,
   Check,
@@ -30,25 +29,38 @@ import { EXPECTED_CHAIN_NAME, useNetworkSwitch } from './useNetworkSwitch.js';
 // guaranteed safe. It stores the open callback in this context. WalletConnect
 // reads from context — no provider requirement; when the context is null the
 // button is simply disabled until ClientShell is ready.
+//
+// IMPORTANT: ConnectModalProvider must NOT call useModal() here. This file is
+// in transpilePackages, which means it is bundled by Turbopack separately from
+// the ConnectKitProvider import in client-shell.tsx. Even with resolveAlias,
+// the transpile boundary can cause a different connectkit module instance,
+// breaking the React context lookup. Instead, client-shell.tsx (frontend
+// application code, not transpiled) calls useModal() and passes the callback
+// as a prop to ConnectModalProvider, keeping all connectkit hook calls in the
+// same module graph as ConnectKitProvider.
 
 const ConnectModalCtx = createContext<(() => void) | null>(null);
 
 /**
- * Renders inside <ConnectKitProvider> (i.e. inside ClientShell). Calls
- * useModal() safely and exposes `openModal` via context to any descendant,
- * including <WalletConnect> and the hero connect button in page.tsx.
+ * Wrap your app tree with this component INSIDE <ConnectKitProvider>.
+ * Pass the result of useModal().setOpen from the parent so that all
+ * connectkit hook calls remain in the same bundle as ConnectKitProvider.
  *
  * Usage in ClientShell:
- *   <ConnectKitProvider ...>
- *     <ConnectModalProvider>
- *       ...
- *     </ConnectModalProvider>
- *   </ConnectKitProvider>
+ *   const { setOpen } = useModal();   // called here, same bundle as CKProvider
+ *   <ConnectModalProvider openModal={() => setOpen(true)}>
+ *     ...
+ *   </ConnectModalProvider>
  */
-export function ConnectModalProvider({ children }: { children: ReactNode }) {
-  const { setOpen } = useModal();
+export function ConnectModalProvider({
+  children,
+  openModal,
+}: {
+  children: ReactNode;
+  openModal: () => void;
+}) {
   return (
-    <ConnectModalCtx.Provider value={() => setOpen(true)}>
+    <ConnectModalCtx.Provider value={openModal}>
       {children}
     </ConnectModalCtx.Provider>
   );
