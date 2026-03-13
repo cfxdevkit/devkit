@@ -32,6 +32,7 @@ const nextConfig = {
   turbopack: {
     resolveAlias: {
       wagmi: './node_modules/wagmi',
+      connectkit: './node_modules/connectkit',
       react: './node_modules/react',
       'react-dom': './node_modules/react-dom',
       '@tanstack/react-query': './node_modules/@tanstack/react-query',
