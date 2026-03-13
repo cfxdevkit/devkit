@@ -9,10 +9,55 @@ import {
   Power,
   Wallet,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { createContext, type ReactNode, useContext, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { useAuthContext } from './auth-context.js';
 import { EXPECTED_CHAIN_NAME, useNetworkSwitch } from './useNetworkSwitch.js';
+
+// ─── ConnectModal context ──────────────────────────────────────────────────
+//
+// WHY THIS EXISTS
+// useModal() from ConnectKit requires a ConnectKitProvider ancestor. That
+// provider lives inside ClientShell (dynamic ssr:false). WalletConnect is
+// rendered by CasNavBar which is *inside* ClientShell — but on the very first
+// client paint, before the dynamic import has fully resolved and painted its
+// children, there is a brief window where ConnectKitProvider is not yet in the
+// tree even though useEffect has already fired (mounted=true). Calling
+// useModal() in that window throws.
+//
+// Solution: ConnectModalProvider (exported below) lives *inside*
+// ConnectKitProvider in ClientShell and calls useModal() there, where it is
+// guaranteed safe. It stores the open callback in this context. WalletConnect
+// reads from context — no provider requirement; when the context is null the
+// button is simply disabled until ClientShell is ready.
+
+const ConnectModalCtx = createContext<(() => void) | null>(null);
+
+/**
+ * Renders inside <ConnectKitProvider> (i.e. inside ClientShell). Calls
+ * useModal() safely and exposes `openModal` via context to any descendant,
+ * including <WalletConnect> and the hero connect button in page.tsx.
+ *
+ * Usage in ClientShell:
+ *   <ConnectKitProvider ...>
+ *     <ConnectModalProvider>
+ *       ...
+ *     </ConnectModalProvider>
+ *   </ConnectKitProvider>
+ */
+export function ConnectModalProvider({ children }: { children: ReactNode }) {
+  const { setOpen } = useModal();
+  return (
+    <ConnectModalCtx.Provider value={() => setOpen(true)}>
+      {children}
+    </ConnectModalCtx.Provider>
+  );
+}
+
+/** Returns the ConnectKit open-modal callback, or null before ClientShell loads. */
+export function useOpenConnectModal(): (() => void) | null {
+  return useContext(ConnectModalCtx);
+}
 
 // ─── Copy-to-clipboard address chip with inline status dot ───────────────────
 type SignStatus = 'signed' | 'unsigned' | 'loading';
@@ -79,55 +124,26 @@ function AddressChip({
   );
 }
 
-// ─── ConnectButton subcomponent ─────────────────────────────────────────────
-// `useModal` from ConnectKit must be called inside <ConnectKitProvider>.
-// This component is only ever rendered:
-//   (a) on the client (the parent WalletConnect guards with mounted state), AND
-//   (b) after the ConnectKit dynamic import has resolved (inside ClientShell).
-// These two conditions guarantee ConnectKitProvider is in the React tree,
-// so calling useModal() here is always safe.
-function ConnectButton() {
-  const { setOpen } = useModal();
-  return (
-    <button
-      type="button"
-      onClick={() => setOpen(true)}
-      className="group flex items-center gap-2 bg-conflux-600 hover:bg-conflux-500 text-white text-sm font-semibold py-2 px-4 rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(0,120,200,0.5)] hover:shadow-[0_0_25px_-5px_rgba(0,120,200,0.7)]"
-    >
-      <Wallet className="h-4 w-4 group-hover:scale-110 transition-transform" />
-      Connect Wallet
-    </button>
-  );
-}
-
+// ─── WalletConnect component ─────────────────────────────────────────────────
 export function WalletConnect() {
   const { isConnected } = useAccount();
-  // `mounted` is false on the server and on the first client paint (before
-  // useEffect runs). We use it to defer rendering ConnectButton until we are
-  // definitely inside ConnectKitProvider. Without this guard the server-side
-  // render (transpilePackages) would call useModal() without a provider and
-  // throw "ConnectKit Hook must be inside a Provider".
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const openModal = useOpenConnectModal();
   const { address, token, isLoading, error, login, logout } = useAuthContext();
   const { isWrongNetwork, isSwitching, switchError, handleSwitchNetwork } =
     useNetworkSwitch();
 
   if (!isConnected) {
-    // Render a static placeholder on the server / before hydration.
-    if (!mounted)
-      return (
-        <button
-          type="button"
-          disabled
-          className="flex items-center gap-2 bg-conflux-600/50 text-white text-sm font-semibold py-2 px-4 rounded-xl cursor-default"
-        >
-          <Wallet className="h-4 w-4" />
-          Connect Wallet
-        </button>
-      );
-    // Once mounted (client, ConnectKitProvider is live) use the real trigger.
-    return <ConnectButton />;
+    return (
+      <button
+        type="button"
+        onClick={openModal ?? undefined}
+        disabled={!openModal}
+        className="group flex items-center gap-2 bg-conflux-600 hover:bg-conflux-500 disabled:opacity-60 disabled:cursor-default text-white text-sm font-semibold py-2 px-4 rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(0,120,200,0.5)] hover:shadow-[0_0_25px_-5px_rgba(0,120,200,0.7)]"
+      >
+        <Wallet className="h-4 w-4 group-hover:scale-110 transition-transform" />
+        Connect Wallet
+      </button>
+    );
   }
 
   return (

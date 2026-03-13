@@ -19,8 +19,8 @@ import {
   EXPECTED_CHAIN_NAME,
   useAuthContext,
   useNetworkSwitch,
+  useOpenConnectModal,
 } from '@cfxdevkit/wallet-connect';
-import { useModal } from 'connectkit';
 import { Plus, RefreshCcw, ShieldCheck, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
@@ -30,16 +30,17 @@ import { StrategyBuilder } from '../components/StrategyBuilder/StrategyBuilder';
 import { WcfxWrapModal } from '../components/StrategyBuilder/WcfxWrapModal';
 
 // ── Hero connect button (ConnectKit modal trigger) ───────────────────────────
-// Rendered only after mount (client-side) so useModal() is always inside the
-// ConnectKitProvider that ClientShell provides.  On the server / initial paint
-// the parent already guards with `if (!mounted)` and never renders this.
+// Reads the openModal callback from ConnectModalContext (set inside
+// ConnectKitProvider by ConnectModalProvider in ClientShell). Safe to call
+// unconditionally — returns null until ClientShell has loaded.
 function HeroConnectButton() {
-  const { setOpen } = useModal();
+  const openModal = useOpenConnectModal();
   return (
     <button
       type="button"
-      onClick={() => setOpen(true)}
-      className="group relative inline-flex items-center justify-center bg-conflux-600 hover:bg-conflux-500 text-white text-lg font-semibold py-4 px-10 rounded-2xl transition-all shadow-[0_0_40px_-10px_rgba(0,120,200,0.6)] hover:shadow-[0_0_60px_-15px_rgba(0,120,200,0.8)] overflow-hidden"
+      onClick={openModal ?? undefined}
+      disabled={!openModal}
+      className="group relative inline-flex items-center justify-center bg-conflux-600 hover:bg-conflux-500 disabled:opacity-60 disabled:cursor-default text-white text-lg font-semibold py-4 px-10 rounded-2xl transition-all shadow-[0_0_40px_-10px_rgba(0,120,200,0.6)] hover:shadow-[0_0_60px_-15px_rgba(0,120,200,0.8)] overflow-hidden"
     >
       <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
       <span className="relative">Connect Wallet to Start</span>

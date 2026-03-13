@@ -30,7 +30,7 @@
  */
 
 import { PoolsProvider } from '@cfxdevkit/defi-react';
-import { AuthProvider } from '@cfxdevkit/wallet-connect';
+import { AuthProvider, ConnectModalProvider } from '@cfxdevkit/wallet-connect';
 import { ConnectKitProvider } from 'connectkit';
 import type { ReactNode } from 'react';
 
@@ -48,9 +48,15 @@ export function ClientShell({ children }: { children: ReactNode }) {
         avoidLayoutShift: false,
       }}
     >
-      <AuthProvider>
-        <PoolsProvider>{children}</PoolsProvider>
-      </AuthProvider>
+      {/* ConnectModalProvider MUST be inside ConnectKitProvider. It calls
+          useModal() here (safely) and exposes openModal() via React context
+          so WalletConnect and page-level connect buttons can trigger the CK
+          modal without themselves needing to be inside ConnectKitProvider. */}
+      <ConnectModalProvider>
+        <AuthProvider>
+          <PoolsProvider>{children}</PoolsProvider>
+        </AuthProvider>
+      </ConnectModalProvider>
     </ConnectKitProvider>
   );
 }
