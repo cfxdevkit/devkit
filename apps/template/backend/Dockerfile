@@ -14,6 +14,11 @@ FROM node:22-slim AS builder
 
 WORKDIR /app
 
+# Install build tools required by native modules (better-sqlite3 → node-gyp)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@10.11.0 --activate
 
@@ -28,6 +33,9 @@ COPY apps/template/backend/ ./apps/template/backend/
 
 RUN pnpm --filter @cfxdevkit/template-backend build
 
+# Create a production-only flat bundle (includes compiled native bindings)
+RUN pnpm deploy --filter @cfxdevkit/template-backend --prod /app/deploy
+
 # ── Stage 2: runtime ─────────────────────────────────────────────────────────
 FROM node:22-slim AS runtime
 
@@ -36,11 +44,10 @@ LABEL org.opencontainers.image.title="template-backend" \
 
 WORKDIR /app
 
-# Only production deps
-COPY --from=builder /app/apps/template/backend/package.json ./
-RUN npm install --omit=dev --ignore-scripts
-
+# Copy production node_modules from deploy bundle (includes compiled better-sqlite3)
+COPY --from=builder /app/deploy/node_modules ./node_modules
 COPY --from=builder /app/apps/template/backend/dist ./dist
+COPY --from=builder /app/apps/template/backend/package.json ./
 
 # Non-root user
 RUN addgroup --system template && adduser --system --ingroup template template
