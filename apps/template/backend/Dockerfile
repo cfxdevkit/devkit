@@ -46,11 +46,17 @@ COPY apps/cas/frontend/package.json      ./apps/cas/frontend/package.json
 COPY apps/template/backend/package.json  ./apps/template/backend/package.json
 COPY apps/template/frontend/package.json ./apps/template/frontend/package.json
 
-# Install deps, then explicitly rebuild better-sqlite3 from source.
-# npm rebuild (not pnpm) traverses transitive deps and ships node-gyp,
-# so it compiles the native addon regardless of dep depth.
+# Install deps, then compile better-sqlite3 by finding it directly in the
+# pnpm virtual store and running node-gyp there.
+# npm/pnpm rebuild both only target hoisted root-level deps; better-sqlite3 is
+# transitive so it lives exclusively in .pnpm/ with no root symlink.
 RUN pnpm install --frozen-lockfile --filter @cfxdevkit/template-backend
-RUN npm rebuild better-sqlite3 --build-from-source
+RUN npm install -g node-gyp \
+    && BSQ=$(find /app/node_modules/.pnpm -name 'better-sqlite3' -type d \
+             | grep '/node_modules/better-sqlite3$' | head -1) \
+    && echo "Compiling better-sqlite3 in: $BSQ" \
+    && test -n "$BSQ" \
+    && cd "$BSQ" && node-gyp rebuild --release
 
 # Verify the binary was compiled (hard fail during build if missing)
 RUN find /app/node_modules/.pnpm -name 'better_sqlite3.node' | grep . || \

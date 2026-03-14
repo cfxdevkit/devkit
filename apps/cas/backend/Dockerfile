@@ -32,13 +32,19 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
 
 RUN npm install -g pnpm@10.11.0
 
-# Install from pruned manifests, then explicitly rebuild better-sqlite3 from
-# source. npm rebuild (not pnpm) traverses transitive deps and ships node-gyp,
-# so it compiles the native addon regardless of dep depth.
+# Install from pruned manifests, then compile better-sqlite3 by finding it
+# directly in the pnpm virtual store and running node-gyp there.
+# npm/pnpm rebuild both only target hoisted root-level deps; better-sqlite3 is
+# transitive so it lives exclusively in .pnpm/ with no root symlink.
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 RUN pnpm install --frozen-lockfile
-RUN npm rebuild better-sqlite3 --build-from-source
+RUN npm install -g node-gyp \
+    && BSQ=$(find /app/node_modules/.pnpm -name 'better-sqlite3' -type d \
+             | grep '/node_modules/better-sqlite3$' | head -1) \
+    && echo "Compiling better-sqlite3 in: $BSQ" \
+    && test -n "$BSQ" \
+    && cd "$BSQ" && node-gyp rebuild --release
 
 # Verify the binary was compiled (hard fail during build if missing)
 RUN find /app/node_modules/.pnpm -name 'better_sqlite3.node' | grep . || \
