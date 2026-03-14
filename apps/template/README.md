@@ -1,11 +1,11 @@
 # Template — Conflux DevKit Starter
 
 A minimal starter template with:
-- Next.js 16 + Turbopack frontend
+- Next.js 15 + Turbopack frontend
 - Wallet connection via ConnectKit + wagmi
 - SIWE (Sign-In with Ethereum) authentication
 - `@cfxdevkit/theme` Tailwind preset wired up
-- Express backend (auth nonce/verify routes only)
+- Fastify backend (auth nonce/verify routes only)
 - SQLite (better-sqlite3 + Drizzle ORM)
 - Deploy: backend → VPS (Docker), frontend → Vercel
 
@@ -40,15 +40,36 @@ PORT=3002
 
 ## Production deploy
 
-**Backend → VPS**
+### Docker image — native addon notes
+
+The backend image (`node:20-slim`, Debian glibc) is required because
+`better-sqlite3` must be compiled from source for ARM64 (aarch64). The
+Dockerfile locates `better-sqlite3` in the pnpm virtual store (`.pnpm/`) and
+runs `node-gyp rebuild --release` directly there — `pnpm rebuild` and
+`npm rebuild` both skip transitive dependencies that have no root symlink.
+
+Images are built for both `linux/amd64` and `linux/arm64` by `build-template.yml`.
+
+### Backend → VPS
+
+`build-template.yml` builds and pushes a multi-arch image to GHCR on every
+push to `main` (path-filtered to `apps/template/backend/**`). `deploy-template.yml`
+then SSHes into the Hetzner VPS (`/opt/apps/template`) and runs:
+
 ```bash
-# On the VPS:
-cd /opt/apps/template
-cp .env.example .env && $EDITOR .env
-docker compose up -d
+TAG=edge docker compose pull template-backend
+TAG=edge docker compose up -d --remove-orphans
 ```
 
-**Frontend → Vercel**
+Deploys automatically on every push to `main` via the
+`build-template.yml` → `deploy-template.yml` chain. Trigger manually at any
+time with a custom image tag via `workflow_dispatch`.
+
+The container listens on port `3002`; the VPS maps `127.0.0.1:3003:3002` so
+Caddy proxies via `localhost:3003`.
+
+### Frontend → Vercel
+
 - Import the monorepo into Vercel
 - Set `Root Directory` to `apps/template/frontend`
 - Add env vars:
@@ -60,6 +81,6 @@ docker compose up -d
 
 ```caddy
 api.template.cfxdevkit.org {
-  reverse_proxy localhost:3002
+  reverse_proxy localhost:3003
 }
 ```

@@ -2,9 +2,11 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Template backend — multi-stage ARM64-native build
 #
-# node:20-slim is required: better-sqlite3 ships prebuilt linux/arm64/glibc
-# binaries for Node 20 (N-API v115). Node 22 (v127) has no prebuilts, forcing
-# QEMU node-gyp compilation in CI which is unreliable.
+# node:20-slim (Debian glibc) is required: better-sqlite3 is a transitive dep
+# (backend → executor → services) with no root-level symlink in the pnpm
+# virtual store, so neither ‘pnpm rebuild’ nor ‘npm rebuild’ compile it.
+# The builder stage finds it directly in .pnpm/ and runs node-gyp there.
+# Alpine (musl) is not supported — keep node:20-slim.
 #
 # Build (from monorepo root):
 #   docker build -t template-backend -f apps/template/backend/Dockerfile .

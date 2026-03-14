@@ -173,10 +173,10 @@ Adding a new app:
 
 ### Backend — `apps/cas/backend/`
 
-- **Runtime**: Node.js 22 + Fastify 5 + TypeScript
+- **Runtime**: Node.js 20 + Fastify 5 + TypeScript
 - **Port**: 3001 (internal only — proxied by Caddy to `api.cas.cfxdevkit.org`)
 - **Auth**: Bearer token via `CAS_API_KEY` env var on all `/api/*` routes
-- **Dockerfile**: Multi-stage, ARM64-native (`node:22-slim`) — no QEMU needed
+- **Dockerfile**: Multi-stage, ARM64-native (`node:20-slim`) — better-sqlite3 compiled from source via node-gyp in pnpm virtual store; no QEMU needed
 
 ### Frontend — `apps/cas/frontend/`
 
@@ -186,23 +186,31 @@ Adding a new app:
 
 ---
 
-## 6. GitHub Actions — `deploy-cas.yml`
+## 6. GitHub Actions — two-workflow CI/CD chain
+
+**`build-cas.yml`** builds and pushes to GHCR on every push to `main`
+(path-filtered to `apps/cas/backend/**`) and on semver tags. Produces multi-arch
+images (`linux/amd64` + `linux/arm64`) tagged `edge` (main) or `1.2.3`/`latest`
+(semver).
+
+**`deploy-cas.yml`** triggers automatically after `build-cas.yml` succeeds on `main`,
+or manually via `workflow_dispatch`:
 
 ```yaml
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Docker image tag (default: latest)
-        default: latest
+        description: Docker image tag to deploy (default: edge)
+        default: edge
   workflow_run:
-    workflows: ["Release"]
+    workflows: ["Build & push CAS backend image"]
     types: [completed]
+    branches: [main]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     steps:
       - uses: appleboy/ssh-action@v1
         with:
@@ -211,9 +219,8 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /opt/apps/cas
-            git pull --ff-only
-            TAG=${{ inputs.tag || 'latest' }} docker compose pull
-            TAG=${{ inputs.tag || 'latest' }} docker compose up -d --remove-orphans
+            TAG=edge docker compose pull cas-backend
+            TAG=edge docker compose up -d --remove-orphans
             docker image prune -f
 ```
 
