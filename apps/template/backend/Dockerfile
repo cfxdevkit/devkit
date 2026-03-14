@@ -37,13 +37,13 @@ LABEL org.opencontainers.image.title="template-backend" \
 
 WORKDIR /app
 
-# Copy node_modules directly from builder — the compiled better_sqlite3.node
-# binary is already present there from the pnpm rebuild step above.
-# (pnpm deploy performs a fresh install that skips build scripts, so the
-# binary is absent in a deploy dir — skip deploy entirely.)
+# Preserve the full workspace directory structure from the builder so that
+# pnpm's per-package node_modules symlinks (which point into the root
+# .pnpm virtual store) remain valid at runtime.
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/template/backend/dist ./dist
-COPY --from=builder /app/apps/template/backend/package.json ./
+COPY --from=builder /app/apps/template/backend/node_modules ./apps/template/backend/node_modules
+COPY --from=builder /app/apps/template/backend/dist ./apps/template/backend/dist
+COPY --from=builder /app/apps/template/backend/package.json ./apps/template/backend/package.json
 
 RUN addgroup --system template && adduser --system --ingroup template template
 USER template
@@ -57,4 +57,5 @@ EXPOSE 3002
 HEALTHCHECK --interval=15s --timeout=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3002/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
+WORKDIR /app/apps/template/backend
 CMD ["node", "dist/index.js"]

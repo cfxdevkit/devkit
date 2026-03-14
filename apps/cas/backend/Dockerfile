@@ -48,13 +48,13 @@ LABEL org.opencontainers.image.title="cas-backend" \
 
 WORKDIR /app
 
-# Copy node_modules directly from builder — the compiled better_sqlite3.node
-# binary is already present there from the pnpm rebuild step above.
-# (pnpm deploy performs a fresh install that skips build scripts, so the
-# binary is absent in a deploy dir — skip deploy entirely.)
+# Preserve the full workspace directory structure from the builder so that
+# pnpm's per-package node_modules symlinks (which point into the root
+# .pnpm virtual store) remain valid at runtime.
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/cas/backend/dist ./dist
-COPY --from=builder /app/apps/cas/backend/package.json ./
+COPY --from=builder /app/apps/cas/backend/node_modules ./apps/cas/backend/node_modules
+COPY --from=builder /app/apps/cas/backend/dist ./apps/cas/backend/dist
+COPY --from=builder /app/apps/cas/backend/package.json ./apps/cas/backend/package.json
 
 RUN addgroup --system cas && adduser --system --ingroup cas cas
 USER cas
@@ -68,4 +68,5 @@ EXPOSE 3001
 HEALTHCHECK --interval=15s --timeout=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3001/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
+WORKDIR /app/apps/cas/backend
 CMD ["node", "dist/index.js"]
