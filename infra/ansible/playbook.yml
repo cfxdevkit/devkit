@@ -1,11 +1,12 @@
 ---
 # Main provisioning playbook for the cfxdevkit VPS
 #
-# Run (first time, as root):
-#   ansible-playbook playbook.yml -i inventory.local.ini -e @vars/local.yml
+# Bootstrap (first time — fresh VPS, only root exists):
+#   ansible-playbook playbook.yml -i inventory.local.ini -e @vars/local.yml -u root
+#   (inventory has ansible_user=deploy, so -u root overrides it for this run only)
 #
-# Run (subsequent, as deploy user):
-#   ansible-playbook playbook.yml -i inventory.local.ini -e @vars/local.yml -u deploy
+# All subsequent runs (deploy user is set up, root SSH is disabled):
+#   ansible-playbook playbook.yml -i inventory.local.ini -e @vars/local.yml
 #
 # Run a single role:
 #   ansible-playbook playbook.yml -i inventory.local.ini --tags caddy
