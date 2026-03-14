@@ -52,10 +52,10 @@
     state: present
     exclusive: true
 
-- name: Allow deploy user passwordless sudo for docker only
+- name: Allow deploy user full passwordless sudo (root SSH is disabled; deploy is the sole admin account)
   copy:
-    dest: /etc/sudoers.d/deploy-docker
-    content: "{{ deploy_user }} ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker compose\n"
+    dest: /etc/sudoers.d/deploy-nopasswd
+    content: "{{ deploy_user }} ALL=(ALL) NOPASSWD: ALL\n"
     mode: "0440"
     validate: "visudo -cf %s"
 
