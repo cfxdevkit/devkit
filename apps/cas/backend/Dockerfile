@@ -72,6 +72,9 @@ COPY --from=builder /app/apps/cas/backend/dist         ./dist
 COPY --from=builder /app/apps/cas/backend/package.json ./package.json
 
 RUN addgroup --system cas && adduser --system --ingroup cas cas
+# Create the data directory owned by the runtime user so that Docker volume
+# mounts (and mkdirSync inside the app) can write to it without root privs.
+RUN mkdir -p /app/data && chown -R cas:cas /app/data
 USER cas
 
 ENV NODE_ENV=production \

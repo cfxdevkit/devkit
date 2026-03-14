@@ -82,6 +82,9 @@ COPY --from=builder /app/apps/template/backend/dist           ./dist
 COPY --from=builder /app/apps/template/backend/package.json   ./package.json
 
 RUN addgroup --system template && adduser --system --ingroup template template
+# Create the data directory owned by the runtime user so that Docker volume
+# mounts (and mkdirSync inside the app) can write to it without root privs.
+RUN mkdir -p /app/data && chown -R template:template /app/data
 USER template
 
 ENV NODE_ENV=production \
