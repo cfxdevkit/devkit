@@ -40,19 +40,6 @@ RUN pnpm rebuild better-sqlite3
 COPY --from=pruner /app/out/full/ .
 RUN pnpm --filter @cfxdevkit/cas-backend build
 
-# Create prod-only bundle — workspace deps resolve because prune provided them
-RUN pnpm deploy --filter @cfxdevkit/cas-backend --prod --legacy /app/deploy
-
-# Copy the compiled better_sqlite3.node binary from builder into the deploy dir.
-# pnpm deploy does a fresh install without running build scripts, so the binary
-# would be missing. We copy it from the already-compiled location instead.
-RUN find /app/node_modules -name "better_sqlite3.node" | while read src; do \
-      rel="${src#/app/node_modules/}"; \
-      dst="/app/deploy/node_modules/$rel"; \
-      mkdir -p "$(dirname $dst)"; \
-      cp "$src" "$dst"; \
-    done
-
 # ── Stage 2: runtime ─────────────────────────────────────────────────────────
 FROM node:22-slim AS runtime
 
@@ -61,7 +48,11 @@ LABEL org.opencontainers.image.title="cas-backend" \
 
 WORKDIR /app
 
-COPY --from=builder /app/deploy/node_modules ./node_modules
+# Copy node_modules directly from builder — the compiled better_sqlite3.node
+# binary is already present there from the pnpm rebuild step above.
+# (pnpm deploy performs a fresh install that skips build scripts, so the
+# binary is absent in a deploy dir — skip deploy entirely.)
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/cas/backend/dist ./dist
 COPY --from=builder /app/apps/cas/backend/package.json ./
 

@@ -29,17 +29,6 @@ RUN pnpm rebuild better-sqlite3
 COPY apps/template/backend/ ./apps/template/backend/
 RUN pnpm --filter @cfxdevkit/template-backend build
 
-# Create prod-only bundle
-RUN pnpm deploy --filter @cfxdevkit/template-backend --prod --legacy /app/deploy
-
-# Copy the compiled better_sqlite3.node binary into the deploy dir.
-RUN find /app/node_modules -name "better_sqlite3.node" | while read src; do \
-      rel="${src#/app/node_modules/}"; \
-      dst="/app/deploy/node_modules/$rel"; \
-      mkdir -p "$(dirname $dst)"; \
-      cp "$src" "$dst"; \
-    done
-
 # ── Stage 2: runtime ─────────────────────────────────────────────────────────
 FROM node:22-slim AS runtime
 
@@ -48,7 +37,11 @@ LABEL org.opencontainers.image.title="template-backend" \
 
 WORKDIR /app
 
-COPY --from=builder /app/deploy/node_modules ./node_modules
+# Copy node_modules directly from builder — the compiled better_sqlite3.node
+# binary is already present there from the pnpm rebuild step above.
+# (pnpm deploy performs a fresh install that skips build scripts, so the
+# binary is absent in a deploy dir — skip deploy entirely.)
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/template/backend/dist ./dist
 COPY --from=builder /app/apps/template/backend/package.json ./
 
