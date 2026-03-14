@@ -3,10 +3,11 @@
 #
 # Bootstrap (first time — fresh VPS, only root exists):
 #   ansible-playbook playbook.yml -i inventory.local.ini -e @vars/local.yml \
-#     -e ansible_user=root --private-key ~/.ssh/id_rsa
-#   NOTE: -u root does NOT work — ansible_user in inventory is a host variable
-#   that overrides it. -e ansible_user=root uses extra-vars precedence instead.
-#   --private-key overrides ansible_ssh_private_key_file (abc_deploy != root key).
+#     -e ansible_user=root \
+#     -e ansible_ssh_private_key_file=~/.ssh/id_rsa
+#   NOTE: -u/--user and --private-key are NOT enough — inventory host vars have
+#   higher precedence. Override both with -e (extra vars beat host vars).
+#   ansible_ssh_common_args has IdentitiesOnly=yes so only the named key is tried.
 #
 # All subsequent runs (root SSH is disabled after base role runs):
 #   ansible-playbook playbook.yml -i inventory.local.ini -e @vars/local.yml
