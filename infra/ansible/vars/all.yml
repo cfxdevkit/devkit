@@ -31,8 +31,8 @@ acme_email: "info@cfxdevkit.org"
 # Convention: api.<app>.cfxdevkit.org → localhost:<port>
 app_ports:
   monitoring: 3002   # Uptime Kuma (monitor.cfxdevkit.org)
-  cas: 3001          # CAS backend  (api.cas.cfxdevkit.org)
-  # next_app: 3003   # ← add future apps here
+  cas: 3001          # CAS backend      (api.cas.cfxdevkit.org)
+  template: 3003     # Template backend  (api.template.cfxdevkit.org)
 
 # ── Backups (restic — local path on VPS) ─────────────────────────────────────
 # Snapshots are written to /opt/restic-repo on the VPS itself.
@@ -48,6 +48,11 @@ restic_repository: "/opt/restic-repo"
 # (password manager) — losing it means losing access to all backups.
 # Generate with: openssl rand -base64 32
 restic_password: "TODO_set_strong_passphrase"
+
+# ── Template backend secrets ──────────────────────────────────────────────────
+# TODO: generate with: openssl rand -hex 32
+template_jwt_secret: "TODO_template_jwt_secret"
+template_image_tag: "edge"
 
 # Off-site cloud credentials — leave empty when using a local path.
 b2_account_id: ""

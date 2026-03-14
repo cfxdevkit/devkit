@@ -35,3 +35,6 @@
 
     - role: cas
       tags: [cas]
+
+    - role: template
+      tags: [template]

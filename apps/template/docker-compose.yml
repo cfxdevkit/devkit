@@ -12,7 +12,7 @@ services:
     restart: unless-stopped
     # Only accessible via Caddy — not exposed to the public internet.
     ports:
-      - "127.0.0.1:3002:3002"
+      - "127.0.0.1:3003:3002"
     environment:
       NODE_ENV: production
       PORT: "3002"

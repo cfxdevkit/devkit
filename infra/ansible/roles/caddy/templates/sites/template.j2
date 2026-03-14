@@ -1,0 +1,7 @@
+# Caddyfile snippet — template
+# File: /etc/caddy/sites-enabled/template.conf
+# Managed by Ansible. Do not edit manually.
+
+api.template.{{ base_domain }} {
+	reverse_proxy localhost:{{ app_ports.template }}
+}

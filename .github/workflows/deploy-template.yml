@@ -1,0 +1,66 @@
+name: Deploy template to VPS
+
+# Triggers:
+#   - Automatically after build-template.yml succeeds on main (image tag: edge)
+#   - Manually via workflow_dispatch with a custom tag
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Docker image tag to deploy (default: edge)"
+        required: false
+        default: "edge"
+  workflow_run:
+    workflows: ["Build & push template backend image"]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: deploy-template
+  cancel-in-progress: false # never cancel an in-flight deploy
+
+jobs:
+  deploy:
+    name: SSH deploy — template backend
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Determine image tag
+        id: tag
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=edge" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: deploy
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: GHCR_TOKEN
+          script: |
+            set -euo pipefail
+            cd /opt/apps/template
+
+            echo "Deploying template-backend tag=${{ steps.tag.outputs.tag }}"
+
+            if [ -n "${GHCR_TOKEN:-}" ]; then
+              echo "$GHCR_TOKEN" | docker login ghcr.io -u cfxdevkit --password-stdin
+            fi
+
+            TAG=${{ steps.tag.outputs.tag }} docker compose pull template-backend
+
+            TAG=${{ steps.tag.outputs.tag }} docker compose up -d --remove-orphans
+
+            docker image prune -f
+
+            sleep 5
+            docker compose ps template-backend
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}

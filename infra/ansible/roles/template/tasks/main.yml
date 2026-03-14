@@ -1,0 +1,34 @@
+---
+# Role: template
+# Idempotent infrastructure setup for the template backend:
+#   - creates /opt/apps/template/
+#   - writes docker-compose.yml
+#   - writes .env (secrets injected from vars/local.yml)
+#
+# Image pull + container start are handled by the 'Deploy template to VPS'
+# GitHub Actions workflow (deploy-template.yml), which runs after
+# build-template.yml succeeds.
+
+- name: Create /opt/apps/template directory
+  file:
+    path: /opt/apps/template
+    state: directory
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_group }}"
+    mode: "0750"
+
+- name: Write docker-compose.yml
+  copy:
+    src: "{{ playbook_dir }}/../../apps/template/docker-compose.yml"
+    dest: /opt/apps/template/docker-compose.yml
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_group }}"
+    mode: "0640"
+
+- name: Write .env from template
+  template:
+    src: env.j2
+    dest: /opt/apps/template/.env
+    owner: "{{ deploy_user }}"
+    group: "{{ deploy_group }}"
+    mode: "0600"
