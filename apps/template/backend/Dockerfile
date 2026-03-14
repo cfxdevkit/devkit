@@ -14,8 +14,7 @@
 FROM node:20-slim AS builder
 WORKDIR /app
 
-# Build tools for native addons (secp256k1, etc.).
-# better-sqlite3 uses a prebuilt arm64 binary on node 20 — no compilation needed.
+# Build tools required for native addon compilation (better-sqlite3, secp256k1).
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
@@ -47,15 +46,13 @@ COPY apps/cas/frontend/package.json      ./apps/cas/frontend/package.json
 COPY apps/template/backend/package.json  ./apps/template/backend/package.json
 COPY apps/template/frontend/package.json ./apps/template/frontend/package.json
 
-# Install deps for the template backend only.
-# Write build-from-source=true to .npmrc so pnpm passes it to better-sqlite3's
-# install script (prebuild-install reads this config and skips the prebuilt
-# download, going straight to node-gyp compilation with the tools above).
-# Setting npm_config_* env vars doesn't work with pnpm — .npmrc is required.
-RUN echo 'build-from-source=true' >> .npmrc
+# Install deps, then explicitly rebuild better-sqlite3 from source.
+# npm rebuild (not pnpm) traverses transitive deps and ships node-gyp,
+# so it compiles the native addon regardless of dep depth.
 RUN pnpm install --frozen-lockfile --filter @cfxdevkit/template-backend
+RUN npm rebuild better-sqlite3 --build-from-source
 
-# Verify the binary was actually compiled (fail loudly during build if not)
+# Verify the binary was compiled (hard fail during build if missing)
 RUN find /app/node_modules/.pnpm -name 'better_sqlite3.node' | grep . || \
     (echo 'ERROR: better_sqlite3.node was not compiled!' && exit 1)
 
