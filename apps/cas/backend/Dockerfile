@@ -34,11 +34,16 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
 RUN npm install -g pnpm@10.11.0
 
 # Install from pruned manifests.
-# better-sqlite3 is in onlyBuiltDependencies (pnpm-workspace.yaml) so pnpm
-# runs its install script, which downloads the prebuilt arm64 binary directly.
+# npm_config_build_from_source skips the prebuild-install download entirely
+# and goes straight to node-gyp compilation — necessary because under QEMU
+# the prebuild-install download either fails or downloads an incompatible binary.
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
-RUN pnpm install --frozen-lockfile
+RUN npm_config_build_from_source=true pnpm install --frozen-lockfile
+
+# Verify the binary was actually compiled (fail loudly during build if not)
+RUN find /app/node_modules/.pnpm -name 'better_sqlite3.node' | grep . || \
+    (echo 'ERROR: better_sqlite3.node was not compiled!' && exit 1)
 
 # Copy source for all packages in the pruned subset and build in dep order.
 # turbo respects "dependsOn": ["^build"] so executor and its deps build first.

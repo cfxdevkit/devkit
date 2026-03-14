@@ -48,9 +48,14 @@ COPY apps/template/backend/package.json  ./apps/template/backend/package.json
 COPY apps/template/frontend/package.json ./apps/template/frontend/package.json
 
 # Install deps for the template backend only.
-# better-sqlite3 is in onlyBuiltDependencies (pnpm-workspace.yaml) so pnpm
-# downloads its prebuilt arm64 binary — no QEMU compilation needed.
-RUN pnpm install --frozen-lockfile --filter @cfxdevkit/template-backend
+# npm_config_build_from_source skips the prebuild-install download entirely
+# and goes straight to node-gyp compilation — necessary because under QEMU
+# the prebuild-install download either fails or downloads an incompatible binary.
+RUN npm_config_build_from_source=true pnpm install --frozen-lockfile --filter @cfxdevkit/template-backend
+
+# Verify the binary was actually compiled (fail loudly during build if not)
+RUN find /app/node_modules/.pnpm -name 'better_sqlite3.node' | grep . || \
+    (echo 'ERROR: better_sqlite3.node was not compiled!' && exit 1)
 
 COPY apps/template/backend/ ./apps/template/backend/
 RUN pnpm --filter @cfxdevkit/template-backend build
