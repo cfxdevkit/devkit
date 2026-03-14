@@ -4,16 +4,12 @@
 #
 # Build (from monorepo root):
 #   docker build -t cas-backend -f apps/cas/backend/Dockerfile .
-#
-# Run:
-#   docker run --rm -p 3001:3001 -e CAS_API_KEY=secret cas-backend
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Stage 0: prune ────────────────────────────────────────────────────────────
-# turbo prune creates a minimal workspace subset containing only the packages
-# needed for @cfxdevkit/cas-backend (including @cfxdevkit/executor and its
-# transitive workspace deps). Without this, pnpm deploy --legacy fails with
-# ERR_PNPM_WORKSPACE_PKG_NOT_FOUND when trying to resolve workspace:* deps.
+# turbo prune produces out/json/ (manifests) + out/full/ (sources) for the
+# minimal workspace subset that includes @cfxdevkit/executor and its deps.
+# Without this, pnpm deploy can't resolve workspace:* references.
 FROM node:22-slim AS pruner
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10.11.0 --activate
@@ -22,37 +18,40 @@ RUN pnpm dlx turbo prune @cfxdevkit/cas-backend --docker
 
 # ── Stage 1: build ────────────────────────────────────────────────────────────
 FROM node:22-slim AS builder
-
 WORKDIR /app
 
-# Build tools for native modules (better-sqlite3 → node-gyp)
+# Build tools required by better-sqlite3 → node-gyp
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 
 RUN corepack enable && corepack prepare pnpm@10.11.0 --activate
 
-# Install deps from the pruned manifest set (all needed package.json files present)
+# Install from pruned manifests (all workspace package.json files present)
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 RUN pnpm install --frozen-lockfile
 
-# Compile better-sqlite3 native binding (not in onlyBuiltDependencies so
-# Vercel frontend builds don't fail — rebuild explicitly here where Python exists)
+# Compile better-sqlite3 in the builder node_modules while Python is available.
+# (Removed from onlyBuiltDependencies so Vercel frontend installs don't fail.)
 RUN pnpm rebuild better-sqlite3
 
-# Copy full pruned source tree and build the app
+# Copy source and build
 COPY --from=pruner /app/out/full/ .
 RUN pnpm --filter @cfxdevkit/cas-backend build
 
-# Create prod bundle — workspace deps resolvable now that prune provided them
+# Create prod-only bundle — workspace deps resolve because prune provided them
 RUN pnpm deploy --filter @cfxdevkit/cas-backend --prod --legacy /app/deploy
 
-# Re-compile better-sqlite3 in the deploy dir (pnpm deploy re-installs from
-# the content-addressable store into a new location; binary needs a rebuild)
-WORKDIR /app/deploy
-RUN pnpm rebuild better-sqlite3
-WORKDIR /app
+# Copy the compiled better_sqlite3.node binary from builder into the deploy dir.
+# pnpm deploy does a fresh install without running build scripts, so the binary
+# would be missing. We copy it from the already-compiled location instead.
+RUN find /app/node_modules -name "better_sqlite3.node" | while read src; do \
+      rel="${src#/app/node_modules/}"; \
+      dst="/app/deploy/node_modules/$rel"; \
+      mkdir -p "$(dirname $dst)"; \
+      cp "$src" "$dst"; \
+    done
 
 # ── Stage 2: runtime ─────────────────────────────────────────────────────────
 FROM node:22-slim AS runtime
@@ -62,12 +61,10 @@ LABEL org.opencontainers.image.title="cas-backend" \
 
 WORKDIR /app
 
-# Copy production node_modules (includes compiled better-sqlite3) + built app
 COPY --from=builder /app/deploy/node_modules ./node_modules
 COPY --from=builder /app/apps/cas/backend/dist ./dist
 COPY --from=builder /app/apps/cas/backend/package.json ./
 
-# Non-root user
 RUN addgroup --system cas && adduser --system --ingroup cas cas
 USER cas
 

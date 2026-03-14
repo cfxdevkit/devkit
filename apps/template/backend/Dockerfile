@@ -4,41 +4,41 @@
 #
 # Build (from monorepo root):
 #   docker build -t template-backend -f apps/template/backend/Dockerfile .
-#
-# Run:
-#   docker run --rm -p 3002:3002 -e JWT_SECRET=secret template-backend
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Stage 1: build ────────────────────────────────────────────────────────────
 FROM node:22-slim AS builder
-
 WORKDIR /app
 
-# Install build tools required by native modules (better-sqlite3 → node-gyp)
+# Build tools required by better-sqlite3 → node-gyp
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pnpm
 RUN corepack enable && corepack prepare pnpm@10.11.0 --activate
 
-# Copy workspace manifests first for layer-cache efficiency
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY tsconfig.base.json ./
 COPY apps/template/backend/package.json ./apps/template/backend/
 
 RUN pnpm install --frozen-lockfile --filter @cfxdevkit/template-backend
 
-# Compile better-sqlite3 native binding (not compiled during install —
-# removed from onlyBuiltDependencies so Vercel frontend builds don't break)
+# Compile better-sqlite3 in the builder node_modules while Python is available.
 RUN pnpm rebuild better-sqlite3
 
 COPY apps/template/backend/ ./apps/template/backend/
-
 RUN pnpm --filter @cfxdevkit/template-backend build
 
-# Create a production-only flat bundle (includes compiled native bindings)
+# Create prod-only bundle
 RUN pnpm deploy --filter @cfxdevkit/template-backend --prod --legacy /app/deploy
+
+# Copy the compiled better_sqlite3.node binary into the deploy dir.
+RUN find /app/node_modules -name "better_sqlite3.node" | while read src; do \
+      rel="${src#/app/node_modules/}"; \
+      dst="/app/deploy/node_modules/$rel"; \
+      mkdir -p "$(dirname $dst)"; \
+      cp "$src" "$dst"; \
+    done
 
 # ── Stage 2: runtime ─────────────────────────────────────────────────────────
 FROM node:22-slim AS runtime
@@ -48,12 +48,10 @@ LABEL org.opencontainers.image.title="template-backend" \
 
 WORKDIR /app
 
-# Copy production node_modules from deploy bundle (includes compiled better-sqlite3)
 COPY --from=builder /app/deploy/node_modules ./node_modules
 COPY --from=builder /app/apps/template/backend/dist ./dist
 COPY --from=builder /app/apps/template/backend/package.json ./
 
-# Non-root user
 RUN addgroup --system template && adduser --system --ingroup template template
 USER template
 
