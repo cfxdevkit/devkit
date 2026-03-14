@@ -29,12 +29,16 @@ COPY apps/template/backend/package.json ./apps/template/backend/
 
 RUN pnpm install --frozen-lockfile --filter @cfxdevkit/template-backend
 
+# Compile better-sqlite3 native binding (not compiled during install —
+# removed from onlyBuiltDependencies so Vercel frontend builds don't break)
+RUN pnpm rebuild better-sqlite3
+
 COPY apps/template/backend/ ./apps/template/backend/
 
 RUN pnpm --filter @cfxdevkit/template-backend build
 
 # Create a production-only flat bundle (includes compiled native bindings)
-RUN pnpm deploy --filter @cfxdevkit/template-backend --prod /app/deploy
+RUN pnpm deploy --filter @cfxdevkit/template-backend --prod --legacy /app/deploy
 
 # ── Stage 2: runtime ─────────────────────────────────────────────────────────
 FROM node:22-slim AS runtime

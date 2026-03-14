@@ -29,12 +29,16 @@ COPY apps/cas/backend/package.json ./apps/cas/backend/
 
 RUN pnpm install --frozen-lockfile --filter @cfxdevkit/cas-backend
 
+# Compile better-sqlite3 native binding (not compiled during install —
+# removed from onlyBuiltDependencies so Vercel frontend builds don't break)
+RUN pnpm rebuild better-sqlite3
+
 COPY apps/cas/backend/ ./apps/cas/backend/
 
 RUN pnpm --filter @cfxdevkit/cas-backend build
 
 # Create a production-only flat bundle (includes compiled native bindings)
-RUN pnpm deploy --filter @cfxdevkit/cas-backend --prod /app/deploy
+RUN pnpm deploy --filter @cfxdevkit/cas-backend --prod --legacy /app/deploy
 
 # ── Stage 2: runtime ─────────────────────────────────────────────────────────
 FROM node:22-slim AS runtime
