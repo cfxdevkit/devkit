@@ -67,6 +67,7 @@ import type {
   TestConfig,
   TransactionEvent,
   TransactionReceipt,
+  TxOptions,
   WalletClient as UnifiedWalletClient,
   UnwatchFunction,
   WalletConfig,
@@ -197,11 +198,24 @@ export class CoreClient implements ChainClient {
     );
   }
 
-  async waitForTransaction(hash: string): Promise<TransactionReceipt> {
+  /**
+   * Wait for a transaction to be confirmed.
+   * @param hash    - Transaction hash.
+   * @param timeout - Timeout in milliseconds (default: 30 000). Pass `0` for no timeout.
+   */
+  async waitForTransaction(
+    hash: string,
+    timeout?: number
+  ): Promise<TransactionReceipt> {
     try {
-      const receipt = await this.publicClient.waitForTransactionReceipt({
+      const opts: Record<string, unknown> = {
         hash: hash as `0x${string}`,
-      });
+      };
+      const t = timeout ?? 30_000;
+      if (t > 0) opts.timeout = t;
+      const receipt = await this.publicClient.waitForTransactionReceipt(
+        opts as { hash: `0x${string}`; timeout?: number }
+      );
 
       return {
         hash: receipt.transactionHash,
@@ -227,6 +241,75 @@ export class CoreClient implements ChainClient {
         'TRANSACTION_WAIT_ERROR',
         'core',
         { hash, originalError: error }
+      );
+    }
+  }
+
+  /**
+   * Get the raw balance as a bigint (in Drip, 1 CFX = 10^18 Drip).
+   * Use this when you need the exact value for arithmetic.
+   */
+  async getBalanceRaw(address: Address): Promise<bigint> {
+    if (!isCoreAddress(address)) {
+      throw new NodeError(
+        'Invalid Core address format',
+        'INVALID_ADDRESS',
+        'core'
+      );
+    }
+    try {
+      return await this.publicClient.getBalance({ address });
+    } catch (error) {
+      throw new NodeError(
+        `Failed to get balance: ${error instanceof Error ? error.message : String(error)}`,
+        'BALANCE_ERROR',
+        'core',
+        { address, originalError: error }
+      );
+    }
+  }
+
+  /**
+   * Get the chain ID from the connected node.
+   */
+  async getChainId(): Promise<number> {
+    try {
+      const status = await this.publicClient.getStatus();
+      return Number(status.chainId);
+    } catch (error) {
+      throw new NodeError(
+        `Failed to get chain ID: ${error instanceof Error ? error.message : String(error)}`,
+        'CHAIN_ID_ERROR',
+        'core',
+        { originalError: error }
+      );
+    }
+  }
+
+  /**
+   * Read a contract function (view/pure). Available on the public client —
+   * no wallet / private key required.
+   */
+  async callContract<T = unknown>(
+    address: string,
+    abi: unknown[],
+    functionName: string,
+    args: unknown[] = []
+  ): Promise<T> {
+    try {
+      const result = await this.publicClient.readContract({
+        address: address as Address,
+        abi,
+        functionName,
+        args,
+      });
+      return result as T;
+    } catch (error) {
+      throw new NodeError(
+        `Failed to call contract: ${error instanceof Error ? error.message : String(error)}`,
+        'CONTRACT_CALL_ERROR',
+        'core',
+        { address, functionName, args, originalError: error }
       );
     }
   }
@@ -510,16 +593,19 @@ export class CoreWalletClient implements UnifiedWalletClient {
     }
   }
 
-  /** @internal */
-  getInternalClient(): WalletClient {
-    return this.walletClient;
-  }
-
-  async waitForTransaction(hash: string): Promise<TransactionReceipt> {
+  /**
+   * Wait for a transaction to be confirmed.
+   * @param hash    - Transaction hash.
+   * @param timeout - Timeout in milliseconds (default: 30 000).
+   */
+  async waitForTransaction(
+    hash: string,
+    timeout?: number
+  ): Promise<TransactionReceipt> {
     try {
       const receipt = await this.publicClient.waitForTransactionReceipt({
         hash: hash as `0x${string}`,
-        timeout: 5_000, // 5 second timeout for faster response
+        timeout: timeout ?? 30_000,
       });
 
       return {
@@ -668,7 +754,8 @@ export class CoreWalletClient implements UnifiedWalletClient {
   async deployContract(
     abi: unknown[],
     bytecode: string,
-    constructorArgs: unknown[] = []
+    constructorArgs: unknown[] = [],
+    options?: TxOptions
   ): Promise<string> {
     try {
       const hash = await this.walletClient.deployContract({
@@ -677,10 +764,12 @@ export class CoreWalletClient implements UnifiedWalletClient {
         abi,
         bytecode: bytecode as `0x${string}`,
         args: constructorArgs,
+        gas: options?.gasLimit,
+        gasPrice: options?.gasPrice,
       });
 
       // Wait for transaction to be mined and get the contract address
-      const receipt = await this.waitForTransaction(hash);
+      const receipt = await this.waitForTransaction(hash, options?.timeout);
 
       if (!receipt.contractAddress) {
         throw new Error('Contract address not found in transaction receipt');
@@ -756,6 +845,43 @@ export class CoreWalletClient implements UnifiedWalletClient {
         { address, functionName, args, value, originalError: error }
       );
     }
+  }
+
+  /**
+   * Write to a contract and wait for the transaction to be confirmed.
+   * Convenience wrapper around `writeContract` + `waitForTransaction`.
+   */
+  async writeAndWait(
+    address: string,
+    abi: unknown[],
+    functionName: string,
+    args: unknown[] = [],
+    value?: bigint,
+    options?: TxOptions
+  ): Promise<TransactionReceipt> {
+    const hash = await this.writeContract(
+      address,
+      abi,
+      functionName,
+      args,
+      value
+    );
+    return this.waitForTransaction(hash, options?.timeout);
+  }
+
+  /** @internal */
+  getInternalClient(): WalletClient {
+    return this.walletClient;
+  }
+
+  /** Access the underlying cive WalletClient for advanced operations. */
+  get civeWalletClient(): WalletClient {
+    return this.walletClient;
+  }
+
+  /** Access the underlying cive PublicClient for advanced read operations. */
+  get civePublicClient(): PublicClient {
+    return this.publicClient;
   }
 }
 

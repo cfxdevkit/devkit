@@ -40,12 +40,25 @@ export interface ChainClient {
   // Basic Operations
   getBlockNumber(): Promise<bigint>;
   getBalance(address: Address): Promise<string>;
+  getBalanceRaw(address: Address): Promise<bigint>;
   getGasPrice(): Promise<bigint>;
+  getChainId(): Promise<number>;
   estimateGas(tx: BaseTransaction): Promise<bigint>;
 
   // Transaction Operations
   sendTransaction(tx: BaseTransaction): Promise<string>;
-  waitForTransaction(hash: string): Promise<TransactionReceipt>;
+  waitForTransaction(
+    hash: string,
+    timeout?: number
+  ): Promise<TransactionReceipt>;
+
+  // Contract Operations
+  callContract<T = unknown>(
+    address: string,
+    abi: unknown[],
+    functionName: string,
+    args?: unknown[]
+  ): Promise<T>;
 
   // Token Operations
   getTokenBalance(

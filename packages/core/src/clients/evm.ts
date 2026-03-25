@@ -46,6 +46,7 @@ import type {
   TestConfig,
   TransactionEvent,
   TransactionReceipt,
+  TxOptions,
   WalletClient as UnifiedWalletClient,
   WalletConfig,
 } from '../types/index.js';
@@ -166,11 +167,19 @@ export class EspaceClient implements ChainClient {
     }
   }
 
-  async waitForTransaction(hash: string): Promise<TransactionReceipt> {
+  /**
+   * Wait for a transaction to be confirmed.
+   * @param hash    - Transaction hash.
+   * @param timeout - Timeout in milliseconds (default: 30 000).
+   */
+  async waitForTransaction(
+    hash: string,
+    timeout?: number
+  ): Promise<TransactionReceipt> {
     try {
       const receipt = await this.publicClient.waitForTransactionReceipt({
         hash: hash as `0x${string}`,
-        timeout: 5_000, // 5 second timeout for faster response
+        timeout: timeout ?? 30_000,
       });
 
       return {
@@ -250,6 +259,58 @@ export class EspaceClient implements ChainClient {
       'METHOD_NOT_AVAILABLE',
       'evm'
     );
+  }
+
+  /**
+   * Get the raw balance as a bigint (in wei).
+   * Use this when you need the exact value for arithmetic.
+   */
+  async getBalanceRaw(address: Address): Promise<bigint> {
+    if (!isEvmAddress(address)) {
+      throw new NodeError(
+        'Invalid EVM address format',
+        'INVALID_ADDRESS',
+        'evm'
+      );
+    }
+    try {
+      return await this.publicClient.getBalance({ address });
+    } catch (error) {
+      throw new NodeError(
+        `Failed to get balance: ${error instanceof Error ? error.message : String(error)}`,
+        'BALANCE_ERROR',
+        'evm',
+        { address, originalError: error }
+      );
+    }
+  }
+
+  /**
+   * Read a contract function (view/pure). Available on the public client —
+   * no wallet / private key required.
+   */
+  async callContract<T = unknown>(
+    address: string,
+    abi: unknown[],
+    functionName: string,
+    args: unknown[] = []
+  ): Promise<T> {
+    try {
+      const result = await this.publicClient.readContract({
+        address: address as Address,
+        abi,
+        functionName,
+        args,
+      });
+      return result as T;
+    } catch (error) {
+      throw new NodeError(
+        `Failed to call contract: ${error instanceof Error ? error.message : String(error)}`,
+        'CONTRACT_CALL_ERROR',
+        'evm',
+        { address, functionName, args, originalError: error }
+      );
+    }
   }
 
   async getTokenBalance(
@@ -416,7 +477,8 @@ export class EspaceWalletClient
   async deployContract(
     abi: unknown[],
     bytecode: string,
-    constructorArgs: unknown[] = []
+    constructorArgs: unknown[] = [],
+    options?: TxOptions
   ): Promise<string> {
     try {
       const hash = await this.walletClient.deployContract({
@@ -425,10 +487,12 @@ export class EspaceWalletClient
         abi,
         bytecode: bytecode as `0x${string}`,
         args: constructorArgs,
+        gas: options?.gasLimit,
+        gasPrice: options?.gasPrice,
       });
 
       // Wait for transaction to be mined and get the contract address
-      const receipt = await this.waitForTransaction(hash);
+      const receipt = await this.waitForTransaction(hash, options?.timeout);
 
       if (!receipt.contractAddress) {
         throw new Error('Contract address not found in transaction receipt');
@@ -498,6 +562,28 @@ export class EspaceWalletClient
   }
 
   /**
+   * Write to a contract and wait for the transaction to be confirmed.
+   * Convenience wrapper around `writeContract` + `waitForTransaction`.
+   */
+  async writeAndWait(
+    address: string,
+    abi: unknown[],
+    functionName: string,
+    args: unknown[] = [],
+    value?: bigint,
+    options?: TxOptions
+  ): Promise<TransactionReceipt> {
+    const hash = await this.writeContract(
+      address,
+      abi,
+      functionName,
+      args,
+      value
+    );
+    return this.waitForTransaction(hash, options?.timeout);
+  }
+
+  /**
    * Transfer CFX from eSpace to Core Space
    * Uses the built-in withdrawal mechanism
    */
@@ -548,6 +634,16 @@ export class EspaceWalletClient
   /** @internal */
   getInternalClient(): PublicClient | WalletClient {
     return this.walletClient;
+  }
+
+  /** Access the underlying viem WalletClient for advanced operations. */
+  get viemWalletClient(): WalletClient {
+    return this.walletClient;
+  }
+
+  /** Access the underlying viem PublicClient for advanced read operations. */
+  get viemPublicClient(): PublicClient {
+    return this.publicClient;
   }
 }
 

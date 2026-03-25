@@ -136,6 +136,19 @@ export interface BaseTransaction {
   readonly nonce?: number;
 }
 
+/**
+ * Options for transaction confirmation and gas overrides.
+ * All fields are optional — sensible defaults are used when omitted.
+ */
+export interface TxOptions {
+  /** Receipt wait timeout in milliseconds (default: 30_000). */
+  readonly timeout?: number;
+  /** Override gas estimation. */
+  readonly gasLimit?: bigint;
+  /** Override gas price. */
+  readonly gasPrice?: bigint;
+}
+
 export interface TransactionReceipt {
   readonly hash: string;
   readonly blockNumber: bigint;

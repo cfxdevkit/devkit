@@ -94,6 +94,7 @@ export type {
   TestConfig,
   TransactionEvent,
   TransactionReceipt,
+  TxOptions,
   UnifiedAccount,
   UnwatchFunction,
   WalletClient,
@@ -101,7 +102,7 @@ export type {
 } from './types/index.js';
 export type { LogMessage } from './utils/index.js';
 // ── Utils ──────────────────────────────────────────────────────────────────
-export { logger } from './utils/index.js';
+export { logger, stringifyBigInt } from './utils/index.js';
 export type {
   BatcherOptions,
   BatchResult,

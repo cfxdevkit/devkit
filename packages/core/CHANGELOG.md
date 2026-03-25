@@ -6,6 +6,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.1.0] - 2026-03-25
+
+### Added
+- `TxOptions` interface (`timeout`, `gasLimit`, `gasPrice`) for fine-grained tx control
+- `stringifyBigInt(value, space?)` utility for safe JSON serialization of BigInt values
+- `EspaceClient.callContract<T>()` — typed read-only contract calls on the base client
+- `EspaceClient.getBalanceRaw()` — raw bigint balance (no formatting)
+- `CoreClient.callContract<T>()`, `CoreClient.getBalanceRaw()`, `CoreClient.getChainId()`
+- `EspaceWalletClient.writeAndWait()` — `writeContract` + `waitForTransaction` in one call
+- `CoreWalletClient.writeAndWait()` — same convenience for Core Space
+- Typed getters: `viemPublicClient`, `viemWalletClient` (eSpace); `civePublicClient`, `civeWalletClient` (Core)
+
+### Changed
+- `waitForTransaction` timeout is now configurable (default 30s, was hardcoded 5s)
+- `deployContract` accepts `TxOptions` for gas/timeout overrides
+- `ChainClient` interface updated: added `getBalanceRaw`, `getChainId`, `callContract`, optional `timeout` param on `waitForTransaction`
+
+---
+
 ## [0.1.0] - 2026-02-19
 
 ### Added

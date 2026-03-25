@@ -19,3 +19,18 @@
 
 export type { LogMessage } from './logger.js';
 export { logger } from './logger.js';
+
+/**
+ * JSON.stringify that serialises `bigint` values as decimal strings.
+ * Drop-in replacement for `JSON.stringify` when working with blockchain data.
+ *
+ * @param value  - The value to serialise.
+ * @param space  - Optional indentation (same as JSON.stringify).
+ */
+export function stringifyBigInt(value: unknown, space?: number): string {
+  return JSON.stringify(
+    value,
+    (_key, v) => (typeof v === 'bigint' ? v.toString() : v),
+    space
+  );
+}
