@@ -130,8 +130,15 @@ jobs:
         run: |
           set -e
           failed=''
+          # packages/theme is an internal Tailwind preset — not published to npm
+          SKIP_PACKAGES='packages/theme'
           for pkg_dir in packages/*/; do
-            pkg_name=$(node -p "require('./${pkg_dir}package.json').name")
+            pkg_dir="${pkg_dir%/}"
+            if echo "$SKIP_PACKAGES" | grep -qw "$pkg_dir"; then
+              echo "\n--- Skipping ${pkg_dir} (not published) ---"
+              continue
+            fi
+            pkg_name=$(node -p "require('./${pkg_dir}/package.json').name")
             echo "\n--- Publishing ${pkg_name} ---"
             tarball=$(pnpm pack -C "${pkg_dir}" --pack-destination "$PWD" 2>/dev/null | tail -1)
             if ! npm publish "${tarball}" --access public; then
