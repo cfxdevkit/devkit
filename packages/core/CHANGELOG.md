@@ -6,7 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [1.1.0] - 2026-03-25
+## [1.2.0] - 2026-03-25
 
 ### Added
 - `TxOptions` interface (`timeout`, `gasLimit`, `gasPrice`) for fine-grained tx control
