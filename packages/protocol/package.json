@@ -1,6 +1,6 @@
 {
   "name": "@cfxdevkit/protocol",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Conflux DevKit – on-chain contract artifacts: ABIs, bytecode, and deployed addresses",
   "type": "module",
   "main": "dist/index.js",
