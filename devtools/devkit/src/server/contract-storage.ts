@@ -22,6 +22,12 @@ export interface StoredContract {
   deployedAt: string; // ISO timestamp
   abi: unknown[];
   constructorArgs: unknown[];
+  /** Arbitrary extra data — used by external tools (MCP, DEX service) to attach
+   *  domain-specific metadata without requiring schema changes. Examples:
+   *  - UniswapV2Factory: { initCodeHash, rpcUrl, stables, wcfxPriceUsd }
+   *  - MirrorERC20 tokens: { realAddress, symbol, decimals, iconCached, mirroredAt }
+   */
+  metadata?: Record<string, unknown>;
 }
 
 interface ContractsFile {

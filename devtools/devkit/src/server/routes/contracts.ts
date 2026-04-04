@@ -27,7 +27,7 @@ import {
 } from '@cfxdevkit/core/config';
 import type { Address as CiveAddress } from 'cive';
 import { Router } from 'express';
-import { contractStorage } from '../contract-storage.js';
+import { contractStorage, type StoredContract } from '../contract-storage.js';
 import { orchestrateDeploy, sleep } from '../deploy-helpers.js';
 import type { NodeManager } from '../node-manager.js';
 
@@ -235,6 +235,43 @@ export function createContractRoutes(nodeManager: NodeManager): Router {
   router.delete('/deployed', (_req, res) => {
     contractStorage.clear();
     res.json({ ok: true });
+  });
+
+  // ── Register (external deploy) ─────────────────────────────────────────────
+  // POST /api/contracts/register
+  //   Registers a contract that was deployed by an external tool (MCP server,
+  //   DEX service, etc.) rather than through the devkit's own deploy route.
+  //   Allows MCP and other tooling to have a single persisted contract registry.
+  //
+  //   body: { name, address, chain, chainId, txHash?, deployer?,
+  //           deployedAt?, abi?, constructorArgs?, metadata? }
+
+  router.post('/register', (req, res) => {
+    const body = req.body as Partial<StoredContract>;
+    if (!body.address || !body.name || !body.chain || body.chainId === undefined) {
+      res
+        .status(400)
+        .json({ error: 'Required fields: address, name, chain, chainId' });
+      return;
+    }
+    const id =
+      body.id ??
+      `${body.chain}-${body.address.toLowerCase()}-${Date.now()}`;
+    const stored: StoredContract = {
+      id,
+      name: body.name,
+      address: body.address,
+      chain: body.chain,
+      chainId: body.chainId,
+      txHash: body.txHash ?? '',
+      deployer: body.deployer ?? '',
+      deployedAt: body.deployedAt ?? new Date().toISOString(),
+      abi: (body.abi as unknown[]) ?? [],
+      constructorArgs: (body.constructorArgs as unknown[]) ?? [],
+      ...(body.metadata ? { metadata: body.metadata } : {}),
+    };
+    const saved = contractStorage.add(stored);
+    res.status(201).json(saved);
   });
 
   // ── Contract call / interact ───────────────────────────────────────────────
