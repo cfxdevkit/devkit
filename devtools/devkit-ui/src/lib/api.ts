@@ -4,9 +4,13 @@
  * In development, set NEXT_PUBLIC_API_URL=http://localhost:7748 so the UI
  * (running on a different port via `next dev`) can reach the Express backend.
  * In production the UI is served by Express itself so the empty default works.
+ * When the app is opened through code-server at /proxy/<port>/, the runtime
+ * base path is inferred automatically and requests stay under that prefix.
  */
 
-const BASE = `${process.env.NEXT_PUBLIC_API_URL ?? ''}/api`;
+import { getApiBaseUrl } from '@/lib/base-path';
+
+const BASE = getApiBaseUrl();
 
 async function request<T>(
   method: string,
@@ -77,19 +81,13 @@ export interface FaucetInfo {
 export const accountsApi = {
   list: () => get<AccountInfo[]>('/accounts'),
   faucet: () => get<FaucetInfo>('/accounts/faucet'),
-  fund: async (address: string, amount?: string, chain?: 'core' | 'evm') => {
-    const res = await fetch(`/api/accounts/fund`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ address, amount, chain }),
-    });
-    return (await res.json()) as {
+  fund: (address: string, amount?: string, chain?: 'core' | 'evm') =>
+    post<{
       ok: boolean;
       txHash?: string;
       confirmed?: boolean;
       message?: string;
-    };
-  },
+    }>('/accounts/fund', { address, amount, chain }),
 };
 
 /* ─── contracts ────────────────────────────────────────────────────── */

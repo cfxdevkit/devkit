@@ -7,8 +7,12 @@ import { io, type Socket } from 'socket.io-client';
  *
  * In development, set NEXT_PUBLIC_WS_URL=http://localhost:7748 so the UI
  * (running via `next dev` on a different port) can reach the Socket.IO server.
- * In production the UI is served by Express so an empty string works (same origin).
+ * In production the UI is served by Express so an empty string works (same
+ * origin). When the app is loaded through code-server at /proxy/<port>/, the
+ * socket path is derived from that runtime prefix automatically.
  */
+
+import { getSocketPath } from '@/lib/base-path';
 
 let _socket: Socket | null = null;
 
@@ -16,7 +20,7 @@ export function getSocket(): Socket {
   if (!_socket) {
     const url = process.env.NEXT_PUBLIC_WS_URL ?? '';
     _socket = io(url || undefined, {
-      path: '/socket.io',
+      path: getSocketPath(),
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       reconnectionAttempts: Number.POSITIVE_INFINITY,
