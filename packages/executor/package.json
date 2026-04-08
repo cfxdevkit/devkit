@@ -1,6 +1,6 @@
 {
   "name": "@cfxdevkit/executor",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "Conflux DevKit – on-chain strategy execution engine (limit orders, DCA, and more)",
   "type": "module",
   "main": "dist/index.js",
